@@ -7,6 +7,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { BarChart, House, Leaf, Settings, Users } from 'lucide-react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -15,7 +16,8 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: "#1AD3BB",
-        headerShown: false,
+        tabBarInactiveTintColor: "#65435C",
+        headerShown: true,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
@@ -30,10 +32,38 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <House size={24} color={color} />,
         }}
       />
-       <Tabs.Screen
+      <Tabs.Screen
+        name="growers"
+        options={{
+          title: 'Growers',
+          tabBarIcon: ({ color }) => <Users size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="inputs"
+        options={{
+          title: 'Inputs',
+          tabBarIcon: ({ color }) => <Leaf size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="monitoring"
+        options={{
+          title: 'M & E',
+          tabBarIcon: ({ color }) => <BarChart size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color }) => <Settings size={24} color={color} />,
+        }}
+      />
+       {/* <Tabs.Screen
         name="two"
         options={{
           title: 'Two',
@@ -46,7 +76,7 @@ export default function TabLayout() {
           title: 'Explore',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
-      />
+      /> */}
      
     </Tabs>
   );

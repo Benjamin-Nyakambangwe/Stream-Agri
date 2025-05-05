@@ -132,12 +132,11 @@ const getUsers = async () => {
           )}
         </View>
 
-        
           <View className="mb-5">
             <Text className="font-bold text-gray-700 mb-2">Server Configuration</Text>
             <View className="flex-row items-center rounded-md m-3 border-2 border-[#65435C] px-2">
               <Mail size={20} color="#1AD3BB" />
-              <TextInput 
+              <TextInput
                 value={adminUsername} 
                 onChangeText={setAdminUsername} 
                 placeholder="Enter Admin Username"

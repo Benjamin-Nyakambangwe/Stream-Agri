@@ -8,8 +8,9 @@ import { useSession } from "../../authContext"
 import { useRouter } from "expo-router"
 import * as SecureStore from 'expo-secure-store';
 import { exportDatabase } from "../../export-db"
-import { useSQLiteContext } from "expo-sqlite"
+// import { useSQLiteContext } from "expo-sqlite"
 import { useNetwork } from "@/NetworkContext"
+import { powersync } from "@/powersync/system"
 
 interface LoginScreenProps {
   onRegisterPress: () => void
@@ -34,10 +35,10 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
   
   const { logIn, localLogin, error: authError } = useSession()
   const router = useRouter()
-  const appDatabase = useSQLiteContext()
+  // const appDatabase = useSQLiteContext()
 
   const viewUsers = async () => {
-    const users = await appDatabase.getAllAsync('SELECT * FROM users')
+    // const users = await appDatabase.getAllAsync('SELECT * FROM users')
     console.log(users)
   }
 
@@ -59,7 +60,10 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
 
   const handleLogin = async () => {
 console.log('Login Pressed')
-    const currentUser = await appDatabase.getAllAsync('SELECT * FROM users WHERE work_phone = ?', [phoneNumber])
+    // const currentUser = await appDatabase.getAllAsync('SELECT * FROM users WHERE work_phone = ?', [phoneNumber])
+    // console.log(currentUser)
+    const currentUser = await powersync.get('SELECT * from hr_employee WHERE work_phone = ?', [phoneNumber])
+    console.log('currentUser from powersync login page')
     console.log(currentUser)
 
     if (currentUser.length === 0) {

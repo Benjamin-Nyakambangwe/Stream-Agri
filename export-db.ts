@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { useSQLiteContext } from "expo-sqlite"
+// import { useSQLiteContext } from "expo-sqlite"
 
 // Add this function to your app
 export const exportDatabase = async () => {

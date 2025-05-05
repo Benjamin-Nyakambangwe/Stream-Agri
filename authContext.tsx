@@ -101,7 +101,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
           const apiBaseUrl = await getServerUrl();
 
           try {
-            const response = await fetch('http://192.168.100.5:8081/login', {
+            const response = await fetch('http://192.168.88.235:8081/login', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

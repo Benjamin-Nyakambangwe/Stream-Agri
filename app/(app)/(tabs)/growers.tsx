@@ -4,79 +4,85 @@ import { router, Stack } from 'expo-router'
 import { Users } from 'lucide-react-native'
 import { useSession } from '@/authContext'
 import * as SecureStore from 'expo-secure-store';
-import { useSQLiteContext } from 'expo-sqlite'
 import { FlashList } from '@shopify/flash-list'
 import { RefreshCcw } from 'lucide-react-native'
 import { useNetwork } from '@/NetworkContext'
+import { powersync, setupPowerSync } from '@/powersync/system';
+import { ProductionCycleRegistrationRecord } from '@/powersync/Schema'
+
+// Combined type for joined data
+type JoinedGrowerData = ProductionCycleRegistrationRecord & {
+    grower_number?: string;
+  //   grower_cellphone?: string;
+  //   grower_email?: string;
+  //   grower_farm_name?: string;
+  //   grower_province?: string;
+  };
+
 
 
 const Growers = () => {
     const session = useSession();
     console.log('session', session)
-    const appDatabase = useSQLiteContext()
-    const [growers, setGrowers] = useState<any[]>([])
     const { isConnected } = useNetwork()
-    const growersApi = async () => {
-        const adminSessionToken = await SecureStore.getItemAsync('odoo_admin_session_id');
-        console.log('adminSessionToken', adminSessionToken)
-        console.log('growersApi')
-        const response = await fetch('http://192.168.8.190:8081/api/growers', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                session_token: session?.session?.session_id,
-                apiBaseUrl: 'http://192.168.8.190:8069',
-                test: 'test',
-                adminSessionToken: adminSessionToken
-            })
-        })
-        console.log('response', response)
-        const data = await response.json()
-        console.log('actualdata', data.result.growers)
-        console.log('result', data.result.success)
 
-        if (data.result.success) {
-            if (data.result.growers.length > 0) {
-                addGrowersToDatabase(data.result.growers)
-            } else {
-                console.log('no growers')
+    const [growers, setGrowers] = useState<JoinedGrowerData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    // Initialize PowerSync if not already initialized
+    setupPowerSync();
+    
+    // Set up a watch query to get and monitor growers data
+    const controller = new AbortController();
+    
+    console.log('Setting up growers data watcher with JOIN...');
+    
+    powersync.watch(
+      `SELECT 
+        r.id, 
+        r.grower_name, 
+        r.mobile, 
+        r.production_scheme_id, 
+        r.production_cycle_name,
+        r.grower_id as registration_grower_id,
+        g.id as grower_table_id,
+        g.grower_number as grower_number
+      FROM odoo_gms_production_cycle_registration r
+      LEFT JOIN odoo_gms_grower g ON CAST(r.grower_id AS TEXT) = g.id
+      ORDER BY r.grower_name`,
+      [],
+      {
+        onResult: (result) => {
+          console.log('Joined growers data updated, count:', result.rows?._array?.length);
+          if (result.rows?._array) {
+            // Log the first few records to debug
+            if (result.rows._array.length > 0) {
+              console.log('Sample record:', JSON.stringify(result.rows._array[0]));
+              console.log('Join fields:', result.rows._array.slice(0, 3).map(row => ({
+                registration_grower_id: row.registration_grower_id,
+                grower_table_id: row.grower_table_id
+              })));
             }
-        } else {
-            console.log('error')
+            setGrowers(result.rows._array as JoinedGrowerData[]);
+          }
+          setLoading(false);
+        },
+        onError: (err) => {
+          console.error('Error fetching growers:', err);
+          setError(err.message);
+          setLoading(false);
         }
-    }
+      },
+      { signal: controller.signal }
+    );
+    
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
-    const addGrowersToDatabase = async (growers: any) => {
-        console.log('addGrowersToDatabase', growers)
-
-        if (growers.length > 0) {
-            await appDatabase.execAsync('DELETE FROM growers');
-        }
-        try {
-            for (const grower of growers) {
-                await appDatabase.runAsync(
-                    `INSERT INTO growers (id, first_name, surname) VALUES (?, ?, ?)`,
-                    [grower.id, grower.first_name, grower.surname]
-                )
-            }
-
-            console.log('Successfully inserted', growers.length, 'growers');
-            setGrowers(growers)
-        } catch (error) {
-            console.error('Error inserting growers:', error);
-        }
-    }
-
-    const getGrowersFromDatabase = async () => {
-        const growers = await appDatabase.getAllAsync('SELECT * FROM growers');
-        setGrowers(growers)
-    }
-
-    useEffect(() => {
-        getGrowersFromDatabase()
-    }, [])
   return (
     <>
       <Stack.Screen options={{ 
@@ -84,7 +90,7 @@ const Growers = () => {
         headerShown: true,
         headerRight: () => (
             <View className="mr-4">
-                <TouchableOpacity onPress={growersApi} disabled={!isConnected}>
+                <TouchableOpacity onPress={()=> console.log('refreshing')} disabled={!isConnected}>
                     <RefreshCcw size={24} color="#1AD3BB" />
                 </TouchableOpacity>
             </View>
@@ -98,18 +104,14 @@ const Growers = () => {
           <Text className="text-xl font-semibold text-[#65435C]">Growers</Text>
         </View> */}
 
-        {/* <TouchableOpacity className="bg-white rounded-2xl p-4 flex-row items-center gap-4"
-        onPress={growersApi}
-        >
-          <Text className="text-xl font-semibold text-[#65435C]">Farmer Profiles</Text>
-        </TouchableOpacity> */}
+
 
         <View className="flex-1 bg-white rounded-2xl p-4">
-        <FlashList
+        {/* <FlashList
       data={growers}
       renderItem={({ item }: { item: any }) => growerItem(item)}
       estimatedItemSize={200}
-    />
+    /> */}
         </View>
 
         {/* <View>

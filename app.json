@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "tired",
-    "slug": "tired",
+    "name": "Stream-Agri",
+    "slug": "Stream-Agri",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,7 +15,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.ben_nyakaz.StreamAgri"
     },
     "web": {
       "bundler": "metro",
@@ -38,6 +39,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "b8c7811b-7f08-4178-856c-adddcd3dc6fa"
+      }
+    },
+    "owner": "ben_nyakaz"
   }
 }

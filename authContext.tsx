@@ -15,8 +15,8 @@ interface OdooUserData {
 }
 
 // Default values for Odoo connection
-const DEFAULT_API_URL = 'http://192.168.10.244:8069';
-const DEFAULT_DB = 'odoo_db2';
+const DEFAULT_API_URL = 'http://45.84.138.225:8069';
+const DEFAULT_DB = 'curverid';
 
 const AuthContext = createContext<{
   logIn: (password: string, phoneNumber: string) => Promise<boolean>;
@@ -101,7 +101,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
           const apiBaseUrl = await getServerUrl();
 
           try {
-            const response = await fetch('http://192.168.8.190:8081/login', {
+            const response = await fetch('http://192.168.100.5:8081/login', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -125,7 +125,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
               };
 
               setSession(JSON.stringify(userData));
-              await SecureStore.setItemAsync('odoo_session_id', data.result.session_token);
+              await SecureStore.setItemAsync('odoo_custom_session_id', data.result.session_token);
               return true;
             } else {
               setError('Invalid response from server');
@@ -145,7 +145,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
           console.log(password, mobileAppPasswordHash)
 
           try {
-            const response = await fetch('http://192.168.133.172:8081/localLogin', {
+            const response = await fetch('http://192.168.100.5:8081/localLogin', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

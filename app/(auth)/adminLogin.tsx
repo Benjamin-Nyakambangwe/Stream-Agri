@@ -8,7 +8,7 @@ import { useSession } from "@/authContext"
 import { useRouter } from "expo-router"
 import * as SecureStore from 'expo-secure-store';
 import axios from "axios";
-import { useSQLiteContext } from "expo-sqlite"
+import { powersync } from "@/powersync/system";
 
 
 interface LoginScreenProps {
@@ -33,9 +33,8 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
   const [adminUsername, setAdminUsername] = useState("")
   const [adminPassword, setAdminPassword] = useState("")
   
-  const { signIn, adminLogin, session, error: authError } = useSession()
+  const { adminLogin, session, error: authError } = useSession()
   const router = useRouter()
-  const appDatabase = useSQLiteContext()
 
 
   // Load saved server IP and database on component mount
@@ -92,156 +91,21 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
     }
   }
 
-const getUsers = async () => {
-    console.log('Getting Users In Progress');
-    console.log('Session ID:', session?.session_id);
-    
-    try {
-      let serverIp = await SecureStore.getItemAsync('odoo_server_ip');
-      console.log('Server IP:', serverIp);
-      
-      if (!serverIp) {
-        throw new Error('Server IP not configured');
-      }
-      
-      if (!serverIp.startsWith('http')) {
-        serverIp = `http://${serverIp}`;
-      }
-      
-      // Change method to POST
-      const options = {
-        method: 'POST',  // Changed from GET to POST
-        url: `${serverIp}/web/dataset/call_kw`,
-        headers: {
-          cookie: `session_id=${session?.session_id}; frontend_lang=en_GB`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'insomnia/11.0.2'
-        },
-        data: {
-          jsonrpc: '2.0',
-          method: 'call',
-          params: {
-            model: 'hr.employee',
-            method: 'search_read',
-            args: [
-              [],
-              [
-                'id',
-                'name',
-                'work_phone',
-                'mobile_app_password'
-              ]
-            ],
-            kwargs: {context: {}}
-          },
-          id: 1
-        }
-      };
-      
-      const response = await axios.request(options);
-      
-      if (response.data.error) {
-        throw new Error(`Odoo API Error: ${response.data.error.message}`);
-      }
-      
-      console.log('Prime DB Success - Response:', response.data);
-      if (response.data.result && Array.isArray(response.data.result)) {
-        primeDB(response.data.result);
-        router.replace("/(auth)/login"); // Only redirect after successful insert
-      } else {
-        console.log('No employees found or invalid response format');
-        setLoginError('No employee data found to import');
-      }
-      // router.replace("/(auth)/login");
-      
-    } catch (error) {
-      console.error('Prime DB Failed');
-      
-      if (axios.isAxiosError(error)) {
-        if (error.response) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
-          console.error('Error Response:', {
-            status: error.response.status,
-            data: error.response.data,
-            headers: error.response.headers
-          });
-          setLoginError(`Server Error: ${error.response.status} - ${error.response.data?.error?.message || 'Unknown error'}`);
-        } else if (error.request) {
-          // The request was made but no response was received
-          console.error('No Response Received:', error.request);
-          setLoginError('No response from server. Please check your connection and server IP.');
-        } else {
-          // Something happened in setting up the request that triggered an Error
-          console.error('Request Setup Error:', error.message);
-          setLoginError(`Request Error: ${error.message}`);
-        }
-      } else {
-        // Handle non-axios errors
-        console.error('Non-Axios Error:', error);
-        setLoginError(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
-      }
-    }
+const getUsers = async () => {    
+  console.log('Getting All HR Employees');
+  
+  // Option 1: Use with callback (easier)
+  powersync.getAll(
+    'SELECT * from hr_employee' 
+  ).then((result) => {
+    console.log('Employee data:', result);
+    router.replace('/login')
+  }).catch((error) => {
+    console.error('Error fetching employee data:', error);
+  });
+
+
   };
-
-  const primeDB = async (employees: Employee[]) => {
-    console.log('Prime DB In Progress - Processing', employees.length, 'employees');
-    
-    try {      
-      
-      // Process all employees
-      if (employees.length === 0) {
-        console.log('No employees found');
-        return;
-      }
-
-      // Clear Table First
-      if (employees.length > 0) {
-        console.log('Clearing Table');
-        await appDatabase.execAsync('DELETE FROM users');
-      }
-
-
-      for (const employee of employees) {
-        await appDatabase.runAsync(
-          `INSERT INTO users (id, name, work_phone, mobile_app_password) 
-           VALUES (?, ?, ?, ?)`, 
-          [employee.id, employee.name, employee.work_phone, employee.mobile_app_password]
-        );
-      }
-      
-      console.log('Successfully inserted', employees.length, 'employees');
-      router.replace("/(auth)/login");
-    } catch (error) {
-      // Rollback on error
-      await appDatabase.execAsync('ROLLBACK');
-      console.error('Error inserting employees:', error);
-      setLoginError(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-
-  // const saveServerSettings = async () => {
-  //   if (!serverIP) {
-  //     Alert.alert("Error", "Please enter a valid server IP address");
-  //     return;
-  //   }
-    
-  //   if (!database) {
-  //     Alert.alert("Error", "Please enter a database name");
-  //     return;
-  //   }
-    
-  //   try {
-  //     await SecureStore.setItemAsync('odoo_server_ip', serverIP);
-  //     await SecureStore.setItemAsync('odoo_database', database);
-  //     Alert.alert("Success", "Server settings saved successfully");
-  //     setShowServerSettings(false);
-  //   } catch (err) {
-  //     Alert.alert("Error", "Failed to save server settings");
-  //     console.error(err);
-  //   }
-  // }
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">

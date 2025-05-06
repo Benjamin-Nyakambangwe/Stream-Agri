@@ -1,8 +1,11 @@
 import { PowerSyncDatabase } from '@powersync/react-native';
 import { Connector } from './Connector';
 import { AppSchema } from './Schema';
+import * as SecureStore from 'expo-secure-store';
+
 
 export const powersync = new PowerSyncDatabase({
+  
     // The schema you defined in the previous step
     schema: AppSchema,
     // For other options see,
@@ -17,6 +20,12 @@ export const powersync = new PowerSyncDatabase({
 
 
 export const setupPowerSync = async (clientId?: number) => {
+  const odoo_employee_id = await SecureStore.getItemAsync('odoo_employee_id')
+
+  if (odoo_employee_id === null) {
+    console.log('No employee ID found')
+    return
+  }
   // Uses the backend connector that will be created in the next section
   const connector = new Connector();
   
@@ -25,7 +34,7 @@ export const setupPowerSync = async (clientId?: number) => {
     // clientId: clientId, // Will be undefined if not provided
     // You can also add client parameters here if needed
     params: {
-      clientUserId: 148
+      clientUserId: parseInt(odoo_employee_id)
     }
   });
 };

@@ -1,22 +1,29 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Button, TextInput, ActivityIndicator, Alert } from "react-native"
 import {Image} from "expo-image"
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Github, Twitter, Settings, Database, Wifi, Phone } from "lucide-react-native"
 import { useSession } from "../../authContext"
-import { useRouter } from "expo-router"
+import { useFocusEffect, useRouter } from "expo-router"
 import * as SecureStore from 'expo-secure-store';
 import { exportDatabase } from "../../export-db"
 // import { useSQLiteContext } from "expo-sqlite"
 import { useNetwork } from "@/NetworkContext"
-import { powersync } from "@/powersync/system"
+import { powersync, setupPowerSync } from "@/powersync/system"
 
 interface LoginScreenProps {
   onRegisterPress: () => void
 }
 
-
+// Define the employee type based on database structure
+interface Employee {
+  id: number;
+  name: string;
+  work_phone: string;
+  mobile_app_password: string;
+  [key: string]: any; // For any other properties
+}
 
 export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
   const [email, setEmail] = useState<string>("")
@@ -29,7 +36,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
   const [fullName, setFullName] = useState<string>("")
   const [workPhone, setWorkPhone] = useState<string>("")
   const [userId, setUserId] = useState<number>(0)
-
+  const [syncStatus, setSyncStatus] = useState<string>("")
   
  
   
@@ -39,12 +46,13 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
 
   const viewUsers = async () => {
     // const users = await appDatabase.getAllAsync('SELECT * FROM users')
-    console.log(users)
+    console.log("users")
   }
 
   const { isConnected } = useNetwork()
 
   useEffect(() => {
+    setupPowerSync();
     if (!isConnected) {
       Alert.alert("No internet connection", "Please check your internet connection and try again.")
       return
@@ -53,27 +61,66 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
     }
   }, [isConnected])
 
+  useFocusEffect(
+    useCallback(() => {
+      console.log('useFocusEffect');
+      powersync.registerListener({
+        statusChanged: (status) => {
+          setSyncStatus(JSON.stringify(status));
+          console.log('PowerSync status:', status);
+        }
+      });
+    }, [])
+  );
+
 
 
   
 
 
   const handleLogin = async () => {
-console.log('Login Pressed')
+    console.log('Login Pressed')
     // const currentUser = await appDatabase.getAllAsync('SELECT * FROM users WHERE work_phone = ?', [phoneNumber])
     // console.log(currentUser)
-    const currentUser = await powersync.get('SELECT * from hr_employee WHERE work_phone = ?', [phoneNumber])
-    console.log('currentUser from powersync login page')
-    console.log(currentUser)
+    console.log('phoneNumber', phoneNumber)
+    console.log("Now queying powersync")
+    // let currentUser = []
+    
+    try {
+      const currentUser = await powersync.get<Employee>('SELECT * from hr_employee WHERE work_phone = ?', [phoneNumber])
+      console.log('currentUser from powersync login page')
+      console.log(currentUser)
 
-    if (currentUser.length === 0) {
-      setLoginError("User not found")
-      return
-    } else {
-      setMobileAppPasswordHash(currentUser[0].mobile_app_password)
-      setFullName(currentUser[0].name)
-      setWorkPhone(currentUser[0].work_phone)
-      setUserId(currentUser[0].id)
+      if (currentUser.length === 0) {
+        console.log('No user found with phone number:', phoneNumber)
+        setLoginError("User not found")
+        return
+      } else {
+        console.log('User found, setting credentials')
+        setMobileAppPasswordHash(currentUser.mobile_app_password)
+        setFullName(currentUser.name)
+        setWorkPhone(currentUser.work_phone)
+        setUserId(currentUser.id)
+      }
+    } catch (error: any) {
+      console.error('PowerSync query error:', error);
+      
+      // Detailed error tracking based on error type
+      if (error.name === 'DatabaseError') {
+        console.error('Database operation failed:', error.message);
+        setLoginError(`Database error: ${error.message}`);
+      } else if (error.name === 'NetworkError') {
+        console.error('Network issues with PowerSync:', error.message);
+        setLoginError('Network error: Please check your connection and try again');
+      } else {
+        console.error('Unknown PowerSync error:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+        setLoginError(`Error retrieving user data: ${error.message || 'Unknown error'}`);
+      }
+      return;
     }
 
     if (!phoneNumber || !password) {
@@ -85,11 +132,14 @@ console.log('Login Pressed')
     setLoginError(null)
     
     try {
+      console.log('Connected to internet Login')
+      console.log('Hash Password', mobileAppPasswordHash)
       let success
       isConnected ? 
+      // success = true
       success = await logIn(password, phoneNumber)
       :
-      success = await localLogin(password, mobileAppPasswordHash, fullName, workPhone, userId)
+      success = await localLogin(password, mobileAppPasswordHash, fullName, workPhone, String(userId))
       if (success) {
         // Navigate to main app
         router.replace("/(app)/(tabs)")
@@ -149,7 +199,7 @@ console.log('Login Pressed')
                 onChangeText={setPhoneNumber} 
                 keyboardType="phone-pad" 
                 placeholder="Enter Phone Number"
-                className="flex-1 p-2"
+                className="flex-1 p-3.5"
                 autoCapitalize="none"
               />
             </View>
@@ -161,7 +211,7 @@ console.log('Login Pressed')
                 onChangeText={setPassword}  
                 placeholder="Password" 
                 secureTextEntry={!showPassword}
-                className="flex-1 p-2"
+                className="flex-1 p-3.5"
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 {showPassword ? (
@@ -181,29 +231,29 @@ console.log('Login Pressed')
                 {isLoggingIn ? (
                   <ActivityIndicator color="white" className="p-2" />
                 ) : (
-                  <Text className="text-white text-2xl text-center p-2">Login</Text>
+                  <Text className="text-white text-xl text-center p-2">Login</Text>
                 )}
               </TouchableOpacity>
             </View>
           </>
         
         <TouchableOpacity 
-          className="mt-4" 
+          className="mt-4 rounded-md border-2 border-[#65435C] p-2" 
           onPress={() => router.push('/(auth)/adminLogin')}
         >
           <Text className="text-[#1AD3BB] text-center">
-            Admin Login
+            Server Configuration
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        {/* <TouchableOpacity 
           className="mt-4" 
           onPress={viewUsers}
         >
           <Text className="text-[#1AD3BB] text-center">
             View Users
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         
       </ScrollView>
     </KeyboardAvoidingView>

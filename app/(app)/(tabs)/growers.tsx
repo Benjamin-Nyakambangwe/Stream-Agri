@@ -31,6 +31,7 @@ const Growers = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    console.log('useEffect growers')
     // Initialize PowerSync if not already initialized
     setupPowerSync();
     
@@ -46,6 +47,8 @@ const Growers = () => {
         r.mobile, 
         r.production_scheme_id, 
         r.production_cycle_name,
+        r.first_name,
+        r.surname,
         r.grower_id as registration_grower_id,
         g.id as grower_table_id,
         g.grower_number as grower_number
@@ -83,10 +86,12 @@ const Growers = () => {
     };
   }, []);
 
+  console.log('growers', growers)
+
   return (
     <>
       <Stack.Screen options={{ 
-        title: "Growers",
+        title: `Growers : ${growers.length}`,
         headerShown: true,
         headerRight: () => (
             <View className="mr-4">
@@ -107,11 +112,11 @@ const Growers = () => {
 
 
         <View className="flex-1 bg-white rounded-2xl p-4">
-        {/* <FlashList
+        <FlashList
       data={growers}
       renderItem={({ item }: { item: any }) => growerItem(item)}
       estimatedItemSize={200}
-    /> */}
+    />
         </View>
 
         {/* <View>
@@ -152,7 +157,7 @@ const growerItem = (item: any) => {
                     
                     <View>
                         <Text className="text-lg font-bold text-[#65435C]">{firstName} {lastName}</Text>
-                        <Text className="text-gray-500 text-sm">Farmer ID: {item.id}</Text>
+                        <Text className="text-gray-500 text-sm">Farmer ID: {item.grower_number}</Text>
                     </View>
                 </View>
                 

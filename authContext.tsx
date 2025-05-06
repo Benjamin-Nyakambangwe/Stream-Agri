@@ -15,13 +15,13 @@ interface OdooUserData {
 }
 
 // Default values for Odoo connection
-const DEFAULT_API_URL = 'http://45.84.138.225:8069';
-const DEFAULT_DB = 'curverid';
+const DEFAULT_API_URL = process.env.EXPO_PUBLIC_ODOO_SERVER_IP  ;
+const DEFAULT_DB = process.env.EXPO_PUBLIC_ODOO_DATABASE;
 
 const AuthContext = createContext<{
   logIn: (password: string, phoneNumber: string) => Promise<boolean>;
   localLogin: (password: string, mobileAppPasswordHash: string, fullName: string, workPhone: string, userId: string) => Promise<boolean>;
-  adminLogin: (login: string, password: string) => Promise<boolean>;
+  adminLogin: (login: string, password: string, powerSyncURI: string) => Promise<boolean>;
   signOut: () => void;
   session?: OdooUserData | null;
   isLoading: boolean;
@@ -97,11 +97,13 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
       value={{
         logIn: async (password: string, phoneNumber: string) => {
           setError(null);
+          console.log('Login Function')
           console.log(password, phoneNumber)
+          console.log('LOGIN API ROUTE', `${process.env.EXPO_PUBLIC_APP_URL}/login`)
           const apiBaseUrl = await getServerUrl();
 
           try {
-            const response = await fetch('http://192.168.88.235:8081/login', {
+            const response = await fetch(`${process.env.EXPO_PUBLIC_APP_URL}/login`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -110,6 +112,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
             });
             
             const data = await response.json();
+            console.log('Response Data From Login')
             console.log(data)
 
             if (data.result.success) {
@@ -126,6 +129,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
 
               setSession(JSON.stringify(userData));
               await SecureStore.setItemAsync('odoo_custom_session_id', data.result.session_token);
+              await SecureStore.setItemAsync('odoo_employee_id', String(data.result.employee.id));
               return true;
             } else {
               setError('Invalid response from server');
@@ -145,7 +149,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
           console.log(password, mobileAppPasswordHash)
 
           try {
-            const response = await fetch('http://192.168.100.5:8081/localLogin', {
+            const response = await fetch(`${process.env.EXPO_PUBLIC_APP_URL}/localLogin`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -170,6 +174,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
                       session_expiry: Date.now() + 1000 * 60 * 60 * 24 * 30 // 30 days
                     };
 
+                    
                     setSession(JSON.stringify(userData));
                     return true;
             }
@@ -245,7 +250,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
           //   return false;
           // }
         },
-        adminLogin: async (login: string, password: string) => {
+        adminLogin: async (login: string, password: string, powerSyncURI: string) => {
           setError(null);
           try {
             // Get the server URL and database
@@ -276,6 +281,8 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
             // Extract the session ID cookie from the response
             const cookies = response.headers['set-cookie'];
             let sessionId = '';
+
+            console.log('RESPONSE', response)
             
             if (cookies && cookies.length) {
               // Find and extract the session_id cookie
@@ -290,6 +297,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
                 await storeSessionId(sessionId);
                 axios.defaults.headers.common['cookie'] = `frontend_lang=en_GB; ${sessionId}`;
                 await SecureStore.setItemAsync('odoo_admin_session_id', sessionCookie);
+                await SecureStore.setItemAsync('power_sync_uri', powerSyncURI);
                 console.log('sessionId', sessionId)
                 console.log('sessionCookie2', sessionCookie)
               }

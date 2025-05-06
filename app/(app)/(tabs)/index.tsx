@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, Dimensions } from 'react-native'
 import React from 'react'
-import { CircleUserRound, FolderSync, Wifi, Users, Settings, BarChart, Leaf, ChevronRight } from 'lucide-react-native';
+import { CircleUserRound, FolderSync, Wifi, Users, Settings, BarChart, Leaf, ChevronRight, Building } from 'lucide-react-native';
 
 import { useSession } from '@/authContext';
 import { exportDatabase } from '@/export-db';
@@ -21,10 +21,10 @@ const index = () => {
   return (
     <>
     <Stack.Screen options={{ 
-      title: "",
+      headerTitle: () => null,
       headerShown: true,
       headerRight: () => (
-        <TouchableOpacity onPress={() => router.push('/explore')}>
+        <TouchableOpacity onPress={() => router.push('/(app)/settings' as any)}>
           <View className='flex flex-row items-center gap-2 mr-4'>
             {isConnected ? (
               <>
@@ -38,10 +38,11 @@ const index = () => {
         </TouchableOpacity>
       ),
       headerLeft: () => (
-        <TouchableOpacity onPress={() => router.push('/explore')}>
+        <TouchableOpacity onPress={() => router.push('/(app)/settings' as any)}>
           <View className='flex flex-row items-center gap-2 ml-4'>
-            <CircleUserRound size={20} color="#1AD3BB" />
-            <Text className="ml-1 text-[#65435C] font-semibold">{session?.name}</Text>
+            <Building size={25} color="#1AD3BB" />
+            {/* <Text className="ml-1 text-[#65435C] font-semibold">{session?.name}</Text> */}
+            <Text className="text-2xl ml-1 text-[#65435C] font-semibold">CURVERID</Text>
           </View>
         </TouchableOpacity>
       ),

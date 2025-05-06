@@ -7,7 +7,7 @@ const Monitoring = () => {
   return (
     <>
       <Stack.Screen options={{ 
-        title: "Monitoring & Evaluation",
+        title: "M & E",
         headerShown: true 
       }} />
       <View className="flex-1 p-4 bg-[#65435C]">

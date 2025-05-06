@@ -1,5 +1,5 @@
 import { AbstractPowerSyncDatabase, PowerSyncBackendConnector, UpdateType } from "@powersync/react-native";
-
+import * as SecureStore from 'expo-secure-store';
 export class Connector implements PowerSyncBackendConnector {
   /**
   * Implement fetchCredentials to obtain a JWT from your authentication service.
@@ -9,14 +9,23 @@ export class Connector implements PowerSyncBackendConnector {
   * https://docs.powersync.com/installation/authentication-setup/firebase-auth
   */
   async fetchCredentials() {
+    const powerSyncURI = await SecureStore.getItemAsync('power_sync_uri')
+    
+    // If powerSyncURI is null, return null or use a default endpoint
+    if (powerSyncURI === null) {
+      console.log('No powerSyncURI found')
+      return null; // Return null if URI not found
+    }
+    console.log('powerSyncURI', powerSyncURI)
+    
     return {
       // The PowerSync instance URL or self-hosted endpoint
-      endpoint: 'https://67f6c16f984c6f4cb07959ca.powersync.journeyapps.com',
+      endpoint: powerSyncURI,
       /**
       * To get started quickly, use a development token, see:
       * Authentication Setup https://docs.powersync.com/installation/authentication-setup/development-tokens) to get up and running quickly
       */
-      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDYzOTI5ODksImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ2NDM2MTg5fQ.MJXrRLx4SKU4yUwkMw8Q3ITt0fkGZae3lM-IQ6Zl80LZ5x-qJbFUYmvzOvx6La2TcqDe4FMHRhOt0Lud-F8HO1xTX2uk-iT3SnGR_-nAUxNFkCOW1JkJyTjX85WdsMlFpvOyOU0VH-kqZTwI_nj2uPdbR3DsaD1FwqY8YNqA95QJLiCAlTNDPMbpn-JJ09xta4Ibdo3-S8Banu3XlIqyhjjq3uxhDdxy4LaK3Yv0biFXadpRh-atdg-FRPZojNQgfmykmsQ9h8TupycCv1MUzekk6pm-J9HNP81ZZISS-z-X-lsnJHVqveudR4EwEfKT5ocW3NfZPOUXoKb3YQPJUQ'
+      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDY1MTY3ODAsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ2NTU5OTgwfQ.XsHlsQnfp4341X5NE9goOlrOiez9MIn0ltvpclhRAcdCfa59yNk3_6TQCwAlaxPcMBrV_DmZCk8WROrBMW4v143VJv6S2LyGYN92weGAkzxG661HnSSmRWAKpyl7sGMznpxpt1WbAQwdhQHyjVIM9L7hmQkhvAY6-5qrqcYSmtumH9yTUfaKtgvfE2-KylKl-dNz1t7HzkZ1F4oh-jAeCoBorBVGeZEzw9mSuo0CAZa4S0AUNNn1JgU3QbRTCRD5RESwL2i5j09IT6IF5JIiZ6z6GbWXi3UiR800TVqNpR1AzbreZhe1Z09fxiYT6DceAJGOKaTkwAXmUGD3_b5mCA'
     };
   }
 

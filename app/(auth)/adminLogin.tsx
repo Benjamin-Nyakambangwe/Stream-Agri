@@ -32,7 +32,8 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
   const [database, setDatabase] = useState("odoo_db2")
   const [adminUsername, setAdminUsername] = useState("")
   const [adminPassword, setAdminPassword] = useState("")
-  
+  const [powerSyncURI, setPowerSyncURI] = useState("")
+
   const { adminLogin, session, error: authError } = useSession()
   const router = useRouter()
 
@@ -72,7 +73,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
     setLoginError(null)
     
     try {
-      const success = await adminLogin(adminUsername, adminPassword)
+      const success = await adminLogin(adminUsername, adminPassword, powerSyncURI)
       if (success) {
         // Navigate to main app
         console.log('Admin Login Success')
@@ -133,14 +134,37 @@ const getUsers = async () => {
         </View>
 
           <View className="mb-5">
-            <Text className="font-bold text-gray-700 mb-2">Server Configuration</Text>
+            <Text className="font-bold text-[#65435C] text-lg mb-2">Server Configuration</Text>
+            
+            <View className="flex-row items-center rounded-md m-3 border-2 border-[#65435C] px-2">
+              <Settings size={20} color="#1AD3BB" />
+              <TextInput 
+                value={serverIP} 
+                onChangeText={setServerIP} 
+                placeholder="Enter Server IP (e.g. 192.168.1.100:8069)"
+                className="flex-1 p-3.5"
+                autoCapitalize="none"
+              />
+            </View>
+            
+            <View className="flex-row items-center rounded-md m-3 border-2 border-[#65435C] px-2">
+              <Database size={20} color="#1AD3BB" />
+              <TextInput 
+                value={database} 
+                onChangeText={setDatabase} 
+                placeholder="Enter Database Name"
+                className="flex-1 p-3.5"
+                autoCapitalize="none"
+              />
+            </View>
+
             <View className="flex-row items-center rounded-md m-3 border-2 border-[#65435C] px-2">
               <Mail size={20} color="#1AD3BB" />
               <TextInput
                 value={adminUsername} 
                 onChangeText={setAdminUsername} 
                 placeholder="Enter Admin Username"
-                className="flex-1 p-2"
+                className="flex-1 p-3.5"
                 autoCapitalize="none"
               />
             </View>
@@ -150,7 +174,7 @@ const getUsers = async () => {
                 value={adminPassword} 
                 onChangeText={setAdminPassword} 
                 placeholder="Enter Admin Password"
-                className="flex-1 p-2"
+                className="flex-1 p-3.5"
                 autoCapitalize="none"
                 secureTextEntry={!showPassword}
               />
@@ -162,37 +186,27 @@ const getUsers = async () => {
                 )}
               </TouchableOpacity>
             </View>
+
             <View className="flex-row items-center rounded-md m-3 border-2 border-[#65435C] px-2">
-              <Settings size={20} color="#1AD3BB" />
-              <TextInput 
-                value={serverIP} 
-                onChangeText={setServerIP} 
-                placeholder="Enter Server IP (e.g. 192.168.1.100:8069)"
-                className="flex-1 p-2"
-                autoCapitalize="none"
-              />
-            </View>
-            
-            <View className="flex-row items-center rounded-md m-3 border-2 border-[#65435C] px-2">
-              <Database size={20} color="#1AD3BB" />
-              <TextInput 
-                value={database} 
-                onChangeText={setDatabase} 
-                placeholder="Enter Database Name"
-                className="flex-1 p-2"
+              {/* <Mail size={20} color="#1AD3BB" /> */}
+              <TextInput
+                value={powerSyncURI} 
+                onChangeText={setPowerSyncURI} 
+                placeholder="PowerSync URI"
+                className="flex-1 p-3.5"
                 autoCapitalize="none"
               />
             </View>
             
             <View className="flex-row justify-between">
               <TouchableOpacity 
-                className="bg-gray-500 rounded-md p-2 flex-1 mr-2"
+                className="bg-[#1AD3BB] rounded-md p-2 flex-1 mr-2"
                 onPress={() => router.push('/(auth)/login')}
               >
                 <Text className="text-white text-center">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                className="bg-[#1AD3BB] rounded-md p-2 flex-1 ml-2"
+                className="bg-[#65435C] rounded-md p-2 flex-1 ml-2"
                 onPress={handleAdminLogin}
               >
                 <Text className="text-white text-center">Prime</Text>
@@ -202,7 +216,7 @@ const getUsers = async () => {
         
         
         <TouchableOpacity 
-          className="mt-4" 
+          className="mt-4 rounded-md border-2 border-[#65435C] p-2" 
           onPress={() => router.push('/(auth)/login')}
         >
           <Text className="text-[#1AD3BB] text-center">

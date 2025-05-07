@@ -111,7 +111,92 @@ const odoo_gms_grower = new Table(
   { indexes: {} }
 );
 
+const odoo_gms_flags = new Table(
+  {
+    // id column (text) is automatically included
+    create_uid: column.integer,
+    write_uid: column.integer,
+    name: column.text,
+    create_date: column.text,
+    write_date: column.text
+  },
+  { indexes: {} }
+);
 
+const odoo_gms_production_scheme = new Table(
+  {
+    // id column (text) is automatically included
+    create_uid: column.integer,
+    write_uid: column.integer,
+    name: column.text,
+    reference: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    production_scheme_category_id: column.integer
+  },
+  { indexes: {} }
+);
+
+const odoo_gms_region = new Table(
+  {
+    // id column (text) is automatically included
+    province_id: column.integer,
+    supervisor_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    name: column.text,
+    reference: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    parent_id: column.integer
+  },
+  { indexes: {} }
+);
+
+const odoo_gms_distribution_plan = new Table(
+  {
+    // id column (text) is automatically included
+    production_cycle_id: column.integer,
+    production_scheme_id: column.integer,
+    activity_id: column.integer,
+    price_list_id: column.integer,
+    province_id: column.integer,
+    region_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    create_date: column.text,
+    write_date: column.text
+  },
+  { indexes: {} }
+);
+
+const odoo_gms_activity = new Table(
+  {
+    // id column (text) is automatically included
+    unit_of_scale_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    name: column.text,
+    reference: column.text,
+    create_date: column.text,
+    write_date: column.text
+  },
+  { indexes: {} }
+);
+
+const odoo_gms_production_cycle = new Table(
+  {
+    // id column (text) is automatically included
+    activity_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    name: column.text,
+    reference: column.text,
+    create_date: column.text,
+    write_date: column.text
+  },
+  { indexes: {} }
+);
 
 const odoo_gms_production_cycle_registration = new Table(
   {
@@ -165,6 +250,12 @@ const odoo_gms_production_cycle_registration = new Table(
 export const AppSchema = new Schema({
   hr_employee,
   odoo_gms_grower,
+  odoo_gms_flags,
+  odoo_gms_production_scheme,
+  odoo_gms_region,
+  odoo_gms_distribution_plan,
+  odoo_gms_activity,
+  odoo_gms_production_cycle,
   odoo_gms_production_cycle_registration
 });
 
@@ -173,4 +264,10 @@ export const AppSchema = new Schema({
 export type Database = (typeof AppSchema)['types'];
 export type EmployeeRecord = Database['hr_employee'];
 export type GrowerRecord = Database['odoo_gms_grower'];
+export type FlagsRecord = Database['odoo_gms_flags'];
+export type ProductionSchemeRecord = Database['odoo_gms_production_scheme'];
+export type RegionRecord = Database['odoo_gms_region'];
+export type DistributionPlanRecord = Database['odoo_gms_distribution_plan'];
+export type ActivityRecord = Database['odoo_gms_activity'];
+export type ProductionCycleRecord = Database['odoo_gms_production_cycle'];
 export type ProductionCycleRegistrationRecord = Database['odoo_gms_production_cycle_registration'];

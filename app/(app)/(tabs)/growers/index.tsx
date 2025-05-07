@@ -22,11 +22,11 @@ type JoinedGrowerData = ProductionCycleRegistrationRecord & {
 
 
 const Growers = () => {
-    const session = useSession();
-    console.log('session', session)
-    const { isConnected } = useNetwork()
+  const session = useSession();
+  console.log('session', session)
+  const { isConnected } = useNetwork()
 
-    const [growers, setGrowers] = useState<JoinedGrowerData[]>([]);
+  const [growers, setGrowers] = useState<JoinedGrowerData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -93,13 +93,13 @@ const Growers = () => {
       <Stack.Screen options={{ 
         title: `Growers : ${growers.length}`,
         headerShown: true,
-        headerRight: () => (
-            <View className="mr-4">
-                <TouchableOpacity onPress={()=> console.log('refreshing')} disabled={!isConnected}>
-                    <RefreshCcw size={24} color="#1AD3BB" />
-                </TouchableOpacity>
-            </View>
-        )
+        // headerRight: () => (
+        //     <View className="mr-4">
+        //         <TouchableOpacity onPress={()=> console.log('refreshing')} disabled={!isConnected}>
+        //             <RefreshCcw size={24} color="#1AD3BB" />
+        //         </TouchableOpacity>
+        //     </View>
+        // )
       }} />
       <View className="flex-1 p-4 bg-[#65435C]">
         {/* <View className="bg-white rounded-2xl p-4 flex-row items-center gap-4">
@@ -145,7 +145,15 @@ const growerItem = (item: any) => {
     const lastName = capitalizeFirstLetter(item.surname);
     
     return (
-        <View className="bg-white rounded-xl p-4 mb-3 border border-gray-100 shadow-sm">
+        <TouchableOpacity className="bg-white rounded-xl p-4 mb-3 border border-gray-100 shadow-sm" 
+        onPress={() => router.push({
+            pathname: `/growers/[id]`,
+            params: { 
+                id: item.id,
+                grower_id: item.registration_grower_id,
+                production_scheme: item.production_cycle_name
+            }
+        })}>
             <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center">
                     {/* Avatar circle with initials */}
@@ -157,7 +165,7 @@ const growerItem = (item: any) => {
                     
                     <View>
                         <Text className="text-lg font-bold text-[#65435C]">{firstName} {lastName}</Text>
-                        <Text className="text-gray-500 text-sm">Farmer ID: {item.grower_number}</Text>
+                        {/* <Text className="text-gray-500 text-sm">Farmer ID: {item.grower_number}</Text> */}
                     </View>
                 </View>
                 
@@ -166,6 +174,6 @@ const growerItem = (item: any) => {
                     <Text className="text-[#65435C] font-bold">→</Text>
                 </View>
             </View>
-        </View>
+        </TouchableOpacity>
     )
 }

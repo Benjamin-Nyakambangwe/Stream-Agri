@@ -39,6 +39,7 @@ export default function TabLayout() {
         name="growers"
         options={{
           title: 'Growers',
+          headerShown: false,
           tabBarIcon: ({ color }) => <Users size={24} color={color} />,
         }}
       />

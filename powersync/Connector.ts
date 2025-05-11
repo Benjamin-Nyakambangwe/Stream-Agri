@@ -293,10 +293,14 @@ export class Connector implements PowerSyncBackendConnector {
             odooTableName = odooDbName + '.' + tableName
           }
 
+          // ADDING 2 MINUTES TO LAST SYNC TIME
+          const newLastSyncedDate = new Date(lastSyncedDate.getTime() + 2 * 60 * 1000).toISOString();
+          console.log('newLastSyncedDate', newLastSyncedDate)
+
           // Configure the request based on your Insomnia example
           const patchOptions = {
             method: 'PATCH',
-            url: `http://45.84.138.225:8069/api/update/${id}?table_name=${odooTableName}&last_synced_date=${lastSyncedDate}`, // Use the destructured id here
+            url: `http://45.84.138.225:8069/api/update/${id}?table_name=${odooTableName}&last_synced_date=${newLastSyncedDate}`, // Use the destructured id here
             headers: {
               cookie: 'session_id=sZqyvCm3Paya3UgTLe1R5FY9EAyEA6-jmNbzuT3Egt20Yphpl8UJHxqzd0qjYUhzWnG7tMuLVluXaUYFfhPT; frontend_lang=en_GB',
               'Content-Type': 'application/json',
@@ -332,5 +336,16 @@ export class Connector implements PowerSyncBackendConnector {
 
     // Completes the transaction and moves onto the next one
     await transaction.complete();
+
+    if ((database as any).sync) {
+      await (database as any).sync();
+    }
+
+    const currentStatus = (database as any).currentStatus;
+           if (currentStatus?.lastSyncedAt) {
+             console.log(`Last synced at after transaction: ${currentStatus.lastSyncedAt}`);
+           }
+
+
   }
 }

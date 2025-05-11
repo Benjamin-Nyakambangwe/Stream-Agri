@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { powersync } from '@/powersync/system';
 import { Picker } from '@react-native-picker/picker';
 import { DistributionPlanRecord, FlagsRecord, ProductionSchemeRecord, RegionRecord } from '@/powersync/Schema';
+import axios from 'axios';
 
 // Define interfaces for your data types
 interface Grower {
   id?: string;
   grower_number?: string;
-  grower_name?: string;
+  fir?: string;
   contracted_ha?: string | number;
   production_scheme_id?: string;
   group_id?: string;
@@ -32,6 +33,10 @@ export default function GrowerModal() {
   const { id, grower_id, production_scheme } = useLocalSearchParams();
   const [grower, setGrower] = useState<Grower | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState<string>('');
+  const [surname, setSurname] = useState<string>('');
+  const [contractedHa, setContractedHa] = useState<string>('');
+  const [growerNumber, setGrowerNumber] = useState<string>('');
 
   const [productionSchemes, setProductionSchemes] = useState<ProductionSchemeRecord[]>([]);
   const [groups, setGroups] = useState<RegionRecord[]>([]);
@@ -47,8 +52,7 @@ export default function GrowerModal() {
   useEffect(() => {
     powersync.get('SELECT * FROM odoo_gms_production_cycle_registration WHERE grower_id = ? AND production_cycle_name = ?', [grower_id, production_scheme])
       .then((result) => {
-        setGrower(result as Grower);
-        
+        setGrower(result as Grower); 
         setSelectedGroupId(grower?.region_id?.toString() || '');
         setSelectedProductionSchemeId(grower?.production_scheme_id?.toString() || '');
         setSelectedDistributionPlanId(grower?.distribution_plan?.toString() || '');
@@ -83,6 +87,11 @@ export default function GrowerModal() {
       setSelectedProductionSchemeId(grower.production_scheme_id?.toString() || '');
       setSelectedDistributionPlanId(grower.distribution_plan?.toString() || '');
       setSelectedGrowerFlagId(grower.grower_flags?.toString() || '');
+
+      setContractedHa(grower.b010_contract_scale?.toString() || '');
+      setGrowerNumber(grower.grower_number?.toString() || '');
+      setFirstName(grower.first_name || '');
+      setSurname(grower.surname || '');
     }
   }, [grower]);
 
@@ -117,7 +126,7 @@ export default function GrowerModal() {
     LEFT JOIN 
       odoo_gms_activity a ON dp.activity_id = a.id`)
       .then(result => {
-        console.log('Distribution Plans', result);
+        // console.log('Distribution Plans', result);
         setDistributionPlans(result as DistributionPlan[]);
       })
       .catch(ex => {
@@ -140,13 +149,78 @@ export default function GrowerModal() {
       });
   }
 
+  const updateGrower = async () => {
+    console.log('UPDATE GROWER');
+    // console.log('Grower', grower);
+
+    try {
+      await powersync.execute(`UPDATE odoo_gms_production_cycle_registration SET 
+        first_name = ?, surname = ?, b010_contract_scale = ?, distribution_plan = ?, 
+        production_scheme_id = ?, region_id = ?
+        WHERE grower_id = ? AND production_cycle_name = ?`, 
+        [firstName, surname, contractedHa, 
+          parseInt(selectedDistributionPlanId), parseInt(selectedProductionSchemeId), 
+          parseInt(selectedGroupId),
+          grower_id, production_scheme]
+      ).then(() => {
+        alert('Grower Updated');
+        router.back();
+      }).catch((error) => {
+        console.error('Error updating grower:', error);
+        alert('Error updating grower');
+      });
+    } catch (error) {
+      console.error('Error updating grower:', error);
+      alert('Error updating grower');
+    }
+
+    
+
+    // const options = {
+    //   method: 'PATCH',
+    //   url: `http://45.84.138.225:8069/api/update/${grower?.id}`,
+    //   headers: {
+    //     cookie: 'session_id=sZqyvCm3Paya3UgTLe1R5FY9EAyEA6-jmNbzuT3Egt20Yphpl8UJHxqzd0qjYUhzWnG7tMuLVluXaUYFfhPT; frontend_lang=en_GB',
+    //     'Content-Type': 'application/json',
+    //     'User-Agent': 'insomnia/11.0.2',
+    //     'X-FO-TOKEN': 'cfa0c7b5-9c87-4d8c-87c1-f8394fe1c94a'
+    //   },
+    //   data: {jsonrpc: '2.0', method: 'call', params: {
+    //     timb_status: false,
+    //     "distribution_plan": parseInt(selectedDistributionPlanId),
+    //     "production_scheme_id": parseInt(selectedProductionSchemeId),
+    //     "region_id": parseInt(selectedGroupId),
+    //     "grower_flags": parseInt(selectedGrowerFlagId),
+    //     ...(firstName !== grower?.first_name && firstName !== '' && { first_name: firstName }),
+    //     ...(surname !== grower?.surname && surname !== '' && { surname: surname }),
+    //     ...(contractedHa !== grower?.b010_contract_scale?.toString() && contractedHa !== '' && { b010_contract_scale: contractedHa }),
+    //     ...(growerNumber !== grower?.grower_number?.toString() && growerNumber !== '' && { grower_number: growerNumber }),
+    //     // ...(selectedProductionSchemeId !== grower?.production_scheme_id?.toString() && selectedProductionSchemeId !== '' && { production_scheme_id: selectedProductionSchemeId }),
+    //     // ...(selectedGroupId !== grower?.region_id?.toString() && selectedGroupId !== '' && { region_id: selectedGroupId }), // Assuming API expects region_id based on grower object
+    //     // ...(selectedDistributionPlanId !== grower?.distribution_plan?.toString() && selectedDistributionPlanId !== '' && { distribution_plan: parseInt(selectedDistributionPlanId) }),
+    //     // ...(selectedGrowerFlagId !== grower?.grower_flags?.toString() && selectedGrowerFlagId !== '' && { grower_flags: parseInt(selectedGrowerFlagId) }),
+    //   }, id: null}
+    // };
+
+
+    // console.log('Options', options);
+    // axios.request(options).then(function (response) {
+    //   console.log(response.data);
+    //   console.log('Grower Updated');
+    //   console.log(response);
+    //   alert('Grower Updated');
+    //   router.back();
+    // }).catch(function (error) {
+    //   console.error('Error', error);
+    // });
+  }
+
 
     console.log('Group ID', grower?.region_id);
     console.log('Type of Group ID', typeof grower?.region_id);
         console.log('Production Scheme ID', grower?.production_scheme_id);
         console.log('Distribution Plan ID', grower?.distribution_plan);
         console.log('Grower Flag ID', grower?.grower_flags);
-  
 
   return (
     <SafeAreaView className="flex-1 bg-[#65435C]">
@@ -162,27 +236,46 @@ export default function GrowerModal() {
             </TouchableOpacity>
           </View>
           
-          <View className="flex-1 px-4 py-2 pt-28">
+          <ScrollView className="flex-1 px-4 py-2 pt-4">
             <View className="flex-1">
                 <View className="flex-row items-center justify-between my-2">
                     <Text className="text-gray-600 w-1/3">Grower Number</Text>
                     <TextInput 
                         className="border border-gray-300 rounded-md p-2 w-2/3" 
-                        value={grower?.grower_number} 
+                        value={growerNumber} 
+                        onChangeText={(text) => {
+                            setGrowerNumber(text);
+                        }}
                     />
                 </View>
                 <View className="flex-row items-center justify-between my-2">
-                    <Text className="text-gray-600 w-1/3">Grower Name</Text>
+                    <Text className="text-gray-600 w-1/3">First Name</Text>
                     <TextInput 
                         className="border border-gray-300 rounded-md p-2 w-2/3" 
-                        value={grower?.grower_name} 
+                        value={firstName} 
+                        onChangeText={(text) => {
+                            setFirstName(text);
+                        }}
+                    />
+                </View>
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Surname</Text>
+                    <TextInput 
+                        className="border border-gray-300 rounded-md p-2 w-2/3" 
+                        value={surname} 
+                        onChangeText={(text) => {
+                            setSurname(text);
+                        }}
                     />
                 </View>
                 <View className="flex-row items-center justify-between my-2">
                     <Text className="text-gray-600 w-1/3">Contracted Ha</Text>
                     <TextInput 
                         className="border border-gray-300 rounded-md p-2 w-2/3" 
-                        value={grower?.b010_contract_scale?.toString() || ''} 
+                        value={contractedHa} 
+                        onChangeText={(text) => {
+                            setContractedHa(text);
+                        }}
                     />
                 </View>
                 
@@ -263,15 +356,461 @@ export default function GrowerModal() {
                 </View>
 
                 {/* Save Button */}
-                <View className="flex-row items-center justify-center my-8">
-                    <TouchableOpacity className="w-full border border-gray-300 rounded-lg p-4 bg-[#65435C]">
-                        <Text className="text-white">Save</Text>
+                <View className="flex-row items-center justify-center my-4">
+                    <TouchableOpacity className="w-full border border-gray-300 rounded-lg p-4 bg-[#65435C]" onPress={updateGrower}>
+                        <Text className="text-white text-center font-bold text-xl">SAVE</Text>
                     </TouchableOpacity>
                 </View>
             </View>
-          </View>
+          </ScrollView>
         </View>
       </View>
     </SafeAreaView>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import React, { useEffect, useState, useCallback } from 'react';
+// import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ActivityIndicator, Alert } from 'react-native';
+// import { useLocalSearchParams, router } from 'expo-router';
+// import { X } from 'lucide-react-native';
+// import { powersync } from '@/powersync/system';
+// import { Picker } from '@react-native-picker/picker';
+// import { DistributionPlanRecord, FlagsRecord, ProductionSchemeRecord, RegionRecord } from '@/powersync/Schema';
+// import axios from 'axios';
+
+// // Define interfaces for your data types
+// interface Grower {
+//   id?: string;
+//   grower_number?: string;
+//   first_name?: string;
+//   surname?: string;
+//   b010_contract_scale?: string | number;
+//   production_scheme_id?: string;
+//   region_id?: string;
+//   distribution_plan?: string;
+//   grower_flags?: string;
+//   [key: string]: any; // Allow any other properties
+// }
+
+// interface DistributionPlan {
+//   id: string;
+//   production_scheme_name: string;
+//   production_cycle_name: string;
+//   activity_name: string;
+// }
+
+// interface FormData {
+//   firstName: string;
+//   surname: string;
+//   contractedHa: string;
+//   growerNumber: string;
+//   selectedProductionSchemeId: string;
+//   selectedGroupId: string;
+//   selectedDistributionPlanId: string;
+//   selectedGrowerFlagId: string;
+// }
+
+// export default function GrowerModal() {
+//   const { id, grower_id, production_scheme } = useLocalSearchParams();
+//   const [grower, setGrower] = useState<Grower | null>(null);
+//   const [error, setError] = useState<string | null>(null);
+//   const [isLoading, setIsLoading] = useState(false);
+//   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+//   // Data sources for dropdowns
+//   const [productionSchemes, setProductionSchemes] = useState<ProductionSchemeRecord[]>([]);
+//   const [groups, setGroups] = useState<RegionRecord[]>([]);
+//   const [distributionPlans, setDistributionPlans] = useState<DistributionPlan[]>([]);
+//   const [growerFlags, setGrowerFlags] = useState<FlagsRecord[]>([]);
+  
+//   // Consolidated form state
+//   const [formData, setFormData] = useState<FormData>({
+//     firstName: '',
+//     surname: '',
+//     contractedHa: '',
+//     growerNumber: '',
+//     selectedProductionSchemeId: '',
+//     selectedGroupId: '',
+//     selectedDistributionPlanId: '',
+//     selectedGrowerFlagId: ''
+//   });
+
+//   // Handler for form field changes
+//   const handleFormChange = (field: keyof FormData, value: string) => {
+//     setFormData(prev => ({
+//       ...prev,
+//       [field]: value
+//     }));
+//   };
+
+//   // Load grower data
+//   const loadGrowerData = useCallback(async () => {
+//     setIsLoading(true);
+//     try {
+//       const result = await powersync.get(
+//         'SELECT pcr.*, g.grower_number FROM odoo_gms_production_cycle_registration pcr LEFT JOIN odoo_gms_grower g ON pcr.grower_id = g.id WHERE pcr.grower_id = ? AND pcr.production_cycle_name = ?',
+//         [grower_id, production_scheme]
+//       );
+//       setGrower(result as Grower);
+//       console.log('#############################################GROWER#################################################4', result);
+//     } catch (ex: any) {
+//       setError(`Error loading grower: ${ex.message}`);
+//     } finally {
+//       setIsLoading(false);
+//     }
+//   }, [grower_id, production_scheme]);
+
+//   // Load reference data
+//   const loadReferenceData = useCallback(async () => {
+//     try {
+//       // Load all reference data in parallel
+//       const [schemesResult, groupsResult, plansResult, flagsResult] = await Promise.all([
+//         powersync.getAll('SELECT * FROM odoo_gms_production_scheme'),
+//         powersync.getAll('SELECT * FROM odoo_gms_region'),
+//         powersync.getAll(`SELECT 
+//           dp.*,
+//           pc.name AS production_cycle_name,
+//           ps.name AS production_scheme_name,
+//           a.name AS activity_name
+//         FROM 
+//           odoo_gms_distribution_plan dp
+//         LEFT JOIN 
+//           odoo_gms_production_cycle pc ON dp.production_cycle_id = pc.id
+//         LEFT JOIN 
+//           odoo_gms_production_scheme ps ON dp.production_scheme_id = ps.id
+//         LEFT JOIN 
+//           odoo_gms_activity a ON dp.activity_id = a.id`),
+//         powersync.getAll('SELECT * FROM odoo_gms_flags')
+//       ]);
+      
+//       setProductionSchemes(schemesResult as ProductionSchemeRecord[]);
+//       setGroups(groupsResult as RegionRecord[]);
+//       setDistributionPlans(plansResult as DistributionPlan[]);
+//       setGrowerFlags(flagsResult as FlagsRecord[]);
+//     } catch (ex: any) {
+//       setError(`Error loading reference data: ${ex.message}`);
+//     }
+//   }, []);
+
+//   // Initial data loading
+//   useEffect(() => {
+//     loadGrowerData();
+//     loadReferenceData();
+//   }, [loadGrowerData, loadReferenceData]);
+
+//   // Update form values when grower data is loaded
+//   useEffect(() => {
+//     if (grower) {
+
+//       console.log('#############################################CURRENT GROWER#################################################3', grower);
+//       setFormData({
+//         firstName: grower.first_name || '',
+//         surname: grower.surname || '',
+//         contractedHa: grower.b010_contract_scale?.toString() || '',
+//         growerNumber: grower.grower_number?.toString() || '',
+//         selectedProductionSchemeId: grower.production_scheme_id?.toString() || '',
+//         selectedGroupId: grower.region_id?.toString() || '',
+//         selectedDistributionPlanId: grower.distribution_plan?.toString() || '',
+//         selectedGrowerFlagId: grower.grower_flags?.toString() || ''
+//       });
+//     }
+//   }, [grower]);
+
+//   // Build update payload by comparing form data with original grower data
+//   const buildUpdatePayload = useCallback(() => {
+//     if (!grower) return { timb_status: false };
+    
+//     const payload: { timb_status: boolean; [key: string]: any } = { timb_status: false };
+    
+//     // Field mappings - form field name to API field name and current value
+//     const fieldMappings = [
+//       { form: 'firstName', api: 'first_name', current: grower.first_name },
+//       { form: 'surname', api: 'surname', current: grower.surname },
+//       { form: 'contractedHa', api: 'b010_contract_scale', current: grower.b010_contract_scale?.toString() },
+//       { form: 'growerNumber', api: 'grower_number', current: grower.grower_number?.toString() },
+//       { form: 'selectedProductionSchemeId', api: 'production_scheme_id', current: grower.production_scheme_id?.toString() },
+//       { form: 'selectedGroupId', api: 'region_id', current: grower.region_id?.toString() },
+//       { form: 'selectedDistributionPlanId', api: 'distribution_plan', current: grower.distribution_plan?.toString() },
+//       { form: 'selectedGrowerFlagId', api: 'grower_flags', current: grower.grower_flags?.toString() }
+//     ];
+    
+//     // Only include fields that have changed and aren't empty
+//     fieldMappings.forEach(({ form, api, current }) => {
+//       const formValue = formData[form as keyof FormData];
+//       if (formValue !== current && formValue !== '') {
+//         payload[api] = formValue;
+//       }
+//     });
+    
+//     return payload;
+//   }, [grower, formData]);
+
+//   // Update grower data
+//   const updateGrower = async () => {
+//     // Basic validation
+//     if (!formData.growerNumber.trim()) {
+//       setError('Grower number is required');
+//       return;
+//     }
+    
+//     setIsSubmitting(true);
+//     setError(null);
+    
+//     const params = buildUpdatePayload();
+    
+//     // If no changes, don't submit
+//     if (Object.keys(params).length <= 1) { // only timb_status
+//       Alert.alert('No Changes', 'No changes were made to update.');
+//       setIsSubmitting(false);
+//       return;
+//     }
+    
+//     const options = {
+//       method: 'PATCH',
+//       url: `http://45.84.138.225:8069/api/update/${grower?.id}`,
+//       headers: {
+//         cookie: 'session_id=sZqyvCm3Paya3UgTLe1R5FY9EAyEA6-jmNbzuT3Egt20Yphpl8UJHxqzd0qjYUhzWnG7tMuLVluXaUYFfhPT; frontend_lang=en_GB',
+//         'Content-Type': 'application/json',
+//         'User-Agent': 'insomnia/11.0.2',
+//         'X-FO-TOKEN': 'cfa0c7b5-9c87-4d8c-87c1-f8394fe1c94a'
+//       },
+//       data: {
+//         jsonrpc: '2.0', 
+//         method: 'call', 
+//         params: params, 
+//         id: null
+//       }
+//     };
+
+//     try {
+//       const response = await axios.request(options);
+//       console.log('Grower updated successfully:', response.data);
+//       Alert.alert('Success', 'Grower updated successfully', [
+//         { text: 'OK', onPress: () => router.back() }
+//       ]);
+//     } catch (error: any) {
+//       console.error('Error updating grower:', error);
+//       setError(error.message || 'Failed to update grower');
+//       Alert.alert('Error', `Failed to update grower: ${error.message}`);
+//     } finally {
+//       setIsSubmitting(false);
+//     }
+//   };
+
+//   // Create a reusable form field component
+//   const FormField = ({ 
+//     label, 
+//     value, 
+//     onChangeText, 
+//     fieldKey 
+//   }: { 
+//     label: string; 
+//     value: string; 
+//     onChangeText: (text: string) => void;
+//     fieldKey: string;
+//   }) => (
+//     <View className="flex-row items-center justify-between my-2">
+//       <Text className="text-gray-600 w-1/3">{label}</Text>
+//       <TextInput 
+//         className="border border-gray-300 rounded-md p-2 w-2/3" 
+//         value={value} 
+//         onChangeText={onChangeText}
+//         testID={`input-${fieldKey}`}
+//       />
+//     </View>
+//   );
+
+//   // Create a reusable picker component
+//   const FormPicker = ({ 
+//     label, 
+//     selectedValue, 
+//     onValueChange, 
+//     items, 
+//     fieldKey,
+//     labelExtractor = (item: any) => item.name || ''
+//   }: { 
+//     label: string; 
+//     selectedValue: string; 
+//     onValueChange: (value: string) => void;
+//     items: any[];
+//     fieldKey: string;
+//     labelExtractor?: (item: any) => string;
+//   }) => (
+//     <View className="flex-row items-center justify-between my-2">
+//       <Text className="text-gray-600 w-1/3">{label}</Text>
+//       <View className="border border-gray-300 rounded-md w-2/3">
+//         <Picker
+//           selectedValue={selectedValue}
+//           onValueChange={onValueChange}
+//           testID={`picker-${fieldKey}`}
+//         >
+//           <Picker.Item label={`Select a ${label.toLowerCase()}`} value="" />
+//           {items.map((item) => (
+//             <Picker.Item 
+//               key={item.id} 
+//               label={labelExtractor(item)} 
+//               value={item.id} 
+//             />
+//           ))}
+//         </Picker>
+//       </View>
+//     </View>
+//   );
+
+//   // Show loading state
+//   if (isLoading) {
+//     return (
+//       <SafeAreaView className="flex-1 bg-[#65435C] items-center justify-center">
+//         <View className="p-4 bg-white rounded-lg">
+//           <ActivityIndicator size="large" color="#65435C" />
+//           <Text className="mt-2 text-center">Loading grower data...</Text>
+//         </View>
+//       </SafeAreaView>
+//     );
+//   }
+
+//   return (
+//     <SafeAreaView className="flex-1 bg-[#65435C]">
+//       <View className="flex-1 mt-6">
+//         <View className="flex-1 bg-white rounded-t-3xl overflow-hidden">
+//           <View className="flex-row justify-between items-center p-4 border-b border-gray-100">
+//             <Text className="text-xl font-bold text-[#65435C]">Grower Details</Text>
+//             <TouchableOpacity 
+//               className="h-10 w-10 rounded-full bg-gray-100 items-center justify-center"
+//               onPress={() => router.back()}
+//               testID="close-button"
+//             >
+//               <X size={20} color="#65435C" />
+//             </TouchableOpacity>
+//           </View>
+          
+//           {error && (
+//             <View className="bg-red-100 p-2 mx-4 mt-2 rounded">
+//               <Text className="text-red-700">{error}</Text>
+//             </View>
+//           )}
+          
+//           <View className="flex-1 px-4 py-2 pt-6">
+//             <View className="flex-1">
+//               {/* Text input fields */}
+//               <FormField 
+//                 label="Grower Number" 
+//                 value={formData.growerNumber} 
+//                 onChangeText={(text) => handleFormChange('growerNumber', text)}
+//                 fieldKey="growerNumber"
+//               />
+              
+//               <FormField 
+//                 label="First Name" 
+//                 value={formData.firstName} 
+//                 onChangeText={(text) => handleFormChange('firstName', text)}
+//                 fieldKey="firstName"
+//               />
+              
+//               <FormField 
+//                 label="Surname" 
+//                 value={formData.surname} 
+//                 onChangeText={(text) => handleFormChange('surname', text)}
+//                 fieldKey="surname"
+//               />
+              
+//               <FormField 
+//                 label="Contracted Ha" 
+//                 value={formData.contractedHa} 
+//                 onChangeText={(text) => handleFormChange('contractedHa', text)}
+//                 fieldKey="contractedHa"
+//               />
+              
+//               {/* Picker fields */}
+//               <FormPicker 
+//                 label="Production Scheme"
+//                 selectedValue={formData.selectedProductionSchemeId}
+//                 onValueChange={(value) => handleFormChange('selectedProductionSchemeId', value)}
+//                 items={productionSchemes}
+//                 fieldKey="productionScheme"
+//               />
+              
+//               <FormPicker 
+//                 label="Group"
+//                 selectedValue={formData.selectedGroupId}
+//                 onValueChange={(value) => handleFormChange('selectedGroupId', value)}
+//                 items={groups}
+//                 fieldKey="group"
+//               />
+              
+//               <FormPicker 
+//                 label="Distribution Plan"
+//                 selectedValue={formData.selectedDistributionPlanId}
+//                 onValueChange={(value) => handleFormChange('selectedDistributionPlanId', value)}
+//                 items={distributionPlans}
+//                 fieldKey="distributionPlan"
+//                 labelExtractor={(item) => 
+//                   `${item.production_cycle_name} - ${item.production_scheme_name} - ${item.activity_name}`
+//                 }
+//               />
+              
+//               <FormPicker 
+//                 label="Grower Flag"
+//                 selectedValue={formData.selectedGrowerFlagId}
+//                 onValueChange={(value) => handleFormChange('selectedGrowerFlagId', value)}
+//                 items={growerFlags}
+//                 fieldKey="growerFlag"
+//               />
+
+//               {/* Save Button */}
+//               <View className="flex-row items-center justify-center my-8">
+//                 <TouchableOpacity 
+//                   className={`w-full border border-gray-300 rounded-lg p-4 ${isSubmitting ? 'bg-gray-400' : 'bg-[#65435C]'}`} 
+//                   onPress={updateGrower}
+//                   disabled={isSubmitting}
+//                   testID="save-button"
+//                 >
+//                   {isSubmitting ? (
+//                     <View className="flex-row justify-center items-center">
+//                       <ActivityIndicator size="small" color="white" />
+//                       <Text className="text-white ml-2">Saving...</Text>
+//                     </View>
+//                   ) : (
+//                     <Text className="text-white text-center">Save</Text>
+//                   )}
+//                 </TouchableOpacity>
+//               </View>
+//             </View>
+//           </View>
+//         </View>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }

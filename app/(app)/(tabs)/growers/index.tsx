@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
-import { router, Stack } from 'expo-router'
-import { Users } from 'lucide-react-native'
+import { router, Stack, useFocusEffect } from 'expo-router'
+import { PlugZap, Unplug, Users } from 'lucide-react-native'
 import { useSession } from '@/authContext'
 import * as SecureStore from 'expo-secure-store';
 import { FlashList } from '@shopify/flash-list'
@@ -23,23 +23,38 @@ type JoinedGrowerData = ProductionCycleRegistrationRecord & {
 
 const Growers = () => {
   const session = useSession();
-  console.log('session', session)
+  // console.log('session', session)
   const { isConnected } = useNetwork()
 
   const [growers, setGrowers] = useState<JoinedGrowerData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [syncStatus, setSyncStatus] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log('useFocusEffect Growers Screen');
+      powersync.registerListener({
+        statusChanged: (status) => {
+          setSyncStatus(status.connected);
+          // console.log('PowerSync status Growers Screen:', status);
+        }
+      });
+    }, [])
+  );
+  const getSyncStatus = () => {
+    console.log('getSyncStatus')
+    const status = powersync.currentStatus
+    console.log('getSyncStatus', status)
+  }
 
   useEffect(() => {
     console.log('useEffect growers')
     // Initialize PowerSync if not already initialized
     setupPowerSync();
-    
     // Set up a watch query to get and monitor growers data
     const controller = new AbortController();
-    
-    console.log('Setting up growers data watcher with JOIN...');
-    
+    // console.log('Setting up growers data watcher with JOIN...');
     powersync.watch(
       `SELECT 
         r.id, 
@@ -62,11 +77,11 @@ const Growers = () => {
           if (result.rows?._array) {
             // Log the first few records to debug
             if (result.rows._array.length > 0) {
-              console.log('Sample record:', JSON.stringify(result.rows._array[0]));
-              console.log('Join fields:', result.rows._array.slice(0, 3).map(row => ({
-                registration_grower_id: row.registration_grower_id,
-                grower_table_id: row.grower_table_id
-              })));
+              // console.log('Sample record:', JSON.stringify(result.rows._array[0]));
+              // console.log('Join fields:', result.rows._array.slice(0, 3).map(row => ({
+              //   registration_grower_id: row.registration_grower_id,
+              //   grower_table_id: row.grower_table_id
+              // })));
             }
             setGrowers(result.rows._array as JoinedGrowerData[]);
           }
@@ -86,30 +101,37 @@ const Growers = () => {
     };
   }, []);
 
-  console.log('growers', growers)
+  // console.log('growers', growers)
 
   return (
     <>
       <Stack.Screen options={{ 
         title: `Growers : ${growers.length}`,
         headerShown: true,
-        // headerRight: () => (
-        //     <View className="mr-4">
-        //         <TouchableOpacity onPress={()=> console.log('refreshing')} disabled={!isConnected}>
-        //             <RefreshCcw size={24} color="#1AD3BB" />
-        //         </TouchableOpacity>
-        //     </View>
-        // )
+        headerRight: () => (
+            <View className="mr-4">
+                <TouchableOpacity onPress={()=> console.log('refreshing')}>
+                  {/* <Text>{syncStatus.?connected}</Text> */}
+                  {syncStatus === true ? (
+                    <PlugZap size={24} color="#1AD3BB" />
+
+                  ) : (
+                    <Unplug size={24} color="red" />
+                  )}
+                </TouchableOpacity>
+            </View>
+        )
       }} />
       <View className="flex-1 p-4 bg-[#65435C]">
-        {/* <View className="bg-white rounded-2xl p-4 flex-row items-center gap-4">
-          <View className="h-12 w-12 bg-[#65435C] rounded-xl items-center justify-center">
-            <Users size={24} color="#1AD3BB" />
-          </View>
-          <Text className="text-xl font-semibold text-[#65435C]">Growers</Text>
-        </View> */}
-
-
+        {/* <TouchableOpacity 
+          className="bg-[#1AD3BB] p-3 rounded-xl mb-4 items-center" 
+          onPress={() => {
+            console.log('Button pressed');
+            getSyncStatus();
+          }}
+        >
+          <Text className="text-white font-bold">Test Sync Status</Text>
+        </TouchableOpacity> */}
 
         <View className="flex-1 bg-white rounded-2xl p-4">
         <FlashList
@@ -118,7 +140,6 @@ const Growers = () => {
       estimatedItemSize={200}
     />
         </View>
-
         {/* <View>
             {growers.map((grower, index) => (
                 <Text key={index}>{grower.first_name} {grower.surname}</Text>
@@ -133,7 +154,7 @@ export default Growers
 
 
 const growerItem = (item: any) => {
-    console.log('item', item)
+    // console.log('item', item)
     
     // Capitalize only the first letter of each name
     const capitalizeFirstLetter = (string: string) => {

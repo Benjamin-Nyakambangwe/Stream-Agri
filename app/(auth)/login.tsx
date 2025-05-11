@@ -38,8 +38,6 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
   const [userId, setUserId] = useState<number>(0)
   const [syncStatus, setSyncStatus] = useState<string>("")
   
- 
-  
   const { logIn, localLogin, error: authError } = useSession()
   const router = useRouter()
   // const appDatabase = useSQLiteContext()
@@ -67,7 +65,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
       powersync.registerListener({
         statusChanged: (status) => {
           setSyncStatus(JSON.stringify(status));
-          console.log('PowerSync status:', status);
+          // console.log('PowerSync status:', status);
         }
       });
     }, [])

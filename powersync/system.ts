@@ -22,6 +22,8 @@ export const powersync = new PowerSyncDatabase({
 export const setupPowerSync = async (clientId?: number) => {
   const odoo_employee_id = await SecureStore.getItemAsync('odoo_employee_id')
 
+  console.log('Setting up PowerSync')
+
   if (odoo_employee_id === null) {
     console.log('No employee ID found')
     return

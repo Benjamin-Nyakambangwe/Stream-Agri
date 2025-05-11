@@ -1,8 +1,11 @@
 import axios from "axios";
 import * as SecureStore from 'expo-secure-store';
 import * as Device from 'expo-device';
+import * as jose from 'jose';
 
-
+// Secret key for JWT signing - in production, use a secure environment variable
+const JWT_SECRET = new TextEncoder().encode(process.env.EXPO_PUBLIC_JWT_SECRET);
+const JWT_EXPIRY = '30d'; // JWT will expire in 30 days
 
 export async function POST(request: Request) {
   console.log('Odoo Employee Login API Called');
@@ -39,9 +42,36 @@ export async function POST(request: Request) {
     // Make the request to the Odoo API
     const response = await axios.request(options);
     console.log('API response status:', response.status);
-    console.log('API response data:', JSON.stringify(response.data).substring(0, 200) + '...');
+    console.log('API response data:', JSON.stringify(response.data));
     
-    // Return the response data
+    // If login is successful, generate JWT
+    if (response.data?.result?.success) {
+      const employeeData = response.data.result.employee;
+      const sessionToken = response.data.result.session_token;
+      
+      // Generate JWT with employee details
+      const jwt = await new jose.SignJWT({
+        sub: employeeData.id.toString(),
+        user_id: employeeData.id,
+        iss: "https://powersync-api.journeyapps.com",
+        aud: "https://67f6c16f984c6f4cb07959ca.powersync.journeyapps.com",
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime(JWT_EXPIRY)
+        .sign(JWT_SECRET);
+      
+      // Return JWT along with the response data
+      return new Response(JSON.stringify({
+        ...response.data,
+        jwt
+      }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+    
+    // Return the original response if login wasn't successful
     return new Response(JSON.stringify(response.data), {
       headers: { 'Content-Type': 'application/json' },
       status: 200

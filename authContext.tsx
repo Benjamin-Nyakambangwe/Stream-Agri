@@ -124,12 +124,14 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
                 name: data.result.employee.name,
                 workPhone: phoneNumber,
                 session_id: data.result.session_token,
-                session_expiry: data.result.expiry
+                session_expiry: data.result.expiry,
+                jwt: data.jwt
               };
 
               setSession(JSON.stringify(userData));
-              await SecureStore.setItemAsync('odoo_custom_session_id', data.result.session_token);
-              await SecureStore.setItemAsync('odoo_employee_id', String(data.result.employee.id));
+              // await SecureStore.setItemAsync('odoo_custom_session_id', data.result.session_token);
+              // await SecureStore.setItemAsync('odoo_employee_id', String(data.result.employee.id));
+              await SecureStore.setItemAsync('employee_jwt', data.jwt);
               return true;
             } else {
               setError('Invalid response from server');
@@ -167,10 +169,11 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
             if (data.isMatch) {
                     // Save important user data
                     const userData = {
+
                       userId: userId,
                       name: fullName,
                       workPhone: workPhone,
-                      session_id: '1234567890',
+                      session_id: await SecureStore.getItemAsync('odoo_custom_session_id'),
                       session_expiry: Date.now() + 1000 * 60 * 60 * 24 * 30 // 30 days
                     };
 
@@ -331,6 +334,9 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
         signOut: async () => {
           // Clear session from secure storage
           await SecureStore.deleteItemAsync('odoo_session_id');
+          // await SecureStore.deleteItemAsync('odoo_custom_session_id');
+          // await SecureStore.deleteItemAsync('odoo_employee_id');
+          await SecureStore.deleteItemAsync('employee_jwt');
           setSession(null);
         },
         session: session ? JSON.parse(session) : null,

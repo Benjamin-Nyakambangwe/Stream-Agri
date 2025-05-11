@@ -179,6 +179,7 @@
 import { AbstractPowerSyncDatabase, PowerSyncBackendConnector, UpdateType } from "@powersync/react-native";
 import axios from "axios";
 import * as SecureStore from 'expo-secure-store';
+import { useSession } from "@/authContext";
 export class Connector implements PowerSyncBackendConnector {
   /**
   * Implement fetchCredentials to obtain a JWT from your authentication service.
@@ -189,6 +190,8 @@ export class Connector implements PowerSyncBackendConnector {
   */
   async fetchCredentials() {
     const powerSyncURI = await SecureStore.getItemAsync('power_sync_uri')
+    const employeeJwt = await SecureStore.getItemAsync('employee_jwt')
+
     
     // If powerSyncURI is null, return null or use a default endpoint
     if (powerSyncURI === null) {
@@ -196,15 +199,12 @@ export class Connector implements PowerSyncBackendConnector {
       return null; // Return null if URI not found
     }
     console.log('powerSyncURI', powerSyncURI)
-    
+    console.log('employeeJwt', employeeJwt)
     return {
       // The PowerSync instance URL or self-hosted endpoint
       endpoint: powerSyncURI,
-      /**
-      * To get started quickly, use a development token, see:
-      * Authentication Setup https://docs.powersync.com/installation/authentication-setup/development-tokens) to get up and running quickly
-      */
-      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDY5NTUzNjUsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ2OTk4NTY1fQ.Cm6IXj2VpXni_wpzPljbl2rB9MBp6mFCpCmJ2GetaTWAzBphWa5oTewYCUtfD2dkmAoQZCzQs4fqnCBLaVIykvSqAiNAEnWaeYKXjVeSYQyRfxDzlYWjjIQZwlibQHfKwWsViAe_1WnZv_B9-LzLJCN18kOReEoBxz-oDxcIg9YJJLFdWashGnJFxicYhUaNO3WuoNFyrkS6PCeQSdSoHNTLYjJ1-yXg_XLj7FaKaWy1ALvuBjGm-OUJABq-X9PO__JbIRZapTdXnWtPPz4Ws3eMjpARKoU-42O8hbb9mxT7RFWP75yHhyBdnaoX1PNhVCr5iO6GR93iy1Ad_qX6pQ'
+      // token: employeeJwt || '' // Provide empty string as fallback
+      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDY5ODU4NjksImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ3MDI5MDY5fQ.qqPsA1LG1GXVkZeV3xepJckR9CsOct3tXTQeWZntAgb8N2Q4iRkSQBgiJSOmsN6QlVMD-GnE9UcC0Yxb1SvFJOnL1wPAvk0sId7OJcE-eHyrYAZs1KG568OZhfNJpsRRj38IAfNYAHEozV2cLuRVdHYP9B5Y4Sr2MuSAH3YSZ3wwJ-8UvHLZyey3CTMujfi6rJ_gPNcFoB_qsFSGOCtR4YhCl8UxvrdEkpVpbBj2SHwFio8qUfal2Ph19j8r8XB0LRZuxkKpLbtwJeeuQ5VQo8hjeetABTPjhmsJwKLmvoFhKovMFOMy1i-s5m8J2hbnOz-uBDcmczxxEriMgG9RcA'
     };
   }
 

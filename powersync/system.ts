@@ -23,11 +23,12 @@ export const setupPowerSync = async (clientId?: number) => {
   const odoo_employee_id = await SecureStore.getItemAsync('odoo_employee_id')
 
   console.log('Setting up PowerSync')
+  console.log('odoo_employee_id', odoo_employee_id)
 
-  if (odoo_employee_id === null) {
-    console.log('No employee ID found')
-    return
-  }
+  // if (odoo_employee_id === null) {
+  //   console.log('No employee ID found')
+  //   return
+  // }
   // Uses the backend connector that will be created in the next section
   const connector = new Connector();
   
@@ -36,7 +37,7 @@ export const setupPowerSync = async (clientId?: number) => {
     // clientId: clientId, // Will be undefined if not provided
     // You can also add client parameters here if needed
     params: {
-      clientUserId: parseInt(odoo_employee_id)
+      clientUserId: parseInt(odoo_employee_id || '0')
     }
   });
 };

@@ -37,7 +37,7 @@ const Growers = () => {
       powersync.registerListener({
         statusChanged: (status) => {
           setSyncStatus(status.connected);
-          // console.log('PowerSync status Growers Screen:', status);
+          console.log('PowerSync status Growers Screen:', status);
         }
       });
     }, [])

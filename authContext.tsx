@@ -3,6 +3,7 @@ import { useStorageState } from './useStorageState';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import bcrypt from 'bcryptjs';
+import { setupPowerSync } from './powersync/system';
 
 // Define a type for the Odoo user data
 interface OdooUserData {
@@ -129,8 +130,8 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
               };
 
               setSession(JSON.stringify(userData));
-              // await SecureStore.setItemAsync('odoo_custom_session_id', data.result.session_token);
-              // await SecureStore.setItemAsync('odoo_employee_id', String(data.result.employee.id));
+              await SecureStore.setItemAsync('odoo_custom_session_id', data.result.session_token);
+              await SecureStore.setItemAsync('odoo_employee_id', String(data.result.employee.id));
               await SecureStore.setItemAsync('employee_jwt', data.jwt);
               return true;
             } else {
@@ -262,6 +263,13 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
             
             console.log('Making request to:', `${apiBaseUrl}/web/session/authenticate`);
             console.log('Using database:', database);
+            console.log('login', login)
+            console.log('password length:', password?.length)
+            
+            if (!apiBaseUrl) {
+              setError('Server URL is missing. Please check settings.');
+              return false;
+            }
             
             const options = {
               method: 'POST',
@@ -279,6 +287,8 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
               }
             };
 
+            console.log('Sending authentication request...');
+            
             const response = await axios.request(options);
             
             // Extract the session ID cookie from the response
@@ -303,22 +313,25 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
                 await SecureStore.setItemAsync('power_sync_uri', powerSyncURI);
                 console.log('sessionId', sessionId)
                 console.log('sessionCookie2', sessionCookie)
+                console.log('PowerSync URI saved:', powerSyncURI);
               }
             }
             
             if (response.data && response.data.result) {
-              // Save important user data
-              // const userData: OdooUserData = {
-              //   uid: response.data.result.uid,
-              //   name: response.data.result.name,
-              //   username: response.data.result.username,
-              //   partner_id: response.data.result.partner_id,
-              //   is_admin: response.data.result.is_admin,
-              //   session_id: sessionId
-              // };
+              // Successfully logged in, try to trigger sync
+              console.log('Login successful, setting up PowerSync...');
               
-              // Store the user data
-              // setSession(JSON.stringify(userData));
+              try {
+                // Import the PowerSync setup function and call it
+                // const { setupPowerSync } = require('../powersync/system');
+                console.log('Setting up PowerSync after login');
+                await setupPowerSync();
+                console.log('PowerSync setup completed');
+              } catch (syncError) {
+                console.error('Error setting up PowerSync:', syncError);
+                // Continue even if PowerSync setup fails
+              }
+              
               return true;
             } else {
               console.log(response.data)

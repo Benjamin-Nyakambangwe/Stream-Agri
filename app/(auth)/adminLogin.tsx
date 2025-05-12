@@ -95,18 +95,42 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
 const getUsers = async () => {    
   console.log('Getting All HR Employees');
   
+  // First check if table exists and has structure
+  try {
+    // Check PowerSync system status
+    console.log('PowerSync status:', powersync.currentStatus);
+    
+    // Check tables in PowerSync
+    const tables = await powersync.execute('SELECT name FROM sqlite_master WHERE type="table"');
+    console.log('Available tables:', tables);
+    
+    // Check table structure
+    const tableInfo = await powersync.execute('PRAGMA table_info(hr_employee)');
+    console.log('HR employee table structure:', tableInfo);
+  } catch (error) {
+    console.error('Error checking PowerSync structure:', error);
+  }
+  
   // Option 1: Use with callback (easier)
   powersync.getAll(
     'SELECT * from hr_employee' 
   ).then((result) => {
+    console.log('Employee data count:', result?.length || 0);
+    console.log('First employee (if any):', result?.[0] || 'No employees found');
     console.log('Employee data:', result);
-    router.replace('/login')
+    
+    if (!result || result.length === 0) {
+      console.log('No employee data found - checking for sync errors');
+      // Don't navigate if no data found
+      alert('No employee data found. Check network connection and try again.');
+    } else {
+      router.replace('/login');
+    }
   }).catch((error) => {
     console.error('Error fetching employee data:', error);
+    alert(`Error fetching employee data: ${error.message}`);
   });
-
-
-  };
+};
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">

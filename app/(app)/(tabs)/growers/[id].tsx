@@ -10,13 +10,17 @@ import axios from 'axios';
 // Define interfaces for your data types
 interface Grower {
   id?: string;
+  grower_id?: string;
   grower_number?: string;
+  first_name?: string;
+  surname?: string;
   fir?: string;
-  contracted_ha?: string | number;
+  b010_contract_scale?: string | number;
   production_scheme_id?: string;
-  group_id?: string;
-  distribution_plan_id?: string;
+  region_id?: string;
+  distribution_plan?: string;
   grower_flags?: string;
+  production_cycle_name?: string;
   [key: string]: any; // Allow any other properties
 }
 
@@ -50,14 +54,26 @@ export default function GrowerModal() {
   const [selectedGrowerFlagId, setSelectedGrowerFlagId] = useState<string>('');
 
   useEffect(() => {
-    powersync.get('SELECT * FROM odoo_gms_production_cycle_registration WHERE grower_id = ? AND production_cycle_name = ?', [grower_id, production_scheme])
+    powersync.get(`
+      SELECT 
+        pcr.*,
+        g.grower_number 
+      FROM 
+        odoo_gms_production_cycle_registration pcr
+      LEFT JOIN 
+        odoo_gms_grower g ON pcr.grower_id = g.id
+      WHERE 
+        pcr.grower_id = ? AND pcr.production_cycle_name = ?`, 
+      [grower_id, production_scheme])
       .then((result) => {
-        setGrower(result as Grower); 
-        setSelectedGroupId(grower?.region_id?.toString() || '');
-        setSelectedProductionSchemeId(grower?.production_scheme_id?.toString() || '');
-        setSelectedDistributionPlanId(grower?.distribution_plan?.toString() || '');
-        setSelectedGrowerFlagId(grower?.grower_flags?.toString() || '');
-        // console.log('PCR GROWER', result);
+        const growerData = result as Grower;
+        setGrower(growerData); 
+        setSelectedGroupId(growerData?.region_id?.toString() || '');
+        setSelectedProductionSchemeId(growerData?.production_scheme_id?.toString() || '');
+        setSelectedDistributionPlanId(growerData?.distribution_plan?.toString() || '');
+        setSelectedGrowerFlagId(growerData?.grower_flags?.toString() || '');
+        setGrowerNumber(growerData?.grower_number || '');
+        console.log('PCR GROWER with joined data:', growerData);
       })
       .catch(ex => setError(ex.message));
     getProductionSchemes();
@@ -89,7 +105,6 @@ export default function GrowerModal() {
       setSelectedGrowerFlagId(grower.grower_flags?.toString() || '');
 
       setContractedHa(grower.b010_contract_scale?.toString() || '');
-      setGrowerNumber(grower.grower_number?.toString() || '');
       setFirstName(grower.first_name || '');
       setSurname(grower.surname || '');
     }

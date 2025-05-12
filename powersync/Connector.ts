@@ -189,7 +189,8 @@ export class Connector implements PowerSyncBackendConnector {
   * https://docs.powersync.com/installation/authentication-setup/firebase-auth
   */
   async fetchCredentials() {
-    const powerSyncURI = await SecureStore.getItemAsync('power_sync_uri')
+    // const powerSyncURI = await SecureStore.getItemAsync('power_sync_uri')
+    const powerSyncURI = 'https://67f6c16f984c6f4cb07959ca.powersync.journeyapps.com'
     const employeeJwt = await SecureStore.getItemAsync('employee_jwt')
 
     
@@ -204,7 +205,7 @@ export class Connector implements PowerSyncBackendConnector {
       // The PowerSync instance URL or self-hosted endpoint
       endpoint: powerSyncURI,
       // token: employeeJwt || '' // Provide empty string as fallback
-      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDY5ODU4NjksImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ3MDI5MDY5fQ.qqPsA1LG1GXVkZeV3xepJckR9CsOct3tXTQeWZntAgb8N2Q4iRkSQBgiJSOmsN6QlVMD-GnE9UcC0Yxb1SvFJOnL1wPAvk0sId7OJcE-eHyrYAZs1KG568OZhfNJpsRRj38IAfNYAHEozV2cLuRVdHYP9B5Y4Sr2MuSAH3YSZ3wwJ-8UvHLZyey3CTMujfi6rJ_gPNcFoB_qsFSGOCtR4YhCl8UxvrdEkpVpbBj2SHwFio8qUfal2Ph19j8r8XB0LRZuxkKpLbtwJeeuQ5VQo8hjeetABTPjhmsJwKLmvoFhKovMFOMy1i-s5m8J2hbnOz-uBDcmczxxEriMgG9RcA'
+      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDcwMjk3MjYsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ3MDcyOTI2fQ.aIdqCzF0ZiF9u2-DlXpA8HhImemdXy5WLxR-bfejvTgjEJd_Dh3isnNHR8b3FY4cGAIUlmWsTeOirC7qc7p3kYCqKv7Ll3WrmU0Yht61_qU4GYedH63biakdUNMoZkYA91WXSNonwOrBrb4F1FfdB3BmYHgbWDPbvoc1oP3mZL1pXTmSb3fgCv69NS64gtqgw1hvswbSlj5hNxQ32bBTmy6nhtHF74F238uetSlDkB7Ymel4eOcMmAoru7w1hMwRMu2600IhAQtK5-8_3CIneen6zzWp_PSogr5qeHHT6AO076kb7Rxg03AG7DdWO_NXDM8SC0D-xyVlw5fhQb2blA'
     };
   }
 
@@ -238,7 +239,7 @@ export class Connector implements PowerSyncBackendConnector {
          // Get the table name from the operation
          const tableName = op.table;
          let lastSyncedDate: Date = new Date();
-          
+
          // Get sync status information
          try {
            console.log(`Patching table: ${tableName}`);
@@ -293,8 +294,8 @@ export class Connector implements PowerSyncBackendConnector {
             odooTableName = odooDbName + '.' + tableName
           }
 
-          // ADDING 2 MINUTES TO LAST SYNC TIME
-          const newLastSyncedDate = new Date(lastSyncedDate.getTime() + 2 * 60 * 1000).toISOString();
+          // ADDING 1 MINUTES TO LAST SYNC TIME
+          const newLastSyncedDate = new Date(lastSyncedDate.getTime() + 1 * 60 * 1000).toISOString();
           console.log('newLastSyncedDate', newLastSyncedDate)
 
           // Configure the request based on your Insomnia example

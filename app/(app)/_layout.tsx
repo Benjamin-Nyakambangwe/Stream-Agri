@@ -1,7 +1,7 @@
 import { useSession } from '@/authContext';
 import { Redirect, Stack } from 'expo-router';
 import 'react-native-reanimated';
-import { Text } from 'react-native';
+import { StatusBar, Text, View } from 'react-native';
 export default function RootLayout() {
 
   const { session, isLoading } = useSession();
@@ -21,9 +21,12 @@ export default function RootLayout() {
 
 
   return (
+    <View className="flex-1">
+      <StatusBar backgroundColor="#65435C" barStyle="light-content" />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
+    </View>
   );
 }

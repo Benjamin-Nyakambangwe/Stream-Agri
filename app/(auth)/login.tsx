@@ -20,7 +20,7 @@ interface LoginScreenProps {
 interface Employee {
   id: number;
   name: string;
-  work_phone: string;
+  mobile_phone: string;
   mobile_app_password: string;
   [key: string]: any; // For any other properties
 }
@@ -85,7 +85,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
     // let currentUser = []
     
     try {
-      const currentUser = await powersync.get<Employee>('SELECT * from hr_employee WHERE work_phone = ?', [phoneNumber])
+      const currentUser = await powersync.get<Employee>('SELECT * from hr_employee WHERE mobile_phone = ?', [phoneNumber])
       console.log('currentUser from powersync login page')
       console.log(currentUser)
 
@@ -97,7 +97,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
         console.log('User found, setting credentials')
         setMobileAppPasswordHash(currentUser.mobile_app_password)
         setFullName(currentUser.name)
-        setWorkPhone(currentUser.work_phone)
+        setWorkPhone(currentUser.mobile_phone)
         setUserId(currentUser.id)
       }
     } catch (error: any) {
@@ -160,6 +160,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
         className="flex-1 px-6"
         contentContainerClassName="flex-grow justify-center"
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View className="items-center mb-10 mt-10">
           <View>

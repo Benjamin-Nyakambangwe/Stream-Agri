@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ScrollView, Alert, Modal } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { X } from 'lucide-react-native';
+import { ChevronLeft, Pencil, X } from 'lucide-react-native';
 import { powersync } from '@/powersync/system';
 import { Picker } from '@react-native-picker/picker';
 import { DistributionPlanRecord, FlagsRecord, ProductionSchemeRecord, RegionRecord } from '@/powersync/Schema';
 import axios from 'axios';
+
 
 // Define interfaces for your data types
 interface Grower {
@@ -41,6 +42,8 @@ export default function GrowerModal() {
   const [surname, setSurname] = useState<string>('');
   const [contractedHa, setContractedHa] = useState<string>('');
   const [growerNumber, setGrowerNumber] = useState<string>('');
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [password, setPassword] = useState('');
 
   const [productionSchemes, setProductionSchemes] = useState<ProductionSchemeRecord[]>([]);
   const [groups, setGroups] = useState<RegionRecord[]>([]);
@@ -52,6 +55,14 @@ export default function GrowerModal() {
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [selectedDistributionPlanId, setSelectedDistributionPlanId] = useState<string>('');
   const [selectedGrowerFlagId, setSelectedGrowerFlagId] = useState<string>('');
+
+  const [displayRegionName, setDisplayRegionName] = useState<string>('');
+  const [displayProductionSchemeName, setDisplayProductionSchemeName] = useState<string>('');
+  const [displayDistributionPlanName, setDisplayDistributionPlanName] = useState<string>('');
+  const [displayGrowerFlagName, setDisplayGrowerFlagName] = useState<string>('');
+
+
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     powersync.get(`
@@ -141,7 +152,7 @@ export default function GrowerModal() {
     LEFT JOIN 
       odoo_gms_activity a ON dp.activity_id = a.id`)
       .then(result => {
-        // console.log('Distribution Plans', result);
+        console.log('Distribution Plans', result);
         setDistributionPlans(result as DistributionPlan[]);
       })
       .catch(ex => {
@@ -178,8 +189,9 @@ export default function GrowerModal() {
           parseInt(selectedGroupId),
           grower_id, production_scheme]
       ).then(() => {
-        alert('Grower Updated');
-        router.back();
+        console.log('Grower Updated');
+        // alert('Grower Updated');
+        // router.back();
       }).catch((error) => {
         console.error('Error updating grower:', error);
         alert('Error updating grower');
@@ -188,6 +200,28 @@ export default function GrowerModal() {
       console.error('Error updating grower:', error);
       alert('Error updating grower');
     }
+
+    try {
+      await powersync.execute(`UPDATE odoo_gms_grower SET 
+        grower_number = ?, b010_first_name = ?, b020_surname = ? 
+        WHERE id = ? `, 
+        [growerNumber, firstName, surname, 
+          grower_id]
+      ).then(() => {
+        console.log('Actual Grower Updated');
+        // alert('ActualGrower Updated');
+        // router.back();
+      }).catch((error) => {
+        console.error('Error updating actual grower:', error);
+        alert('Error updating actual grower');
+      });
+    } catch (error) {
+      console.error('Error updating actual grower:', error);
+      alert('Error updating actual grower');
+    }
+
+    alert('All Updated')
+    router.back();
 
     
 
@@ -230,27 +264,151 @@ export default function GrowerModal() {
     // });
   }
 
+  const handlePasswordInput = (enteredPassword: string) => {
+    if (enteredPassword === '12345678') {
+      setIsEditing(true);
+      setPasswordModalVisible(false);
+      setPassword('');
+    } else {
+      Alert.alert('Error', 'Incorrect password');
+    }
+  };
 
-    console.log('Group ID', grower?.region_id);
-    console.log('Type of Group ID', typeof grower?.region_id);
-        console.log('Production Scheme ID', grower?.production_scheme_id);
-        console.log('Distribution Plan ID', grower?.distribution_plan);
-        console.log('Grower Flag ID', grower?.grower_flags);
+  // GET ALL THE NAMES FOR THE SELECTED VALUES
+  useEffect(() => {
+    if (grower?.region_id) {
+      powersync.get('SELECT name FROM odoo_gms_region WHERE id = ?', [grower.region_id])
+        .then(result => {
+          console.log('Region Name', result);
+          setDisplayRegionName(result?.name || 'N/A');
+        })
+        .catch(err => {
+          console.error('Error fetching region name:', err);
+          setDisplayRegionName('N/A');
+        });
+    }
+    if (grower?.production_scheme_id) {
+      powersync.get('SELECT name FROM odoo_gms_production_scheme WHERE id = ?', [grower.production_scheme_id])
+        .then(result => {
+          console.log('Production Scheme Name', result);
+          setDisplayProductionSchemeName(result?.name || 'N/A');
+        })
+        .catch(err => {
+          console.error('Error fetching production scheme name:', err);
+          setDisplayProductionSchemeName('N/A');
+        });
+    }
+    if (grower?.grower_flags) {
+      powersync.get('SELECT name FROM odoo_gms_flags WHERE id = ?', [grower.grower_flags])
+        .then(result => {
+          console.log('Grower Flag Name', result);
+          setDisplayGrowerFlagName(result?.name || 'N/A');
+        })
+        .catch(err => {
+          console.error('Error fetching grower flag name:', err);
+          setDisplayGrowerFlagName('N/A');
+        });
+    }
+    //Get Distribution Plans
+  const getDisplayDistributionPlan = async () => {
+    console.log('GET DISTRIBUTION PLANS');
+    powersync.getAll(`SELECT 
+      dp.*,
+      pc.name AS production_cycle_name,
+      ps.name AS production_scheme_name,
+      a.name AS activity_name
+    FROM 
+      odoo_gms_distribution_plan dp
+    LEFT JOIN 
+      odoo_gms_production_cycle pc ON dp.production_cycle_id = pc.id
+    LEFT JOIN 
+      odoo_gms_production_scheme ps ON dp.production_scheme_id = ps.id
+    LEFT JOIN 
+      odoo_gms_activity a ON dp.activity_id = a.id
+      WHERE dp.id = ?`, [selectedDistributionPlanId])
+      .then(result => {
+        console.log('Display Distribution Plan', result);
+        if (result[0]) {
+          setDisplayDistributionPlanName(result[0]?.production_cycle_name + ' - ' + result[0]?.production_scheme_name + ' - ' + result[0]?.activity_name || 'N/A');
+        } else {
+          setDisplayDistributionPlanName('N/A');
+        }
+      })
+      .catch(ex => {
+        console.error('Error fetching distribution plans:', ex);
+        setError(ex.message);
+      });
+  }
+  getDisplayDistributionPlan();
+
+  }, [grower?.region_id, grower?.production_scheme_id, grower?.distribution_plan, grower?.grower_flags, selectedDistributionPlanId]);
+
+  console.log('Group ID', grower?.region_id);
+  console.log('Type of Group ID', typeof grower?.region_id);
+      console.log('Production Scheme ID', grower?.production_scheme_id);
+      console.log('Distribution Plan ID', grower?.distribution_plan);
+      console.log('Grower Flag ID', grower?.grower_flags);
 
   return (
     <SafeAreaView className="flex-1 bg-[#65435C]">
       <View className="flex-1 mt-6 ">
         <View className="flex-1 bg-white rounded-t-3xl overflow-hidden ">
           <View className="flex-row justify-between items-center p-4 border-b border-gray-100 ">
+            <TouchableOpacity className="flex-row items-center" onPress={() => router.back()}>
+              <ChevronLeft size={28} color="#65435C" />
             <Text className="text-xl font-bold text-[#65435C]">Grower Details</Text>
+            </TouchableOpacity>
             <TouchableOpacity 
-              className="h-10 w-10 rounded-full bg-gray-100 items-center justify-center"
-              onPress={() => router.back()}
-            >
-              <X size={20} color="#65435C" />
+              className="h-10 w-10 rounded-xl bg-[#65435C] items-center justify-center"
+              onPress={() => 
+                isEditing ? setIsEditing(false) : setPasswordModalVisible(true)}>
+              <Pencil size={20} color="white" />
             </TouchableOpacity>
           </View>
           
+          {/* Password Modal */}
+          <Modal
+            animationType="fade"
+            transparent={true}
+            visible={passwordModalVisible}
+            onRequestClose={() => setPasswordModalVisible(false)}
+          >
+            <View className="flex-1 justify-center items-center bg-black/50">
+              <View className="bg-white rounded-xl p-5 w-4/5 shadow-lg">
+                <Text className="text-lg font-bold text-[#65435C] mb-3">Password Required</Text>
+                <Text className="text-gray-600 mb-4">Please enter password to edit grower details</Text>
+                
+                <TextInput
+                  secureTextEntry
+                  className="border border-gray-300 rounded-md p-3 mb-4"
+                  placeholder="Enter password"
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                
+                <View className="flex-row justify-end">
+                  <TouchableOpacity 
+                    className="bg-gray-200 rounded-md px-4 py-2 mr-2"
+                    onPress={() => {
+                      setPasswordModalVisible(false);
+                      setPassword('');
+                    }}
+                  >
+                    <Text className="text-gray-800">Cancel</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    className="bg-[#65435C] rounded-md px-4 py-2"
+                    onPress={() => handlePasswordInput(password)}
+                  >
+                    <Text className="text-white">Submit</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+          
+          {isEditing ? (
           <ScrollView className="flex-1 px-4 py-2 pt-4">
             <View className="flex-1">
                 <View className="flex-row items-center justify-between my-2">
@@ -258,6 +416,7 @@ export default function GrowerModal() {
                     <TextInput 
                         className="border border-gray-300 rounded-md p-2 w-2/3" 
                         value={growerNumber} 
+                        // editable={false}
                         onChangeText={(text) => {
                             setGrowerNumber(text);
                         }}
@@ -268,6 +427,7 @@ export default function GrowerModal() {
                     <TextInput 
                         className="border border-gray-300 rounded-md p-2 w-2/3" 
                         value={firstName} 
+                        // editable={false}
                         onChangeText={(text) => {
                             setFirstName(text);
                         }}
@@ -278,6 +438,7 @@ export default function GrowerModal() {
                     <TextInput 
                         className="border border-gray-300 rounded-md p-2 w-2/3" 
                         value={surname} 
+                        // editable={false}
                         onChangeText={(text) => {
                             setSurname(text);
                         }}
@@ -352,7 +513,7 @@ export default function GrowerModal() {
                 </View>
                 
                 {/* Grower Flag Picker */}
-                <View className="flex-row items-center justify-between my-2">
+                {/* <View className="flex-row items-center justify-between my-2">
                     <Text className="text-gray-600 w-1/3">Grower Flag</Text>
                     <View className="border border-gray-300 rounded-md w-2/3">
                         <Picker
@@ -368,21 +529,64 @@ export default function GrowerModal() {
                             ))}
                         </Picker>
                     </View>
-                </View>
+                </View> */}
 
                 {/* Save Button */}
-                <View className="flex-row items-center justify-center my-4">
-                    <TouchableOpacity className="w-full border border-gray-300 rounded-lg p-4 bg-[#65435C]" onPress={updateGrower}>
-                        <Text className="text-white text-center font-bold text-xl">SAVE</Text>
+                <View className="">
+                    <TouchableOpacity className="bg-[#65435C] rounded-md m-3" onPress={updateGrower}>
+                    <Text className="text-white text-xl text-center p-2">Save</Text>
                     </TouchableOpacity>
                 </View>
             </View>
           </ScrollView>
+          ) : (
+            <ScrollView className="flex-1 px-4 py-2 pt-4 mt-12">
+              <View className="flex-1">
+                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                    <Text className="text-md font-bold w-1/2">Grower Number: </Text>
+                    <Text className="text-md w-1/2">{grower?.grower_number}</Text>
+                </View>
+                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                  <Text className="text-md font-bold w-1/2">First Name: </Text>
+                  <Text className="text-md w-1/2">{grower?.first_name}</Text>
+                </View>
+                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                  <Text className="text-md font-bold w-1/2">Surname: </Text>
+                  <Text className="text-md w-1/2">{grower?.surname}</Text>
+                </View>
+                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                  <Text className="text-md font-bold w-1/2">Contracted Ha: </Text>
+                  <Text className="text-md w-1/2">{grower?.b010_contract_scale}</Text>
+                </View>
+                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                  <Text className="text-md font-bold w-1/2">Production Scheme: </Text>
+                  <Text className="text-md w-1/2">{displayProductionSchemeName}</Text>
+                </View>
+                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                  <Text className="text-md font-bold w-1/2">Group: </Text>
+                  <Text className="text-md w-1/2">{displayRegionName}</Text>
+                </View>
+                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                  <Text className="text-md font-bold w-1/2">Distribution Plan: </Text>
+                  <Text className="text-md w-1/2">{displayDistributionPlanName}</Text>
+                </View>
+
+                {/* <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                  <Text className="text-md font-bold w-1/2">Grower Flag: </Text>
+                  <Text className="text-md w-1/2">{displayGrowerFlagName}</Text>
+                </View> */}
+
+
+              </View>
+
+            </ScrollView>
+          )}
         </View>
       </View>
     </SafeAreaView>
   );
 }
+
 
 
 

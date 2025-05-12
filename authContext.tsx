@@ -2,8 +2,10 @@ import { useContext, createContext, type PropsWithChildren, ReactNode, useState,
 import { useStorageState } from './useStorageState';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import bcrypt from 'bcryptjs';
+// import bcrypt from 'bcryptjs';
 import { setupPowerSync } from './powersync/system';
+import 'react-native-get-random-values';
+import bcrypt from 'react-native-bcrypt';
 
 // Define a type for the Odoo user data
 interface OdooUserData {
@@ -100,6 +102,9 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
           setError(null);
           console.log('Login Function')
           console.log(password, phoneNumber)
+          // const salt = bcrypt.genSaltSync(10);
+          // const hash = bcrypt.hashSync(password, salt);
+          // console.log('hash', hash)
           console.log('LOGIN API ROUTE', `${process.env.EXPO_PUBLIC_APP_URL}/login`)
           const apiBaseUrl = await getServerUrl();
 
@@ -150,24 +155,29 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
         localLogin: async (password: string, mobileAppPasswordHash: string, fullName: string, workPhone: string, userId: string) => {
           setError(null);
           console.log(password, mobileAppPasswordHash)
+          alert(password)
+          alert(mobileAppPasswordHash)
+          const isMatch = bcrypt.compareSync(password, mobileAppPasswordHash);
+          console.log('isMatch', isMatch)
+          alert(isMatch)
 
           try {
-            const response = await fetch(`${process.env.EXPO_PUBLIC_APP_URL}/localLogin`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ password, mobileAppPasswordHash }),
-            });
+            // const response = await fetch(`${process.env.EXPO_PUBLIC_APP_URL}/localLogin`, {
+            //   method: 'POST',
+            //   headers: {
+            //     'Content-Type': 'application/json',
+            //   },
+            //   body: JSON.stringify({ password, mobileAppPasswordHash }),
+            // });
             
-            const data = await response.json();
+            // const data = await response.json();
             
-            if (!data.isMatch) {
+            if (!isMatch) {
               setError('Invalid password');
               return false;
             }
 
-            if (data.isMatch) {
+            if (isMatch) {
                     // Save important user data
                     const userData = {
 

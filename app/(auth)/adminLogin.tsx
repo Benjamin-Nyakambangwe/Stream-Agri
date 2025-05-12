@@ -138,6 +138,7 @@ const getUsers = async () => {
         className="flex-1 px-6"
         contentContainerClassName="flex-grow justify-center"
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View className="items-center mb-10 mt-10">
           <View>
@@ -239,14 +240,14 @@ const getUsers = async () => {
           </View>
         
         
-        <TouchableOpacity 
+        {/* <TouchableOpacity 
           className="mt-4 rounded-md border-2 border-[#65435C] p-2" 
           onPress={() => router.push('/(auth)/login')}
         >
           <Text className="text-[#1AD3BB] text-center">
             Field Officer Login
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </ScrollView>
     </KeyboardAvoidingView>
   )

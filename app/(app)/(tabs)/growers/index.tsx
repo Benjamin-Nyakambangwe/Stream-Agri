@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { Text, TouchableOpacity, View } from 'react-native'
+import { KeyboardAvoidingView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { router, Stack, useFocusEffect } from 'expo-router'
-import { PlugZap, Unplug, Users } from 'lucide-react-native'
+import { CircleArrowRight, PlugZap, Search, Unplug, Users } from 'lucide-react-native'
 import { useSession } from '@/authContext'
 import * as SecureStore from 'expo-secure-store';
 import { FlashList } from '@shopify/flash-list'
@@ -27,6 +27,8 @@ const Growers = () => {
   const { isConnected } = useNetwork()
 
   const [growers, setGrowers] = useState<JoinedGrowerData[]>([]);
+  const [filteredGrowers, setFilteredGrowers] = useState<JoinedGrowerData[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [syncStatus, setSyncStatus] = useState(false);
@@ -83,7 +85,9 @@ const Growers = () => {
               //   grower_table_id: row.grower_table_id
               // })));
             }
-            setGrowers(result.rows._array as JoinedGrowerData[]);
+            const growersData = result.rows._array as JoinedGrowerData[];
+            setGrowers(growersData);
+            setFilteredGrowers(growersData);
           }
           setLoading(false);
         },
@@ -101,12 +105,37 @@ const Growers = () => {
     };
   }, []);
 
+  // Search feature implementation
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    if (text.trim() === '') {
+      setFilteredGrowers(growers);
+      return;
+    }
+
+    const lowercaseQuery = text.toLowerCase();
+    const filtered = growers.filter(
+      grower => 
+        (grower.first_name?.toLowerCase().includes(lowercaseQuery) ||
+        grower.surname?.toLowerCase().includes(lowercaseQuery) ||
+        grower.production_cycle_name?.toLowerCase().includes(lowercaseQuery) ||
+        grower.grower_name?.toLowerCase().includes(lowercaseQuery) ||
+        grower.grower_number?.toLowerCase().includes(lowercaseQuery))
+    );
+    setFilteredGrowers(filtered);
+  };
+
   // console.log('growers', growers)
 
   return (
     <>
       <Stack.Screen options={{ 
-        title: `Growers : ${growers.length}`,
+        title: 'Growers',
+        headerTitleStyle: {
+          fontSize: 24,
+          fontWeight: 'bold',
+          color: '#65435C'
+        },
         headerShown: true,
         headerRight: () => (
             <View className="mr-4">
@@ -122,22 +151,41 @@ const Growers = () => {
             </View>
         )
       }} />
-      <View className="flex-1 p-4 bg-[#65435C]">
-        {/* <TouchableOpacity 
-          className="bg-[#1AD3BB] p-3 rounded-xl mb-4 items-center" 
-          onPress={() => {
-            console.log('Button pressed');
-            getSyncStatus();
-          }}
-        >
-          <Text className="text-white font-bold">Test Sync Status</Text>
-        </TouchableOpacity> */}
+      <View className="flex-1 p-4 bg-[#65435C]"
+      >
+        <View className="flex-row items-center justify-between gap-2 mb-4 h-12">
+          <View className="relative w-[80%]">
+            <View className="absolute left-3 top-3 z-10">
+              <Search size={20} color="#65435C" />
+            </View>
+            <TextInput
+              placeholder="Search"
+              placeholderTextColor="#65435C" 
+              className="text-white font-bold bg-[#937B8C] rounded-xl p-4 pl-12 w-full"
+              value={searchQuery}
+              onChangeText={handleSearch}
+            />
+          </View>
+        {/* <View className="w-[80%]">
+          <TextInput
+            placeholder="Search Grower"
+            placeholderTextColor="white"
+            className="text-white font-bold bg-[#937B8C] rounded-xl p-6 h-12 w-full"
+            // value={searchQuery}
+            // onChangeText={handleSearch}
+          />
+        </View> */}
+        <View className="flex-row items-center justify-center border-2 border-white rounded-xl h-12 w-[20%]">
+          <Text className="text-white font-bold text-2xl text-center">{filteredGrowers.length}</Text>
+        </View>
+        </View>
 
         <View className="flex-1 bg-white rounded-2xl p-4">
         <FlashList
-      data={growers}
+      data={filteredGrowers}
       renderItem={({ item }: { item: any }) => growerItem(item)}
       estimatedItemSize={200}
+      keyboardShouldPersistTaps="handled"
     />
         </View>
         {/* <View>
@@ -154,7 +202,7 @@ export default Growers
 
 
 const growerItem = (item: any) => {
-    // console.log('item', item)
+    console.log('item', item)
     
     // Capitalize only the first letter of each name
     const capitalizeFirstLetter = (string: string) => {
@@ -185,14 +233,15 @@ const growerItem = (item: any) => {
                     </View>
                     
                     <View>
-                        <Text className="text-lg font-bold text-[#65435C]">{firstName} {lastName}</Text>
-                        {/* <Text className="text-gray-500 text-sm">Farmer ID: {item.grower_number}</Text> */}
+                        <Text className="text-lg font-bold text-[#65435C] truncate max-w-[200px]">{firstName} {lastName}</Text>
+                        <Text className="text-gray-500 text-sm">{item.grower_number} - {item.production_cycle_name}</Text>
                     </View>
                 </View>
                 
                 {/* Right side with action indicator */}
-                <View className="bg-gray-100 rounded-full h-8 w-8 items-center justify-center">
-                    <Text className="text-[#65435C] font-bold">→</Text>
+                <View className=" rounded-full h-8 w-8 items-center justify-center">
+                  <CircleArrowRight size={24} color="#65435C" />
+                    {/* <Text className="text-[#65435C] font-bold">→</Text> */}
                 </View>
             </View>
         </TouchableOpacity>

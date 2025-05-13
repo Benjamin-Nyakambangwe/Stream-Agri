@@ -22,7 +22,7 @@ const DEFAULT_API_URL = process.env.EXPO_PUBLIC_ODOO_SERVER_IP  ;
 const DEFAULT_DB = process.env.EXPO_PUBLIC_ODOO_DATABASE;
 
 const AuthContext = createContext<{
-  logIn: (password: string, phoneNumber: string) => Promise<boolean>;
+  logIn: (password: string, phoneNumber: string, mobileAppPasswordHash: string) => Promise<boolean>;
   localLogin: (password: string, mobileAppPasswordHash: string, fullName: string, workPhone: string, userId: string) => Promise<boolean>;
   adminLogin: (login: string, password: string, powerSyncURI: string) => Promise<boolean>;
   signOut: () => void;
@@ -98,13 +98,13 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
   return (
     <AuthContext.Provider
       value={{
-        logIn: async (password: string, phoneNumber: string) => {
+        logIn: async (password: string, phoneNumber: string, mobileAppPasswordHash: string) => {
           setError(null);
           console.log('Login Function')
-          console.log(password, phoneNumber)
-          // const salt = bcrypt.genSaltSync(10);
-          // const hash = bcrypt.hashSync(password, salt);
-          // console.log('hash', hash)
+          console.log(password, phoneNumber, mobileAppPasswordHash)
+          // const isMatch = bcrypt.compareSync(password, mobileAppPasswordHash);
+          // console.log('isMatch', isMatch)
+          // alert(isMatch)
           console.log('LOGIN API ROUTE', `${process.env.EXPO_PUBLIC_APP_URL}/login`)
           const apiBaseUrl = await getServerUrl();
 
@@ -155,11 +155,11 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
         localLogin: async (password: string, mobileAppPasswordHash: string, fullName: string, workPhone: string, userId: string) => {
           setError(null);
           console.log(password, mobileAppPasswordHash)
-          alert(password)
-          alert(mobileAppPasswordHash)
+          // alert(password)
+          // alert(mobileAppPasswordHash)
           const isMatch = bcrypt.compareSync(password, mobileAppPasswordHash);
           console.log('isMatch', isMatch)
-          alert(isMatch)
+          // alert(isMatch)
 
           try {
             // const response = await fetch(`${process.env.EXPO_PUBLIC_APP_URL}/localLogin`, {

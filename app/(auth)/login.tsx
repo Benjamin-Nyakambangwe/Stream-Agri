@@ -77,6 +77,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
 
 
   const handleLogin = async () => {
+    setIsLoggingIn(true)
     console.log('Login Pressed')
     // const currentUser = await appDatabase.getAllAsync('SELECT * FROM users WHERE work_phone = ?', [phoneNumber])
     // console.log(currentUser)
@@ -89,16 +90,49 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
       console.log('currentUser from powersync login page')
       console.log(currentUser)
 
-      if (currentUser.length === 0) {
+      if (!currentUser) {
         console.log('No user found with phone number:', phoneNumber)
         setLoginError("User not found")
         return
       } else {
         console.log('User found, setting credentials')
+        console.log('currentUser', currentUser)
+        console.log('currentUser.mobile_app_password', currentUser.mobile_app_password)
         setMobileAppPasswordHash(currentUser.mobile_app_password)
         setFullName(currentUser.name)
         setWorkPhone(currentUser.mobile_phone)
         setUserId(currentUser.id)
+        
+        if (!phoneNumber || !password) {
+          setLoginError("Please enter both phone number and password")
+          return
+        }
+        
+        setIsLoggingIn(true)
+        setLoginError(null)
+        
+        try {
+          console.log('Connected to internet Login')
+          console.log('Hash Password', currentUser.mobile_app_password)
+          let success
+          isConnected ? 
+          // success = true
+          success = await logIn(password, phoneNumber, currentUser.mobile_app_password)
+          :
+          setIsLoggingIn(true)
+          success = await localLogin(password, currentUser.mobile_app_password, currentUser.name, currentUser.mobile_phone, String(currentUser.id))
+          if (success) {
+            // Navigate to main app
+            router.replace("/(app)/(tabs)")
+          } else {
+            setLoginError(authError || "Login failed. Please check your credentials.")
+          }
+        } catch (err) {
+          setLoginError("An error occurred during login")
+          console.error(err)
+        } finally {
+          setIsLoggingIn(false)
+        }
       }
     } catch (error: any) {
       console.error('PowerSync query error:', error);
@@ -119,36 +153,6 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
         setLoginError(`Error retrieving user data: ${error.message || 'Unknown error'}`);
       }
       return;
-    }
-
-    if (!phoneNumber || !password) {
-      setLoginError("Please enter both phone number and password")
-      return
-    }
-    
-    setIsLoggingIn(true)
-    setLoginError(null)
-    
-    try {
-      console.log('Connected to internet Login')
-      console.log('Hash Password', mobileAppPasswordHash)
-      let success
-      isConnected ? 
-      // success = true
-      success = await logIn(password, phoneNumber)
-      :
-      success = await localLogin(password, mobileAppPasswordHash, fullName, workPhone, String(userId))
-      if (success) {
-        // Navigate to main app
-        router.replace("/(app)/(tabs)")
-      } else {
-        setLoginError(authError || "Login failed. Please check your credentials.")
-      }
-    } catch (err) {
-      setLoginError("An error occurred during login")
-      console.error(err)
-    } finally {
-      setIsLoggingIn(false)
     }
   }
 

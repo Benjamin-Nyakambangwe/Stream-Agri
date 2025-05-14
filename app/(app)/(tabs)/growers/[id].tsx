@@ -409,7 +409,9 @@ export default function GrowerModal() {
           </Modal>
           
           {isEditing ? (
-          <ScrollView className="flex-1 px-4 py-2 pt-4">
+          <ScrollView className="flex-1 px-4 py-2 pt-4"
+          keyboardShouldPersistTaps="handled"
+          >
             <View className="flex-1">
                 <View className="flex-row items-center justify-between my-2">
                     <Text className="text-gray-600 w-1/3">Grower Number</Text>
@@ -532,8 +534,11 @@ export default function GrowerModal() {
                 </View> */}
 
                 {/* Save Button */}
-                <View className="">
-                    <TouchableOpacity className="bg-[#65435C] rounded-md m-3" onPress={updateGrower}>
+                <View className="flex-row justify-evenly mt-8 mb-8 gap-2">
+                <TouchableOpacity className="bg-gray-200 rounded-md w-[50%]" onPress={()=> setIsEditing(false)}>
+                    <Text className="text-[#65435C] text-xl text-center p-2">Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity className="bg-[#65435C] rounded-md w-[50%]" onPress={updateGrower}>
                     <Text className="text-white text-xl text-center p-2">Save</Text>
                     </TouchableOpacity>
                 </View>
@@ -542,31 +547,31 @@ export default function GrowerModal() {
           ) : (
             <ScrollView className="flex-1 px-4 py-2 pt-4 mt-12">
               <View className="flex-1">
-                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                <View className="flex-row items-center justify-between my-2 mb-4 pb-2">
                     <Text className="text-md font-bold w-1/2">Grower Number: </Text>
                     <Text className="text-md w-1/2">{grower?.grower_number}</Text>
                 </View>
-                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                <View className="flex-row items-center justify-between my-2 mb-4 pb-2">
                   <Text className="text-md font-bold w-1/2">First Name: </Text>
                   <Text className="text-md w-1/2">{grower?.first_name}</Text>
                 </View>
-                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                <View className="flex-row items-center justify-between my-2 mb-4 pb-2">
                   <Text className="text-md font-bold w-1/2">Surname: </Text>
                   <Text className="text-md w-1/2">{grower?.surname}</Text>
                 </View>
-                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                <View className="flex-row items-center justify-between my-2 mb-4 pb-2">
                   <Text className="text-md font-bold w-1/2">Contracted Ha: </Text>
                   <Text className="text-md w-1/2">{grower?.b010_contract_scale}</Text>
                 </View>
-                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                <View className="flex-row items-center justify-between my-2 mb-4 pb-2">
                   <Text className="text-md font-bold w-1/2">Production Scheme: </Text>
                   <Text className="text-md w-1/2">{displayProductionSchemeName}</Text>
                 </View>
-                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                <View className="flex-row items-center justify-between my-2 mb-4 pb-2">
                   <Text className="text-md font-bold w-1/2">Group: </Text>
                   <Text className="text-md w-1/2">{displayRegionName}</Text>
                 </View>
-                <View className="flex-row items-center justify-between my-2 border-b-2 mb-4 pb-2">
+                <View className="flex-row items-center justify-between my-2 mb-4 pb-2">
                   <Text className="text-md font-bold w-1/2">Distribution Plan: </Text>
                   <Text className="text-md w-1/2">{displayDistributionPlanName}</Text>
                 </View>

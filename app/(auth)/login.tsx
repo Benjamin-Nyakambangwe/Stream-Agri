@@ -77,7 +77,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
 
 
   const handleLogin = async () => {
-    setIsLoggingIn(true)
+    // setIsLoggingIn(true)
     console.log('Login Pressed')
     // const currentUser = await appDatabase.getAllAsync('SELECT * FROM users WHERE work_phone = ?', [phoneNumber])
     // console.log(currentUser)
@@ -117,12 +117,12 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
           let success
           isConnected ? 
           // success = true
-          success = await logIn(password, phoneNumber, currentUser.mobile_app_password)
+          success = await logIn(password, phoneNumber)
           :
-          setIsLoggingIn(true)
-          success = await localLogin(password, currentUser.mobile_app_password, currentUser.name, currentUser.mobile_phone, String(currentUser.id))
+          success = await localLogin(password, currentUser.mobile_app_password, currentUser.salt, currentUser.name, currentUser.mobile_phone, String(currentUser.id))
           if (success) {
             // Navigate to main app
+            setIsLoggingIn(false)
             router.replace("/(app)/(tabs)")
           } else {
             setLoginError(authError || "Login failed. Please check your credentials.")

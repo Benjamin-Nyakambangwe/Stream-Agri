@@ -153,15 +153,15 @@ const Growers = () => {
       }} />
       <View className="flex-1 p-4 bg-[#65435C]"
       >
-        <View className="flex-row items-center justify-between gap-2 mb-4 h-12">
+        <View className="flex-row items-center justify-between gap-2 mb-4 h-14">
           <View className="relative w-[80%]">
-            <View className="absolute left-3 top-3 z-10">
+            <View className="absolute left-3 top-4 z-10">
               <Search size={20} color="#65435C" />
             </View>
             <TextInput
               placeholder="Search"
               placeholderTextColor="#65435C" 
-              className="text-white font-bold bg-[#937B8C] rounded-xl p-4 pl-12 w-full"
+              className="text-white text-lg bg-[#937B8C] rounded-full p-4 pl-12 w-full"
               value={searchQuery}
               onChangeText={handleSearch}
             />
@@ -175,7 +175,7 @@ const Growers = () => {
             // onChangeText={handleSearch}
           />
         </View> */}
-        <View className="flex-row items-center justify-center border-2 border-white rounded-xl h-12 w-[20%]">
+        <View className="flex-row items-center justify-center h-12 w-[20%]">
           <Text className="text-white font-bold text-2xl text-center">{filteredGrowers.length}</Text>
         </View>
         </View>

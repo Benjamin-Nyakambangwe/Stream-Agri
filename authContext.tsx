@@ -5,7 +5,8 @@ import * as SecureStore from 'expo-secure-store';
 // import bcrypt from 'bcryptjs';
 import { setupPowerSync } from './powersync/system';
 import 'react-native-get-random-values';
-import bcrypt from 'react-native-bcrypt';
+// import bcrypt from 'react-native-bcrypt';
+import * as Crypto from 'expo-crypto';
 
 // Define a type for the Odoo user data
 interface OdooUserData {
@@ -22,8 +23,8 @@ const DEFAULT_API_URL = process.env.EXPO_PUBLIC_ODOO_SERVER_IP  ;
 const DEFAULT_DB = process.env.EXPO_PUBLIC_ODOO_DATABASE;
 
 const AuthContext = createContext<{
-  logIn: (password: string, phoneNumber: string, mobileAppPasswordHash: string) => Promise<boolean>;
-  localLogin: (password: string, mobileAppPasswordHash: string, fullName: string, workPhone: string, userId: string) => Promise<boolean>;
+  logIn: (password: string, phoneNumber: string) => Promise<boolean>;
+  localLogin: (password: string, mobileAppPasswordHash: string, salt: string, fullName: string, workPhone: string, userId: string) => Promise<boolean>;
   adminLogin: (login: string, password: string, powerSyncURI: string) => Promise<boolean>;
   signOut: () => void;
   session?: OdooUserData | null;
@@ -98,10 +99,10 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
   return (
     <AuthContext.Provider
       value={{
-        logIn: async (password: string, phoneNumber: string, mobileAppPasswordHash: string) => {
+        logIn: async (password: string, phoneNumber: string) => {
           setError(null);
           console.log('Login Function')
-          console.log(password, phoneNumber, mobileAppPasswordHash)
+          console.log(password, phoneNumber)
           // const isMatch = bcrypt.compareSync(password, mobileAppPasswordHash);
           // console.log('isMatch', isMatch)
           // alert(isMatch)
@@ -152,14 +153,22 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
             return false;
           }
         },
-        localLogin: async (password: string, mobileAppPasswordHash: string, fullName: string, workPhone: string, userId: string) => {
+        localLogin: async (password: string, mobileAppPasswordHash: string, salt: string, fullName: string, workPhone: string, userId: string) => {
           setError(null);
           console.log(password, mobileAppPasswordHash)
           // alert(password)
           // alert(mobileAppPasswordHash)
-          const isMatch = bcrypt.compareSync(password, mobileAppPasswordHash);
-          console.log('isMatch', isMatch)
+          // const isMatch = bcrypt.compareSync(password, mobileAppPasswordHash);
+          // console.log('isMatch', isMatch)
           // alert(isMatch)
+          const passwordWithSalt = password + salt;
+
+          const calculatedHash = await Crypto.digestStringAsync(
+            Crypto.CryptoDigestAlgorithm.SHA256,
+            passwordWithSalt
+          );
+
+          const isMatch = calculatedHash === mobileAppPasswordHash;
 
           try {
             // const response = await fetch(`${process.env.EXPO_PUBLIC_APP_URL}/localLogin`, {

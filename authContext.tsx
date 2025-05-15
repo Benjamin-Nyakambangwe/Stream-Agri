@@ -23,8 +23,8 @@ const DEFAULT_API_URL = process.env.EXPO_PUBLIC_ODOO_SERVER_IP  ;
 const DEFAULT_DB = process.env.EXPO_PUBLIC_ODOO_DATABASE;
 
 const AuthContext = createContext<{
-  logIn: (password: string, phoneNumber: string) => Promise<boolean>;
-  localLogin: (password: string, mobileAppPasswordHash: string, salt: string, fullName: string, workPhone: string, userId: string) => Promise<boolean>;
+  logIn: (password: string, phoneNumber: string, mobileAppPasswordHash: string, mobile_app_password_salt: string) => Promise<boolean>;
+  localLogin: (password: string, mobileAppPasswordHash: string, mobile_app_password_salt: string, fullName: string, workPhone: string, userId: string) => Promise<boolean>;
   adminLogin: (login: string, password: string, powerSyncURI: string) => Promise<boolean>;
   signOut: () => void;
   session?: OdooUserData | null;
@@ -99,10 +99,21 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
   return (
     <AuthContext.Provider
       value={{
-        logIn: async (password: string, phoneNumber: string) => {
+        logIn: async (password: string, phoneNumber: string, mobileAppPasswordHash: string, mobile_app_password_salt: string) => {
           setError(null);
           console.log('Login Function')
-          console.log(password, phoneNumber)
+          console.log(password, phoneNumber, mobileAppPasswordHash, mobile_app_password_salt)
+          // const passwordWithSalt = password + mobile_app_password_salt;
+
+          // const calculatedHash = await Crypto.digestStringAsync(
+          //   Crypto.CryptoDigestAlgorithm.SHA256,
+          //   passwordWithSalt
+          // );
+
+          // const isMatch = calculatedHash === mobileAppPasswordHash;
+          // console.log('isMatch', isMatch)
+
+          
           // const isMatch = bcrypt.compareSync(password, mobileAppPasswordHash);
           // console.log('isMatch', isMatch)
           // alert(isMatch)
@@ -153,7 +164,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
             return false;
           }
         },
-        localLogin: async (password: string, mobileAppPasswordHash: string, salt: string, fullName: string, workPhone: string, userId: string) => {
+        localLogin: async (password: string, mobileAppPasswordHash: string, mobile_app_password_salt: string, fullName: string, workPhone: string, userId: string) => {
           setError(null);
           console.log(password, mobileAppPasswordHash)
           // alert(password)
@@ -161,7 +172,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
           // const isMatch = bcrypt.compareSync(password, mobileAppPasswordHash);
           // console.log('isMatch', isMatch)
           // alert(isMatch)
-          const passwordWithSalt = password + salt;
+          const passwordWithSalt = password + mobile_app_password_salt;
 
           const calculatedHash = await Crypto.digestStringAsync(
             Crypto.CryptoDigestAlgorithm.SHA256,

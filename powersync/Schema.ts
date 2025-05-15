@@ -81,7 +81,8 @@ const hr_employee = new Table(
     hourly_cost: column.text,
     timesheet_manager_id: column.integer,
     last_validated_timesheet_date: column.text,
-    mobile_app_password: column.text
+    mobile_app_password: column.text,
+    mobile_app_password_salt: column.text
   },
   { indexes: {} }
 );

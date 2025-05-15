@@ -114,12 +114,13 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
         try {
           console.log('Connected to internet Login')
           console.log('Hash Password', currentUser.mobile_app_password)
+          console.log('Salt', currentUser.mobile_app_password_salt)
           let success
           isConnected ? 
           // success = true
-          success = await logIn(password, phoneNumber)
+          success = await logIn(password, phoneNumber, currentUser.mobile_app_password, currentUser.mobile_app_password_salt)
           :
-          success = await localLogin(password, currentUser.mobile_app_password, currentUser.salt, currentUser.name, currentUser.mobile_phone, String(currentUser.id))
+          success = await localLogin(password, currentUser.mobile_app_password, currentUser.mobile_app_password_salt, currentUser.name, currentUser.mobile_phone, String(currentUser.id))
           if (success) {
             // Navigate to main app
             setIsLoggingIn(false)

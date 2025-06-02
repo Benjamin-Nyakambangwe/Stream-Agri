@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { KeyboardAvoidingView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Alert, KeyboardAvoidingView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { router, Stack, useFocusEffect } from 'expo-router'
-import { CircleArrowRight, PlugZap, Search, Unplug, Users } from 'lucide-react-native'
+import { CircleArrowRight, PlugZap, Search, Unplug, UserPlus, Users } from 'lucide-react-native'
 import { useSession } from '@/authContext'
 import * as SecureStore from 'expo-secure-store';
 import { FlashList } from '@shopify/flash-list'
@@ -138,7 +138,18 @@ const Growers = () => {
         },
         headerShown: true,
         headerRight: () => (
-            <View className="mr-4">
+            <View className="mr-4 flex-row items-center gap-2">
+              {/* <TouchableOpacity 
+                onPress={() => {
+                  console.log('Add New Grower button pressed');
+                  alert('New Grower button pressed');
+                  router.push('/growers/new');
+                }} 
+                className="mr-4"
+                testID="add-grower-button"
+              >
+                <UserPlus size={24} color="#65435C" />
+              </TouchableOpacity> */}
                 <TouchableOpacity onPress={()=> console.log('refreshing')}>
                   {/* <Text>{syncStatus.?connected}</Text> */}
                   {syncStatus === true ? (
@@ -181,12 +192,29 @@ const Growers = () => {
         </View>
 
         <View className="flex-1 bg-white rounded-2xl p-4">
-        <FlashList
+         
+          
+          <FlashList
       data={filteredGrowers}
       renderItem={({ item }: { item: any }) => growerItem(item)}
       estimatedItemSize={200}
       keyboardShouldPersistTaps="handled"
     />
+         {/* Debug button */}
+         <TouchableOpacity 
+            onPress={() => {
+              console.log('Debug button pressed');
+              // alert('Debug navigation button pressed');
+              router.push('/growers/new');
+            }}
+            className="bg-[#65435C] p-3 rounded-md mb-2"
+            testID="debug-nav-button"
+          >
+            <View className="flex-row items-center justify-center">
+              <UserPlus size={24} color="white" className="mr-4"/>
+              <Text className="text-white text-center text-lg ml-4">New Grower</Text>
+            </View>
+          </TouchableOpacity>
         </View>
         {/* <View>
             {growers.map((grower, index) => (

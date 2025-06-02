@@ -10,7 +10,7 @@
 //   }
 
 //   async getServerData(id: string) {
-
+// 
 // const options = {
 // method: 'GET',
 // url: `http://45.84.138.225:8069/api/fo/get-data/${id}?table_name=odoo_gms.production_cycle_registration`,
@@ -205,7 +205,7 @@ export class Connector implements PowerSyncBackendConnector {
       // The PowerSync instance URL or self-hosted endpoint
       endpoint: powerSyncURI,
       // token: employeeJwt || '' // Provide empty string as fallback
-      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDczMTQ1NjMsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ3MzU3NzYzfQ.Eu7nXjby1Ek1hNR9KG1_o1o9EBaDxjlcoxgjO-kIJldtmEyqXSArQKGZEf6RIWtFy3C5davWOWampRnhAadTTUyZgGNt8yvahjV92uhjcJYkPvaCQkZvj5tj1jxGWcRFc5ytImMi0cwlRALGJRs2nzLHXpUftQy2Gg_d5pGrDChyZTdYeqHJzcnm-9Ul95ZXWO5-mNnPn26Q5Mf35EsXVC0fbVzfOTnSvV7ULH7pMJ6uUtlVQzy5fWi7urSfVOjGhCt17d6VpmvqqtK1B4rjVIj9hv30xOuo07itIAunYto1q4yc7NbPSpn_DMp-YToDfyYN4A2xIFDAiL8fino3LA'
+      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDg4NTI4MzcsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ4ODk2MDM3fQ.jq1PhFVdiDRm1VZa54oJywoXY0PYlfyNno_ZkIUj9r-0B6oj-YfbfeJZG93Cx63WJCcy_nUzTZZsk370SOmBm5eJkBuIk8C9m3zZeD744eo4ALfE2RmVsxzodMbtrj1OIcGWfFsLuUNU2vrIRjq-7FQ7wFbOm0mKq12o9I0idi1n5Tn510BnZxRA-QI3LeFVDLWKDVbnVvFpBPxs-XcgR3_sX0OTu7fEuMYfOq_Jrj-0UL4RfW5-1_O_9JjFypQw9YaQR7LAEGVNCHdGaHq7Src6zCoJXAoqT2qZW72Tjbvx2NKQtgpjBay_RRPukp4hyrQ5K_9XSKM_m9387Hpo9Q'
     };
   }
 

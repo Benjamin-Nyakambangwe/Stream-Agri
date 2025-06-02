@@ -28,6 +28,15 @@ export default function GrowersLayout() {
           animation: 'slide_from_bottom', // Animation style
         }} 
       />
+      <Stack.Screen 
+        name="new" 
+        options={{ 
+          title: 'New Grower',
+          headerShown: false,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }} 
+      />
     </Stack>
   );
 }

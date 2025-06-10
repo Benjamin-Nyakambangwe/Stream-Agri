@@ -90,6 +90,7 @@ const hr_employee = new Table(
 const odoo_gms_grower = new Table(
   {
     // id column (text) is automatically included
+    id: column.text,
     timb_grower_id: column.integer,
     create_uid: column.integer,
     write_uid: column.integer,
@@ -107,7 +108,13 @@ const odoo_gms_grower = new Table(
     create_date: column.text,
     write_date: column.text,
     name: column.text,
-    gender: column.text
+    gender: column.text,
+    middle_name: column.text,
+    grower_image: column.text,
+    grower_national_id_image: column.text,
+    is_from_mobile: column.integer,
+    is_approved: column.integer
+
   },
   { indexes: {} }
 );

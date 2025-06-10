@@ -188,7 +188,7 @@ export class Connector implements PowerSyncBackendConnector {
   * https://docs.powersync.com/installation/authentication-setup/supabase-auth
   * https://docs.powersync.com/installation/authentication-setup/firebase-auth
   */
-  async fetchCredentials() {
+  async fetchCredentials(database?: AbstractPowerSyncDatabase) {
     // const powerSyncURI = await SecureStore.getItemAsync('power_sync_uri')
     const powerSyncURI = 'https://67f6c16f984c6f4cb07959ca.powersync.journeyapps.com'
     const employeeJwt = await SecureStore.getItemAsync('employee_jwt')
@@ -201,11 +201,14 @@ export class Connector implements PowerSyncBackendConnector {
     }
     console.log('powerSyncURI', powerSyncURI)
     console.log('employeeJwt', employeeJwt)
+    console.log('#####################################################')
+    //Powersync status
+  
     return {
       // The PowerSync instance URL or self-hosted endpoint
       endpoint: powerSyncURI,
       // token: employeeJwt || '' // Provide empty string as fallback
-      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDg4NTI4MzcsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ4ODk2MDM3fQ.jq1PhFVdiDRm1VZa54oJywoXY0PYlfyNno_ZkIUj9r-0B6oj-YfbfeJZG93Cx63WJCcy_nUzTZZsk370SOmBm5eJkBuIk8C9m3zZeD744eo4ALfE2RmVsxzodMbtrj1OIcGWfFsLuUNU2vrIRjq-7FQ7wFbOm0mKq12o9I0idi1n5Tn510BnZxRA-QI3LeFVDLWKDVbnVvFpBPxs-XcgR3_sX0OTu7fEuMYfOq_Jrj-0UL4RfW5-1_O_9JjFypQw9YaQR7LAEGVNCHdGaHq7Src6zCoJXAoqT2qZW72Tjbvx2NKQtgpjBay_RRPukp4hyrQ5K_9XSKM_m9387Hpo9Q'
+      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDkxMDIyMzQsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ5MTQ1NDM0fQ.IxRAwyx382RLYFXkDtLdL8cv3qxupzzWrqQLgkRUi6sk7tTIm6sTvGn84QVmUXOV5LoIfD1yMCBmBY-rO6JLDa7LM-Ijhb3JXCqE0U604_0aObxtxeMo2fKmjYgF-_olf97LH91zl9_WuZaHooSj8vsP9-hEa3KjO2wHtTBbKa6lZIIrg0ztuxqFg3JGHhULZM2UqNKjvfcbMVO6tQWEuETy7WBjTAugcrt40DI4m6IH41VayjVBwa2qz53L6BdM_9sElT1GfRhXRGUS9Jw6LrsrKIvaZWFy8dnRR8qyHPZFD-o7d61_AQNRKALECcn4KsNYjhg7qHNS94jKaLnLWQ'
     };
   }
 
@@ -233,6 +236,46 @@ export class Connector implements PowerSyncBackendConnector {
       switch (op.op) {
         case UpdateType.PUT:
           // TODO: Instruct your backend API to CREATE a record
+          console.log('PUT', record)
+          const { id, ...recordData } = record;
+          console.log('#####################################################')
+          try{
+
+          console.log('#############PUT#################')
+          console.log('PUTTING DATA', id)
+          console.log('RECORD DATA', recordData)
+          const options = {
+            method: 'POST',
+            url: 'http://45.84.138.225:8069/api/fo/create-grower',
+            headers: {
+              cookie: 'frontend_lang=en_GB',
+              'Content-Type': 'application/json',
+              'User-Agent': 'insomnia/11.1.0',
+              'X-FO-TOKEN': 'e0925492-77cb-4a4e-a85d-fc0ea1312f4b'
+            },
+            data: recordData
+          };
+          
+          const response = await axios.request(options)
+          console.log('PUT response', response.data)
+          console.log('#####################################################')
+          console.log('PUT RECORD', record)
+          console.log('#####################################################')
+          
+          const serverRecord = await response.data
+          const updateLocal = await database.execute(
+            'UPDATE odoo_gms_grower SET id = ? WHERE id = ?',
+            [serverRecord.id, id]
+          );
+          console.log('UPDATED LOCAL RECORD', updateLocal)
+
+          // const updatedLocalRecord = await database.get(`SELECT * FROM odoo_gms_grower WHERE id = ?`, [serverRecord.id])
+          // console.log('UPDDATED LOCAL RECORD',updatedLocalRecord)
+
+        }catch(error){
+          console.error('PUT request failed:', error);
+        }
+
           break;
         case UpdateType.PATCH:
           // TODO: Instruct your backend API to PATCH a record

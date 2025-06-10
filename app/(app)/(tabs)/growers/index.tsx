@@ -230,7 +230,7 @@ export default Growers
 
 
 const growerItem = (item: any) => {
-    console.log('item', item)
+    // console.log('item', item)
     
     // Capitalize only the first letter of each name
     const capitalizeFirstLetter = (string: string) => {

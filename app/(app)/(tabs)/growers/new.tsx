@@ -128,6 +128,9 @@ if (photo?.base64) {
 
   const createGrower = async () => {
     console.log('CREATING GROWER');
+
+
+    
     try {
       await powersync.execute(`INSERT INTO odoo_gms_grower (id, grower_number, b010_first_name, b020_surname, b030_national_id, middle_name, b040_phone_number, latitude, longitude, state, date_of_birth, grower_image, grower_national_id_image, is_from_mobile, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
         [UUID, growerNumber, firstName, surname, nationalId, middleName, phoneNumber, latitude, longitude, 'draft', dateOfBirth, growerImageEncoded, idImageEncoded, '1', gender]

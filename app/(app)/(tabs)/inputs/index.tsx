@@ -1,0 +1,219 @@
+import React, { useCallback, useEffect, useState } from 'react'
+import { Alert, KeyboardAvoidingView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { router, Stack, useFocusEffect } from 'expo-router'
+import { CircleArrowRight, PlugZap, Search, Unplug, UserPlus, Users } from 'lucide-react-native'
+import { useSession } from '@/authContext'
+import * as SecureStore from 'expo-secure-store';
+import { FlashList } from '@shopify/flash-list'
+import { RefreshCcw } from 'lucide-react-native'
+import { useNetwork } from '@/NetworkContext'
+import { powersync, setupPowerSync } from '@/powersync/system';
+import { ProductionCycleRegistrationRecord } from '@/powersync/Schema'
+
+// Combined type for joined data
+type JoinedGrowerData = ProductionCycleRegistrationRecord & {
+    grower_number?: string;
+  };
+
+
+
+const Inputs = () => {
+  const session = useSession();
+  const { isConnected } = useNetwork()
+
+  const [growers, setGrowers] = useState<JoinedGrowerData[]>([]);
+  const [filteredGrowers, setFilteredGrowers] = useState<JoinedGrowerData[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [syncStatus, setSyncStatus] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log('useFocusEffect Inputs Screen');
+      powersync.registerListener({
+        statusChanged: (status) => {
+          setSyncStatus(status.connected);
+          console.log('PowerSync status Inputs Screen:', status);
+        }
+      });
+    }, [])
+  );
+  const getSyncStatus = () => {
+    console.log('getSyncStatus')
+    const status = powersync.currentStatus
+    console.log('getSyncStatus', status)
+  }
+
+  useEffect(() => {
+    console.log('useEffect Inputs')
+    // Initialize PowerSync if not already initialized
+    setupPowerSync();
+    // Set up a watch query to get and monitor growers data
+    const controller = new AbortController();
+    // console.log('Setting up growers data watcher with JOIN...');
+    powersync.watch(
+      `SELECT 
+        r.id, 
+        r.grower_name, 
+        r.mobile, 
+        r.production_scheme_id, 
+        r.production_cycle_name,
+        r.first_name,
+        r.surname,
+        r.grower_id as registration_grower_id,
+        g.id as grower_table_id,
+        g.grower_number as grower_number
+      FROM odoo_gms_production_cycle_registration r
+      LEFT JOIN odoo_gms_grower g ON CAST(r.grower_id AS TEXT) = g.id
+      ORDER BY r.grower_name`,
+      [],
+      {
+        onResult: (result) => {
+          console.log('Joined growers data updated, count:', result.rows?._array?.length);
+          if (result.rows?._array) {
+            const growersData = result.rows._array as JoinedGrowerData[];
+            setGrowers(growersData);
+            setFilteredGrowers(growersData);
+          }
+          setLoading(false);
+        },
+        onError: (err) => {
+          console.error('Error fetching growers:', err);
+          setError(err.message);
+          setLoading(false);
+        }
+      },
+      { signal: controller.signal }
+    );
+    
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  // Search feature implementation
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    if (text.trim() === '') {
+      setFilteredGrowers(growers);
+      return;
+    }
+
+    const lowercaseQuery = text.toLowerCase();
+    const filtered = growers.filter(
+      grower => 
+        (grower.first_name?.toLowerCase().includes(lowercaseQuery) ||
+        grower.surname?.toLowerCase().includes(lowercaseQuery) ||
+        grower.production_cycle_name?.toLowerCase().includes(lowercaseQuery) ||
+        grower.grower_name?.toLowerCase().includes(lowercaseQuery) ||
+        grower.grower_number?.toLowerCase().includes(lowercaseQuery))
+    );
+    setFilteredGrowers(filtered);
+  };
+
+  return (
+    <>
+      <Stack.Screen options={{ 
+        title: 'Inputs',
+        headerTitleStyle: {
+          fontSize: 24,
+          fontWeight: 'bold',
+          color: '#65435C'
+        },
+        headerShown: true,
+        headerRight: () => (
+            <View className="mr-4 flex-row items-center gap-2">
+                <TouchableOpacity onPress={()=> console.log('refreshing')}>
+                  {syncStatus === true ? (
+                    <PlugZap size={24} color="#1AD3BB" />
+
+                  ) : (
+                    <Unplug size={24} color="red" />
+                  )}
+                </TouchableOpacity>
+            </View>
+        )
+      }} />
+      <View className="flex-1 p-4 bg-[#65435C]"
+      >
+        <View className="flex-row items-center justify-between gap-2 mb-4 h-14">
+          <View className="relative w-[80%]">
+            <View className="absolute left-3 top-4 z-10">
+              <Search size={20} color="#65435C" />
+            </View>
+            <TextInput
+              placeholder="Search"
+              placeholderTextColor="#65435C" 
+              className="text-white text-lg bg-[#937B8C] rounded-full p-4 pl-12 w-full"
+              value={searchQuery}
+              onChangeText={handleSearch}
+            />
+          </View>
+        <View className="flex-row items-center justify-center h-12 w-[20%]">
+          <Text className="text-white font-bold text-2xl text-center">{filteredGrowers.length}</Text>
+        </View>
+        </View>
+
+        <View className="flex-1 bg-white rounded-2xl p-4">
+         
+          
+          <FlashList
+      data={filteredGrowers}
+      renderItem={({ item }: { item: any }) => growerItem(item)}
+      estimatedItemSize={200}
+      keyboardShouldPersistTaps="handled"
+    />
+    </View>
+    </View>
+    </>
+  )
+}
+
+export default Inputs
+
+
+const growerItem = (item: any) => {
+    // Capitalize only the first letter of each name
+    const capitalizeFirstLetter = (string: string) => {
+        if (!string) return '';
+        return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+    };
+    
+    const firstName = capitalizeFirstLetter(item.first_name);
+    const lastName = capitalizeFirstLetter(item.surname);
+    
+    return (
+        <TouchableOpacity className="bg-white rounded-xl p-4 mb-3 border border-gray-100 shadow-sm" 
+        onPress={() => router.push({
+            pathname: `/inputs/[id]`,
+            params: { 
+                id: item.id,
+                grower_id: item.registration_grower_id,
+                production_scheme: item.production_cycle_name
+            }
+        })}>
+            <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                    {/* Avatar circle with initials */}
+                    <View className="h-12 w-12 rounded-full bg-[#1AD3BB] items-center justify-center mr-3">
+                        <Text className="text-white font-bold text-lg">
+                            {firstName.charAt(0)}{lastName.charAt(0)}
+                        </Text>
+                    </View>
+                    
+                    <View>
+                        <Text className="text-lg font-bold text-[#65435C] truncate max-w-[200px]">{firstName} {lastName}</Text>
+                        <Text className="text-gray-500 text-sm">{item.grower_number} - {item.production_cycle_name}</Text>
+                    </View>
+                </View>
+                
+                {/* Right side with action indicator */}
+                <View className=" rounded-full h-8 w-8 items-center justify-center">
+                  <CircleArrowRight size={24} color="#65435C" />
+                    {/* <Text className="text-[#65435C] font-bold">→</Text> */}
+                </View>
+            </View>
+        </TouchableOpacity>
+    )
+}

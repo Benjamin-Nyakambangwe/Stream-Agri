@@ -12,26 +12,30 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Crypto from 'expo-crypto';
 
 // Define interfaces for your data types
-interface Grower {
-  id?: string;
-  grower_id?: string;
-  grower_number?: string;
-  first_name?: string;
-  surname?: string;
-  fir?: string;
-  b010_contract_scale?: string | number;
-  production_scheme_id?: string;
-  region_id?: string;
-  distribution_plan?: string;
-  grower_flags?: string;
-  production_cycle_name?: string;
-  [key: string]: any; // Allow any other properties
+interface GrowerApplication {
+  grower_number: string;
+  production_cycle_id: string;
+  production_scheme_id: string;
+  region_id: string;
+  distribution_plan: string;
+  production_cycle_name: string;
+  b010_first_name: string;
+  b020_surname: string;
+  activity_id: string;
+  b030_national_id: string;
+  b040_phone_number: string;
+  date_of_birth: string;
+  gender: string;
+  grower_image: string;
+  grower_national_id_image: string;
+  latitude: string;
+  longitude: string;
 }
 
 
 
 
-export default function NewGrowerModal() {
+export default function NewGrowerApplicationModal() {
   const [firstName, setFirstName] = useState<string>('');
   const [surname, setSurname] = useState<string>('');
   const [nationalId, setNationalId] = useState<string>('');
@@ -42,6 +46,12 @@ export default function NewGrowerModal() {
   const [longitude, setLongitude] = useState<string>('');
   const [dateOfBirth, setDateOfBirth] = useState<string>('');
   const [gender, setGender] = useState<string>('');
+  const [productionScheme, setProductionScheme] = useState<string>('');
+  // const [productionCycleRegistration, setProductionCycleRegistration] = useState<string>('');
+  const [productionCycle, setProductionCycle] = useState<string>('');
+  const [region, setRegion] = useState<string>('');
+  const [activity, setActivity] = useState<string>('');
+  const [fieldTechnician, setFieldTechnician] = useState<string>('');
 
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
@@ -52,14 +62,86 @@ export default function NewGrowerModal() {
   const [growerImageEncoded, setGrowerImageEncoded] = useState<string | null>(null);
   const [idImageEncoded, setIdImageEncoded] = useState<string | null>(null);
 
+  const [contractScale, setContractScale] = useState<string>('');
+  const [contractedYield, setContractedYield] = useState<string>('');
+  const [contractedVolume, setContractedVolume] = useState<string>('');
+  const [contractedPrice, setContractedPrice] = useState<string>('');
+  const [contractedReturn, setContractedReturn] = useState<string>('');
+
+  // const [productionCycleRegistrationList, setProductionCycleRegistrationList] = useState<string[]>([]);
+  const [productionCycleList, setProductionCycleList] = useState<string[]>([]);
+  const [productionSchemeList, setProductionSchemeList] = useState<string[]>([]);
+  const [regionList, setRegionList] = useState<string[]>([]);
+  const [activityList, setActivityList] = useState<string[]>([]);
+  const [fieldTechnicianList, setFieldTechnicianList] = useState<string[]>([]);
+
   const cameraRef = useRef<CameraView>(null);
   const UUID = Crypto.randomUUID();
 
   // Add state for showing date picker
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // const getProductionCycleRegistration = async () => {
+  //   console.log('Getting Production Cycle Registration');
+  //   const productionCycleRegistration = await powersync.execute(`SELECT * FROM odoo_gms_production_cycle_registration`);
+  //   const rows = productionCycleRegistration.rows?._array || [];
+  //   setProductionCycleRegistrationList(rows);
+  //   console.log('Production Cycle Registration', rows);
+  // }
+
+  const getProductionCycle = async () => {
+    console.log('Getting Production Cycle');
+    const productionCycle = await powersync.execute(`SELECT * FROM odoo_gms_production_cycle`);
+    const rows = productionCycle.rows?._array || [];
+    setProductionCycleList(rows);
+    setProductionCycle(rows[0].id);
+    // console.log('Production Cycle', rows);
+  }
+
+  const getProductionScheme = async () => {
+    console.log('Getting Production Scheme');
+    const productionScheme = await powersync.execute(`SELECT * FROM odoo_gms_production_scheme`);
+    const rows = productionScheme.rows?._array || [];
+    setProductionSchemeList(rows);
+    setProductionScheme(rows[0].id);
+    // console.log('Production Scheme', rows);
+  }
+
+  const getRegion = async () => {
+    console.log('Getting Region');
+    const region = await powersync.execute(`SELECT * FROM odoo_gms_region`);
+    const rows = region.rows?._array || [];
+    setRegionList(rows);
+    setRegion(rows[0].id);
+    // console.log('Region', rows);
+  }
+
+  const getActivity = async () => {
+    console.log('Getting Activity');
+    const activity = await powersync.execute(`SELECT * FROM odoo_gms_activity`);
+    const rows = activity.rows?._array || [];
+    setActivityList(rows);
+    setActivity(rows[0].id);
+    console.log('Activity', rows);
+  }
+
+  const getFieldTechnician = async () => {
+    console.log('Getting Field Technician');
+    const fieldTechnician = await powersync.execute(`SELECT * FROM hr_employee`);
+    const rows = fieldTechnician.rows?._array || [];
+    setFieldTechnicianList(rows);
+    setFieldTechnician(rows[0].id);
+    console.log('Field Technician', rows);
+  }
+
   useEffect(() => {
     requestPermission();
+    // getProductionCycleRegistration();
+    getProductionCycle();
+    getProductionScheme();
+    getRegion();
+    getActivity();
+    getFieldTechnician();
   }, []);
 
   if (!permission) {
@@ -91,7 +173,7 @@ if (photo?.base64) {
   const base64Data = photo.base64;
   
   // Proper base64 padding fix
-  const fixBase64Padding = (str) => {
+  const fixBase64Padding = (str: string) => {
     // Remove any existing padding
     const cleanStr = str.replace(/=/g, "");
     // Calculate how much padding we need
@@ -126,23 +208,23 @@ if (photo?.base64) {
 
   
 
-  const createGrower = async () => {
-    console.log('CREATING GROWER');
+  const createGrowerApplication = async () => {
+    console.log('CREATING GROWER APPLICATION');
 
 
-    
+
     try {
-      await powersync.execute(`INSERT INTO odoo_gms_grower (id, grower_number, b010_first_name, b020_surname, b030_national_id, middle_name, b040_phone_number, latitude, longitude, state, date_of_birth, grower_image, grower_national_id_image, is_from_mobile, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [UUID, growerNumber, firstName, surname, nationalId, middleName, phoneNumber, latitude, longitude, 'draft', dateOfBirth, growerImageEncoded, idImageEncoded, '1', gender]
+      await powersync.execute(`INSERT INTO odoo_gms_grower_application (id, production_cycle_id, production_scheme_id, region_id, activity_id, field_technician_id, grower_number, b010_first_name, b020_surname, middle_name, b030_national_id, b040_phone_number, grower_latitude, grower_longitude, gender, grower_date_of_birth, b010_contract_scale, b020_contracted_yield, b030_contracted_volume, b040_contracted_price, b050_contracted_return, grower_image, grower_national_id_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+        [UUID, productionCycle, productionScheme, region, activity, fieldTechnician, growerNumber, firstName, surname, middleName, nationalId, phoneNumber, latitude, longitude, gender, dateOfBirth, contractScale, contractedYield, contractedVolume, contractedPrice, contractedReturn, growerImageEncoded, idImageEncoded]
       ).then(() => {
-        console.log('Grower Created');
+        console.log('Grower Application Created');
       }).catch((error) => {
-        console.error('Error creating grower:', error);
-        alert('Error creating grower');
+        console.error('Error creating grower application:', error);
+        alert('Error creating grower application');
       });
     } catch (error) {
-      console.error('Error creating grower:', error);
-      alert('Error creating grower');
+      console.error('Error creating grower application:', error);
+      alert('Error creating grower application');
     }
 
 
@@ -211,6 +293,7 @@ if (photo?.base64) {
       return;
     }
   }
+
 
   return (
     <SafeAreaView className="flex-1 bg-[#65435C]">
@@ -325,6 +408,140 @@ if (photo?.base64) {
                     />
                 </View>
                 <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Contract Scale</Text>
+                    <TextInput 
+                        className="border border-gray-300 rounded-md p-2 w-2/3" 
+                        value={contractScale} 
+                        // editable={false}
+                        onChangeText={(text) => {
+                            setContractScale(text);
+                        }}
+                    />
+                </View>
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Contracted Yield</Text>
+                    <TextInput 
+                        className="border border-gray-300 rounded-md p-2 w-2/3" 
+                        value={contractedYield} 
+                        // editable={false}
+                        onChangeText={(text) => {
+                            setContractedYield(text);
+                        }}
+                    />
+                </View>
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Contracted Volume</Text>
+                    <TextInput 
+                        className="border border-gray-300 rounded-md p-2 w-2/3" 
+                        value={contractedVolume} 
+                        // editable={false}
+                        onChangeText={(text) => {
+                            setContractedVolume(text);
+                        }}
+                    />
+                </View>
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Contracted Price</Text>
+                    <TextInput 
+                        className="border border-gray-300 rounded-md p-2 w-2/3" 
+                        value={contractedPrice} 
+                        // editable={false}
+                        onChangeText={(text) => {
+                            setContractedPrice(text);
+                        }}
+                    />
+                </View>
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Contracted Return</Text>
+                    <TextInput 
+                        className="border border-gray-300 rounded-md p-2 w-2/3" 
+                        value={contractedReturn} 
+                        // editable={false}
+                        onChangeText={(text) => {
+                            setContractedReturn(text);
+                        }}
+                    />
+                </View>
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Production Scheme</Text>
+                    <View className="border border-gray-300 rounded-md w-2/3">
+                    <Picker
+                      selectedValue={productionScheme}
+                      onValueChange={(itemValue) => setProductionScheme(itemValue)}
+                    >
+                      {productionSchemeList.map((item: any) => (
+                        <Picker.Item key={item.id} label={item.name} value={item.id} />
+                      ))}
+
+                    </Picker>
+                    </View>
+                </View>
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Production Cycle</Text>
+                    <View className="border border-gray-300 rounded-md w-2/3">
+                    <Picker
+                      selectedValue={productionCycle}
+                      onValueChange={(itemValue) => setProductionCycle(itemValue)}
+                    >
+                      {productionCycleList.map((item: any) => (
+                        <Picker.Item key={item.id} label={item.name} value={item.id} />
+                      ))}
+                    </Picker>
+                    </View>
+                </View>
+                {/* <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Production Cycle Registration</Text>
+                    <View className="border border-gray-300 rounded-md w-2/3">
+                    <Picker
+                      selectedValue={productionCycleRegistration}
+                      onValueChange={(itemValue) => setProductionCycleRegistration(itemValue)}
+                    >
+                      {productionCycleRegistrationList.map((item: any) => (
+                        <Picker.Item key={item.id} label={item.name} value={item.id} />
+                      ))}
+                      </Picker>
+                    </View>
+                </View> */}
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Region</Text>
+                    <View className="border border-gray-300 rounded-md w-2/3">
+                    <Picker
+                      selectedValue={region}
+                      onValueChange={(itemValue) => setRegion(itemValue)}
+                    >
+                      {regionList.map((item: any) => (
+                        <Picker.Item key={item.id} label={item.name} value={item.id} />
+                      ))}
+                      </Picker>
+                    </View>
+                </View>
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Activity</Text>
+                    <View className="border border-gray-300 rounded-md w-2/3">
+                    <Picker
+                      selectedValue={activity}
+                      onValueChange={(itemValue) => setActivity(itemValue)}
+                    >
+                      {activityList.map((item: any) => (
+                        <Picker.Item key={item.id} label={item.name} value={item.id} />
+                      ))}
+                      </Picker>
+                    </View>
+                </View>
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Field Technician</Text>
+                    <View className="border border-gray-300 rounded-md w-2/3">
+                    <Picker
+                      selectedValue={fieldTechnician}
+                      onValueChange={(itemValue) => setFieldTechnician(itemValue)}
+                    >
+                      {fieldTechnicianList.map((item: any) => (
+                        <Picker.Item key={item.id} label={item.name} value={item.id} />
+                      ))}
+                      </Picker>
+                    </View>
+                </View>
+                <View className="flex-row items-center justify-between my-2">
                     <Text className="text-gray-600 w-1/3">Latitude</Text>
                     <View className="flex-row items-center justify-between w-2/3">
                     <TextInput 
@@ -437,8 +654,8 @@ if (photo?.base64) {
                 <TouchableOpacity className="bg-gray-200 rounded-md w-[50%]" onPress={()=> router.back()}>
                     <Text className="text-[#65435C] text-xl text-center p-2">Cancel</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity className="bg-[#65435C] rounded-md w-[50%]" onPress={createGrower}>
-                    <Text className="text-white text-xl text-center p-2">Save</Text>
+                    <TouchableOpacity className="bg-[#65435C] rounded-md w-[50%]" onPress={createGrowerApplication}>
+                    <Text className="text-white text-xl text-center p-2">Send Request</Text>
                     </TouchableOpacity>
                 </View>
               </View>

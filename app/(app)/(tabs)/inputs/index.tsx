@@ -27,6 +27,7 @@ const Inputs = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [syncStatus, setSyncStatus] = useState(false);
+  const [growerWithInputData, setGrowerWithInputData] = useState<any[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -112,6 +113,61 @@ const Inputs = () => {
     setFilteredGrowers(filtered);
   };
 
+
+  const getInputConfirmations = async () => {
+    const inputConfirmations = await powersync.execute(`SELECT * FROM odoo_gms_input_confirmations`);
+    // console.log('inputConfirmations', inputConfirmations.rows?._array);
+  }
+
+  const getInputConfirmationsLines = async () => {
+    const inputConfirmationsLines = await powersync.execute(`SELECT * FROM odoo_gms_input_confirmations_lines`);
+    // console.log('inputConfirmationsLines', inputConfirmationsLines.rows?._array);
+  }
+
+  const getInputPacks = async () => {
+    const inputPacks = await powersync.execute(`SELECT * FROM odoo_gms_input_pack`);
+    console.log('inputPacks', inputPacks);
+  }
+
+  const getGrowerWithInputData = async () => {
+    console.log('Getting Input Confirmation Lines Data');
+    const query = `
+      SELECT 
+        icl.*,
+        pcr.first_name,
+        pcr.surname,
+        pcr.grower_name,
+        pcr.b010_contract_scale as contracted_hectares,
+        pcr.production_cycle_name,
+        ic.grv_number,
+        ic.date_input,
+        ic.state as confirmation_state,
+        ip.name as input_pack_name,
+        ip.code as input_pack_code
+      FROM odoo_gms_input_confirmations_lines icl
+      LEFT JOIN odoo_gms_production_cycle_registration pcr 
+        ON icl.production_cycle_registration_id = pcr.id
+      LEFT JOIN odoo_gms_input_confirmations ic 
+        ON icl.input_confirmations_id = ic.id
+      LEFT JOIN odoo_gms_input_pack ip 
+        ON ic.input_pack_id = ip.id
+      WHERE pcr.field_technician_id = 148
+    `;
+    
+    const result = await powersync.execute(query);
+    const rows = result.rows?._array || [];
+    console.log('Input Confirmation Lines Data:', rows);
+    setGrowerWithInputData(rows);
+    return rows;
+  }
+
+  useEffect(() => {
+    getInputConfirmations();
+    getInputConfirmationsLines();
+    getInputPacks();
+    getGrowerWithInputData()
+  }, []);
+
   return (
     <>
       <Stack.Screen options={{ 
@@ -137,7 +193,7 @@ const Inputs = () => {
       }} />
       <View className="flex-1 p-4 bg-[#65435C]"
       >
-        <View className="flex-row items-center justify-between gap-2 mb-4 h-14">
+        {/* <View className="flex-row items-center justify-between gap-2 mb-4 h-14">
           <View className="relative w-[80%]">
             <View className="absolute left-3 top-4 z-10">
               <Search size={20} color="#65435C" />
@@ -153,13 +209,13 @@ const Inputs = () => {
         <View className="flex-row items-center justify-center h-12 w-[20%]">
           <Text className="text-white font-bold text-2xl text-center">{filteredGrowers.length}</Text>
         </View>
-        </View>
+      </View> */}
 
         <View className="flex-1 bg-white rounded-2xl p-4">
          
           
           <FlashList
-      data={filteredGrowers}
+      data={growerWithInputData}
       renderItem={({ item }: { item: any }) => growerItem(item)}
       estimatedItemSize={200}
       keyboardShouldPersistTaps="handled"
@@ -198,13 +254,13 @@ const growerItem = (item: any) => {
                     {/* Avatar circle with initials */}
                     <View className="h-12 w-12 rounded-full bg-[#1AD3BB] items-center justify-center mr-3">
                         <Text className="text-white font-bold text-lg">
-                            {firstName.charAt(0)}{lastName.charAt(0)}
+                            {item.grower_name.charAt(0)}{item.surname.charAt(0)}
                         </Text>
                     </View>
                     
                     <View>
-                        <Text className="text-lg font-bold text-[#65435C] truncate max-w-[200px]">{firstName} {lastName}</Text>
-                        <Text className="text-gray-500 text-sm">{item.grower_number} - {item.production_cycle_name}</Text>
+                        <Text className="text-lg font-bold text-[#65435C] truncate max-w-[200px]">{item.first_name} {item.surname}</Text>
+                        <Text className="text-gray-500 text-sm">{item.input_pack_name} - {item.production_cycle_name}</Text>
                     </View>
                 </View>
                 

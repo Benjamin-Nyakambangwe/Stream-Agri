@@ -110,11 +110,69 @@ const odoo_gms_grower = new Table(
     name: column.text,
     gender: column.text,
     middle_name: column.text,
-    grower_image: column.text,
-    grower_national_id_image: column.text,
-    is_from_mobile: column.integer,
-    is_approved: column.integer
+    partner_id: column.integer,
+    state_id: column.integer,
+    country_id: column.integer,
+    timb_sync_status: column.text,
+    photo_national_file_name: column.text,
+    street: column.text,
+    zip: column.text,
+    city: column.text,
+    contact_address_complete: column.text,
+    home_latitude: column.text,
+    home_longitude: column.text,
+    field_latitude: column.text,
+    field_longitude: column.text,
+    barn_latitude: column.text,
+    barn_longitude: column.text,
+  },
+  { indexes: {} }
+);
 
+const odoo_gms_grower_application = new Table(
+  {
+    // id column (text) is automatically included
+    id: column.text,
+    grower_id: column.integer,
+    production_cycle_id: column.integer,
+    production_cycle_registration_id: column.integer,
+    production_scheme_id: column.integer,
+    region_id: column.integer,
+    activity_id: column.integer,
+    field_technician_id: column.integer,
+    submitted_by: column.integer,
+    approved_by: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    reference: column.text,
+    state: column.text,
+    data_source: column.text,
+    application_type: column.text,
+    grower_number: column.text,
+    b010_first_name: column.text,
+    b020_surname: column.text,
+    middle_name: column.text,
+    b030_national_id: column.text,
+    b040_phone_number: column.text,
+    grower_latitude: column.text,
+    grower_longitude: column.text,
+    gender: column.text,
+    pcr_state: column.text,
+    grower_name: column.text,
+    grower_date_of_birth: column.text,
+    rejection_reason: column.text,
+    notes: column.text,
+    submission_date: column.text,
+    approval_date: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    b010_contract_scale: column.real,
+    b020_contracted_yield: column.real,
+    b030_contracted_volume: column.real,
+    b040_contracted_price: column.real,
+    b050_contracted_return: column.real,
+    grower_image: column.text,
+    grower_national_id_image: column.text
   },
   { indexes: {} }
 );
@@ -255,6 +313,72 @@ const odoo_gms_production_cycle_registration = new Table(
   { indexes: {} }
 );
 
+const odoo_gms_input_confirmations = new Table(
+  {
+    // id column (text) is automatically included
+    total_records_uploaded: column.integer,
+    input_pack_id: column.integer,
+    production_cycle_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    grv_number: column.text,
+    date_input: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    region_id: column.integer,
+    province_id: column.integer,
+    technician_id: column.integer,
+    issue_list_number: column.text,
+    state: column.text,
+    collection_voucher_id: column.integer,
+    age_hours: column.integer,
+    age_days: column.integer,
+    age_display: column.text,
+    completed_at: column.text,
+    ordered_at: column.text,
+    collected_at: column.text,
+    total_hectares: column.real,
+    total_growers: column.real
+  },
+  { indexes: {} }
+);
+
+const odoo_gms_input_confirmations_lines = new Table(
+  {
+    // id column (text) is automatically included
+    production_cycle_registration_id: column.integer,
+    input_confirmations_id: column.integer,
+    provinces_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    excel_b010_first_name: column.text,
+    excel_b020_surname: column.text,
+    excel_region_id: column.text,
+    excel_field_technician_id: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    excel_hectares: column.real,
+    issue_state: column.text,
+    input_confirmations_id_id: column.integer
+  },
+  { indexes: {} }
+);
+
+const odoo_gms_input_pack = new Table(
+  {
+    // id column (text) is automatically included
+    create_uid: column.integer,
+    write_uid: column.integer,
+    name: column.text,
+    code: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    input_pack_type_id: column.integer,
+    production_distribution_stage_id: column.integer
+  },
+  { indexes: {} }
+);
+
 export const AppSchema = new Schema({
   hr_employee,
   odoo_gms_grower,
@@ -264,7 +388,11 @@ export const AppSchema = new Schema({
   odoo_gms_distribution_plan,
   odoo_gms_activity,
   odoo_gms_production_cycle,
-  odoo_gms_production_cycle_registration
+  odoo_gms_production_cycle_registration,
+  odoo_gms_grower_application,
+  odoo_gms_input_confirmations,
+  odoo_gms_input_confirmations_lines,
+  odoo_gms_input_pack,
 });
 
 
@@ -279,3 +407,7 @@ export type DistributionPlanRecord = Database['odoo_gms_distribution_plan'];
 export type ActivityRecord = Database['odoo_gms_activity'];
 export type ProductionCycleRecord = Database['odoo_gms_production_cycle'];
 export type ProductionCycleRegistrationRecord = Database['odoo_gms_production_cycle_registration'];
+export type GrowerApplicationRecord = Database['odoo_gms_grower_application'];
+export type InputConfirmationsRecord = Database['odoo_gms_input_confirmations'];
+export type InputConfirmationsLinesRecord = Database['odoo_gms_input_confirmations_lines'];
+export type InputPackRecord = Database['odoo_gms_input_pack'];

@@ -51,6 +51,7 @@ export default function TabLayout() {
         name="inputs"
         options={{
           title: 'Inputs',
+          headerShown: false,
           tabBarIcon: ({ color }) => <Leaf size={24} color={color} />,
         }}
       />

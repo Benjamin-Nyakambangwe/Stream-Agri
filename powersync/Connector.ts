@@ -208,7 +208,7 @@ export class Connector implements PowerSyncBackendConnector {
       // The PowerSync instance URL or self-hosted endpoint
       endpoint: powerSyncURI,
       // token: employeeJwt || '' // Provide empty string as fallback
-      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDkxMDIyMzQsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ5MTQ1NDM0fQ.IxRAwyx382RLYFXkDtLdL8cv3qxupzzWrqQLgkRUi6sk7tTIm6sTvGn84QVmUXOV5LoIfD1yMCBmBY-rO6JLDa7LM-Ijhb3JXCqE0U604_0aObxtxeMo2fKmjYgF-_olf97LH91zl9_WuZaHooSj8vsP9-hEa3KjO2wHtTBbKa6lZIIrg0ztuxqFg3JGHhULZM2UqNKjvfcbMVO6tQWEuETy7WBjTAugcrt40DI4m6IH41VayjVBwa2qz53L6BdM_9sElT1GfRhXRGUS9Jw6LrsrKIvaZWFy8dnRR8qyHPZFD-o7d61_AQNRKALECcn4KsNYjhg7qHNS94jKaLnLWQ'
+      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDk3MTQyNjMsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ5NzU3NDYzfQ.tEXm2cxvBJFBozXf5znTTwuu8xdaOelmaOK-IjIeKOqi5xG3veAvXAyMjGS5in3If3HH6RjQVfFjMNXRenXcgsuuFKvmVN-TxZ9glqoiR6A1bdHc49JzsI2IEwOleL1xqxqzwUaQv7SGsZAdjK_oCbMx7900OOeOcua5gZpNArnjj4E27Qwla_Qgufc6OhhUo8SINGbsINb2n5FSiyX8wMkuC7oV7GlnD44Agf7R6hPDiSvFMEuk7ApP_EWtlCMnblgNOBxGTsUEsU-w94d9tineQs4U97Kb9DriM8xxbseEZDbwvzCUkK5DJKT8B2wl2rJ0PA2r7LlgfatB1gd4KQ'
     };
   }
 
@@ -233,6 +233,11 @@ export class Connector implements PowerSyncBackendConnector {
       // The data that needs to be changed in the remote db
       const record = { ...op.opData, id: op.id };
       console.log('record', record)
+      console.log('op', op)
+      console.log('op.op', op.op)
+      console.log('op.table', op.table)
+      console.log('op.id', op.id)
+      console.log('op.opData', op.opData)
       switch (op.op) {
         case UpdateType.PUT:
           // TODO: Instruct your backend API to CREATE a record
@@ -246,12 +251,12 @@ export class Connector implements PowerSyncBackendConnector {
           console.log('RECORD DATA', recordData)
           const options = {
             method: 'POST',
-            url: 'http://45.84.138.225:8069/api/fo/create-grower',
+            url: 'http://45.84.138.225:8070/api/fo/create-grower-application',
             headers: {
               cookie: 'frontend_lang=en_GB',
               'Content-Type': 'application/json',
               'User-Agent': 'insomnia/11.1.0',
-              'X-FO-TOKEN': 'e0925492-77cb-4a4e-a85d-fc0ea1312f4b'
+              'X-FO-TOKEN': 'cbefac43-2357-460f-8d4a-4dd73ebed56c'
             },
             data: recordData
           };
@@ -264,7 +269,7 @@ export class Connector implements PowerSyncBackendConnector {
           
           const serverRecord = await response.data
           const updateLocal = await database.execute(
-            'UPDATE odoo_gms_grower SET id = ? WHERE id = ?',
+            'UPDATE odoo_gms_grower_application SET id = ? WHERE id = ?',
             [serverRecord.id, id]
           );
           console.log('UPDATED LOCAL RECORD', updateLocal)

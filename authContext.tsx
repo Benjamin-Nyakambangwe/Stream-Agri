@@ -73,7 +73,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
       if (serverIp) {
         // If it doesn't start with http, add it
         if (!serverIp.startsWith('http')) {
-          return `http://${serverIp}`;
+          return `https://${serverIp}`;
         }
         return serverIp;
       }

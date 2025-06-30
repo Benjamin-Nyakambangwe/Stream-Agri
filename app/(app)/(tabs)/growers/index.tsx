@@ -212,7 +212,7 @@ const Growers = () => {
           >
             <View className="flex-row items-center justify-center">
               <UserPlus size={24} color="white" className="mr-4"/>
-              <Text className="text-white text-center text-lg ml-4">New Grower</Text>
+              <Text className="text-white text-center text-lg ml-4">Grower Application</Text>
             </View>
           </TouchableOpacity>
         </View>

@@ -190,7 +190,7 @@ export class Connector implements PowerSyncBackendConnector {
   */
   async fetchCredentials(database?: AbstractPowerSyncDatabase) {
     // const powerSyncURI = await SecureStore.getItemAsync('power_sync_uri')
-    const powerSyncURI = 'https://67f6c16f984c6f4cb07959ca.powersync.journeyapps.com'
+    const powerSyncURI = 'https://6822f5820c28998c28ef1501.powersync.journeyapps.com'
     const employeeJwt = await SecureStore.getItemAsync('employee_jwt')
 
     
@@ -208,7 +208,7 @@ export class Connector implements PowerSyncBackendConnector {
       // The PowerSync instance URL or self-hosted endpoint
       endpoint: powerSyncURI,
       // token: employeeJwt || '' // Provide empty string as fallback
-      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NDk3MTQyNjMsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY3ZjZjMTZmOTg0YzZmNGNiMDc5NTljYS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzQ5NzU3NDYzfQ.tEXm2cxvBJFBozXf5znTTwuu8xdaOelmaOK-IjIeKOqi5xG3veAvXAyMjGS5in3If3HH6RjQVfFjMNXRenXcgsuuFKvmVN-TxZ9glqoiR6A1bdHc49JzsI2IEwOleL1xqxqzwUaQv7SGsZAdjK_oCbMx7900OOeOcua5gZpNArnjj4E27Qwla_Qgufc6OhhUo8SINGbsINb2n5FSiyX8wMkuC7oV7GlnD44Agf7R6hPDiSvFMEuk7ApP_EWtlCMnblgNOBxGTsUEsU-w94d9tineQs4U97Kb9DriM8xxbseEZDbwvzCUkK5DJKT8B2wl2rJ0PA2r7LlgfatB1gd4KQ'
+      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NTEyNjUzMTMsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY4MjJmNTgyMGMyODk5OGMyOGVmMTUwMS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzUxMzA4NTEzfQ.S0iwZoMHoQcV053Jh2OS-wzDiF2GlURjw6WpVhoAThJKyzlkq1MNqRO8jlHNLMRwuN7Uo6bwLgjLabLxW5xK34ULQ60hCbQYncN4FpzrfcnFV1vBKl0cuLanzYgDrqcxDEoqgOCa7U2MaWleV7cDOom1f3XF1XBDhsuJwHDjTSMh5nfcP8_vcbjfZFL_0demTVnCOcwxzhGdhbQsQ8_GhS9_bqTsRRziysJTsOVykUAbwxeH_DlWW7LmPCrw3E-HzG0SvAUA0nkeNeHv0_AM4LTiY62VSV_Js8ZX1raD-KaDcSRivjD-mOj9yjS1kU-PV4_RlcWKFhzWGsP9Js1s5A'
     };
   }
 
@@ -349,7 +349,7 @@ export class Connector implements PowerSyncBackendConnector {
           // Configure the request based on your Insomnia example
           const patchOptions = {
             method: 'PATCH',
-            url: `http://45.84.138.225:8069/api/update/${id}?table_name=${odooTableName}&last_synced_date=${newLastSyncedDate}`, // Use the destructured id here
+            url: `http://45.84.138.225:8070/api/update/${id}?table_name=${odooTableName}&last_synced_date=${newLastSyncedDate}`, // Use the destructured id here
             headers: {
               cookie: 'session_id=sZqyvCm3Paya3UgTLe1R5FY9EAyEA6-jmNbzuT3Egt20Yphpl8UJHxqzd0qjYUhzWnG7tMuLVluXaUYFfhPT; frontend_lang=en_GB',
               'Content-Type': 'application/json',

@@ -379,6 +379,148 @@ const odoo_gms_input_pack = new Table(
   { indexes: {} }
 );
 
+const survey_question = new Table(
+  {
+    // id column (text) is automatically included
+    survey_id: column.integer,
+    sequence: column.integer,
+    random_questions_count: column.integer,
+    page_id: column.integer,
+    scale_min: column.integer,
+    scale_max: column.integer,
+    time_limit: column.integer,
+    validation_length_min: column.integer,
+    validation_length_max: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    question_type: column.text,
+    matrix_subtype: column.text,
+    answer_date: column.text,
+    validation_min_date: column.text,
+    validation_max_date: column.text,
+    title: column.text,
+    description: column.text,
+    question_placeholder: column.text,
+    scale_min_label: column.text,
+    scale_mid_label: column.text,
+    scale_max_label: column.text,
+    comments_message: column.text,
+    validation_error_msg: column.text,
+    constr_error_msg: column.text,
+    is_page: column.integer,
+    is_scored_question: column.integer,
+    save_as_email: column.integer,
+    save_as_nickname: column.integer,
+    is_time_limited: column.integer,
+    is_time_customized: column.integer,
+    comments_allowed: column.integer,
+    comment_count_as_answer: column.integer,
+    validation_required: column.integer,
+    validation_email: column.integer,
+    constr_mandatory: column.integer,
+    answer_datetime: column.text,
+    validation_min_datetime: column.text,
+    validation_max_datetime: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    answer_numerical_box: column.real,
+    answer_score: column.real,
+    validation_min_float_value: column.real,
+    validation_max_float_value: column.real,
+    measure: column.text,
+    attachment_file_name: column.text,
+    b090_Lower_Acceptable_Date: column.text,
+    b0100_Benchmark_Date: column.text,
+    b0110_Upper_Acceptable_Date: column.text,
+    answer_boolean: column.integer,
+    b0120_Lower_Acceptable_Date_Time: column.text,
+    b0130_Benchmark_Date_Time: column.text,
+    b0140_Upper_Acceptable_Date_Time: column.text,
+    b060_Lower_Acceptable_Quantitative: column.real,
+    b070_Benchmark_Quantitative: column.real,
+    b080_Upper_Acceptable_Quantitative: column.real,
+    b0120_Lower_Acceptable_Time: column.real,
+    b0130_Benchmark_Time: column.real,
+    b0140_Upper_Acceptable_Time: column.real
+  },
+  { indexes: {} }
+);
+
+const survey_question_answer = new Table(
+  {
+    // id column (text) is automatically included
+    question_id: column.integer,
+    matrix_question_id: column.integer,
+    sequence: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    value_image_filename: column.text,
+    value: column.text,
+    is_correct: column.integer,
+    create_date: column.text,
+    write_date: column.text,
+    answer_score: column.real
+  },
+  { indexes: {} }
+);
+
+const survey_survey = new Table(
+  {
+    // id column (text) is automatically included
+    color: column.integer,
+    user_id: column.integer,
+    attempts_limit: column.integer,
+    certification_mail_template_id: column.integer,
+    certification_badge_id: column.integer,
+    session_question_id: column.integer,
+    session_speed_rating_time_limit: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    survey_type: column.text,
+    questions_layout: column.text,
+    questions_selection: column.text,
+    progression_mode: column.text,
+    access_mode: column.text,
+    access_token: column.text,
+    scoring_type: column.text,
+    certification_report_layout: column.text,
+    session_state: column.text,
+    session_code: column.text,
+    title: column.text,
+    description: column.text,
+    description_done: column.text,
+    active: column.integer,
+    users_login_required: column.integer,
+    users_can_go_back: column.integer,
+    is_attempts_limited: column.integer,
+    is_time_limited: column.integer,
+    certification: column.integer,
+    certification_give_badge: column.integer,
+    session_speed_rating: column.integer,
+    session_start_time: column.text,
+    session_question_start_time: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    scoring_success_min: column.real,
+    time_limit: column.real,
+    certification_validity_months: column.integer,
+    a010_sequence: column.integer,
+    a020_reference: column.text,
+    a030_name: column.text,
+    a040_description: column.text,
+    default_instructions: column.text,
+    a040_question: column.integer,
+    b010_value_text: column.integer,
+    b020_value_number: column.integer,
+    b030_value_date: column.integer,
+    b030_value_date_time: column.integer,
+    value_boolean: column.integer,
+    media_files: column.integer,
+    c020_value_list: column.integer
+  },
+  { indexes: {} }
+);
+
 export const AppSchema = new Schema({
   hr_employee,
   odoo_gms_grower,
@@ -393,6 +535,9 @@ export const AppSchema = new Schema({
   odoo_gms_input_confirmations,
   odoo_gms_input_confirmations_lines,
   odoo_gms_input_pack,
+  survey_question,
+  survey_question_answer,
+  survey_survey
 });
 
 
@@ -411,3 +556,6 @@ export type GrowerApplicationRecord = Database['odoo_gms_grower_application'];
 export type InputConfirmationsRecord = Database['odoo_gms_input_confirmations'];
 export type InputConfirmationsLinesRecord = Database['odoo_gms_input_confirmations_lines'];
 export type InputPackRecord = Database['odoo_gms_input_pack'];
+export type SurveyQuestionRecord = Database['survey_question'];
+export type SurveyQuestionAnswerRecord = Database['survey_question_answer'];
+export type SurveySurveyRecord = Database['survey_survey'];

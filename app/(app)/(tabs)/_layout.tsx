@@ -59,6 +59,7 @@ export default function TabLayout() {
         name="monitoring"
         options={{
           title: 'M & E',
+          headerShown: false,
           tabBarIcon: ({ color }) => <BarChart size={24} color={color} />,
         }}
       />

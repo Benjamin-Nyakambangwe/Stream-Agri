@@ -88,27 +88,8 @@ export default function GrowerModal() {
 
   const updateInputIssue = async () => {
     console.log('UPDATE INPUT ISSUE');
-    // console.log('Grower', grower)
-
-    // try {
-    //   await powersync.execute(`UPDATE odoo_gms_grower SET 
-    //     grower_number = ?, b010_first_name = ?, b020_surname = ? 
-    //     WHERE id = ? `, 
-    //     [growerNumber, firstName, surname, 
-    //       grower_id]
-    //   ).then(() => {
-    //     console.log('Actual Grower Updated');
-    //     // alert('ActualGrower Updated');
-    //     // router.back();
-    //   }).catch((error) => {
-    //     console.error('Error updating actual grower:', error);
-    //     alert('Error updating actual grower');
-    //   });
-    // } catch (error) {
-    //   console.error('Error updating actual grower:', error);
-    //   alert('Error updating actual grower');
-    // }
-
+    const updateInputIssue = await powersync.execute(`UPDATE odoo_gms_input_confirmations_lines SET issue_state = ? WHERE id = ?`, ['received', id]);
+    console.log('Update Input Issue', updateInputIssue);
     alert('All Updated')
     router.back();
   }
@@ -125,6 +106,7 @@ export default function GrowerModal() {
             </TouchableOpacity>
             <TouchableOpacity 
               className="h-10 w-32 rounded-xl bg-[#65435C] items-center justify-center flex-row gap-2"
+              onPress={updateInputIssue}
               >
                 <Text className="text-white text-sm">Confirm</Text>
               <CheckCheck size={20} color="white" className="w-10 h-10" />

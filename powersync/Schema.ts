@@ -259,7 +259,10 @@ const odoo_gms_production_cycle = new Table(
     name: column.text,
     reference: column.text,
     create_date: column.text,
-    write_date: column.text
+    write_date: column.text,
+    sequence: column.integer,
+    current_production_cycle: column.integer,
+    current_marketing_cycle: column.integer
   },
   { indexes: {} }
 );
@@ -521,6 +524,102 @@ const survey_survey = new Table(
   { indexes: {} }
 );
 
+const survey_user_input = new Table(
+  {
+    // id column (text) is automatically included
+    survey_id: column.integer,
+    last_displayed_page_id: column.integer,
+    partner_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    state: column.text,
+    access_token: column.text,
+    invite_token: column.text,
+    email: column.text,
+    nickname: column.text,
+    scoring_total: column.text,
+    test_entry: column.integer,
+    scoring_success: column.integer,
+    survey_first_submitted: column.integer,
+    is_session_answer: column.integer,
+    start_datetime: column.text,
+    end_datetime: column.text,
+    deadline: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    scoring_percentage: column.real,
+    employee_id: column.integer,
+    a010_sequence: column.integer,
+    survey_measure_option_id: column.integer,
+    destination: column.integer,
+    survey_register_id: column.integer,
+    data_source: column.text,
+    a020_reference: column.text,
+    a030_name: column.text,
+    a040_description: column.text,
+    b010_usage_type: column.text,
+    b020_target_reference: column.text,
+    b030_target_name: column.text,
+    b030_target_description: column.text,
+    b040_captured_at_geo_tag: column.text,
+    measure_option_id: column.text,
+    production_run: column.text,
+    status: column.text,
+    heading: column.text,
+    comments: column.text,
+    instructions: column.text,
+    captured_latitude: column.text,
+    captured_longitude: column.text,
+    measurements_populated: column.integer,
+    a040_question: column.integer,
+    b010_value_text: column.integer,
+    b020_value_number: column.integer,
+    b030_value_date: column.integer,
+    b030_value_date_time: column.integer,
+    value_boolean: column.integer,
+    media_files: column.integer,
+    c020_value_list: column.integer,
+    b050_capture_date_time: column.text,
+    production_cycle_registration_id: column.integer,
+    production_cycle_id: column.integer,
+    question_id: column.integer,
+    display_name: column.text,
+    mobile_app_id: column.text
+  },
+  { indexes: {} }
+);
+
+const survey_user_input_line = new Table(
+  {
+    // id column (text) is automatically included
+    user_input_id: column.integer, // Back to integer - will use random int locally, server ID after sync
+    survey_id: column.integer,
+    question_id: column.integer,
+    question_sequence: column.integer,
+    value_scale: column.integer,
+    suggested_answer_id: column.integer,
+    matrix_row_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    answer_type: column.text,
+    value_char_box: column.text,
+    value_date: column.text,
+    value_text_box: column.text,
+    skipped: column.integer,
+    answer_is_correct: column.integer,
+    value_datetime: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    value_numerical_box: column.real,
+    answer_score: column.real,
+    employee_id: column.integer,
+    production_registration_cycle_id: column.integer,
+    b050_capture_date_time: column.text,
+    mobile_app_id: column.text
+  },
+  { indexes: {} }
+);
+
 export const AppSchema = new Schema({
   hr_employee,
   odoo_gms_grower,
@@ -537,7 +636,9 @@ export const AppSchema = new Schema({
   odoo_gms_input_pack,
   survey_question,
   survey_question_answer,
-  survey_survey
+  survey_survey,
+  survey_user_input,
+  survey_user_input_line
 });
 
 
@@ -559,3 +660,5 @@ export type InputPackRecord = Database['odoo_gms_input_pack'];
 export type SurveyQuestionRecord = Database['survey_question'];
 export type SurveyQuestionAnswerRecord = Database['survey_question_answer'];
 export type SurveySurveyRecord = Database['survey_survey'];
+export type SurveyUserInputRecord = Database['survey_user_input'];
+export type SurveyUserInputLineRecord = Database['survey_user_input_line'];

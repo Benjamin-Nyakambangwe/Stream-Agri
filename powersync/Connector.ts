@@ -199,8 +199,8 @@ export class Connector implements PowerSyncBackendConnector {
       console.log('No powerSyncURI found')
       return null; // Return null if URI not found
     }
-    console.log('powerSyncURI', powerSyncURI)
-    console.log('employeeJwt', employeeJwt)
+    // console.log('powerSyncURI', powerSyncURI)
+    // console.log('employeeJwt', employeeJwt)
     console.log('#####################################################')
     //Powersync status
   
@@ -208,7 +208,7 @@ export class Connector implements PowerSyncBackendConnector {
       // The PowerSync instance URL or self-hosted endpoint
       endpoint: powerSyncURI,
       // token: employeeJwt || '' // Provide empty string as fallback
-      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NTEyNjUzMTMsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY4MjJmNTgyMGMyODk5OGMyOGVmMTUwMS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzUxMzA4NTEzfQ.S0iwZoMHoQcV053Jh2OS-wzDiF2GlURjw6WpVhoAThJKyzlkq1MNqRO8jlHNLMRwuN7Uo6bwLgjLabLxW5xK34ULQ60hCbQYncN4FpzrfcnFV1vBKl0cuLanzYgDrqcxDEoqgOCa7U2MaWleV7cDOom1f3XF1XBDhsuJwHDjTSMh5nfcP8_vcbjfZFL_0demTVnCOcwxzhGdhbQsQ8_GhS9_bqTsRRziysJTsOVykUAbwxeH_DlWW7LmPCrw3E-HzG0SvAUA0nkeNeHv0_AM4LTiY62VSV_Js8ZX1raD-KaDcSRivjD-mOj9yjS1kU-PV4_RlcWKFhzWGsP9Js1s5A'
+      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NTE1NzEzNTAsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY4MjJmNTgyMGMyODk5OGMyOGVmMTUwMS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzUxNjE0NTUwfQ.Wky3IDOcD1dU2A6ahx0Z9ZWjiUuSRb-IsnaD8i_9aJ-362erHaxlqyfmldOvnKW9eliOflgNL84OqOG6a5dC4qqYfMR1s4tdk_5gdquGIod-T0Gj6XBfHxPnedqm4k06Z-eh_AxauE1r6ub2NrBM-uaddCMbTjL2-dRvSce1K-T-t8YPDZv3GX5s6c9cYsgE343TFeLK2Y2oAt5UBDEGg7J3UvUBVhUhfDvJ6sXdbKiwZvYw94_-wB1G9cCVLN83k9Q-N_NvOmhzMAAV0JqfpPMVYSiGDa-QGl14PHuqtWrzOFO2VYeBdtNqgflI66r8ONjrTIUKbDM2W1T8opt7pA'
     };
   }
 
@@ -249,16 +249,34 @@ export class Connector implements PowerSyncBackendConnector {
           console.log('#############PUT#################')
           console.log('PUTTING DATA', id)
           console.log('RECORD DATA', recordData)
+          // const options = {
+          //   method: 'POST',
+          //   url: 'http://45.84.138.225:8070/api/fo/create-grower-application',
+          //   headers: {
+          //     cookie: 'frontend_lang=en_GB',
+          //     'Content-Type': 'application/json',
+          //     'User-Agent': 'insomnia/11.1.0',
+          //     'X-FO-TOKEN': 'cbefac43-2357-460f-8d4a-4dd73ebed56c'
+          //   },
+          //   data: recordData
+          // };
+
           const options = {
             method: 'POST',
-            url: 'http://45.84.138.225:8070/api/fo/create-grower-application',
+            url: 'https://commercial.ctl.odoo.ws/api/fo/create',
             headers: {
-              cookie: 'frontend_lang=en_GB',
               'Content-Type': 'application/json',
-              'User-Agent': 'insomnia/11.1.0',
-              'X-FO-TOKEN': 'cbefac43-2357-460f-8d4a-4dd73ebed56c'
+              // 'User-Agent': 'insomnia/11.2.0',
+              'X-FO-TOKEN': 'ae23da26-0ce5-4a9e-857d-9d0144982b60'
             },
-            data: recordData
+            data: {
+              jsonrpc: '2.0',
+              method: 'call',
+              params: {
+                type: op.table,
+                data: recordData
+              }
+            }
           };
           
           const response = await axios.request(options)
@@ -268,11 +286,45 @@ export class Connector implements PowerSyncBackendConnector {
           console.log('#####################################################')
           
           const serverRecord = await response.data
-          const updateLocal = await database.execute(
-            'UPDATE odoo_gms_grower_application SET id = ? WHERE id = ?',
-            [serverRecord.id, id]
-          );
-          console.log('UPDATED LOCAL RECORD', updateLocal)
+          console.log('serverRecord', serverRecord.result.record.id)
+
+          // if (op.table === 'survey_user_input') {
+          //   console.log('survey_user_input - updating related lines')
+          //   try {
+          //     // Verify we have the server record ID
+          //     const serverId = serverRecord?.result?.record?.id
+          //     if (!serverId) {
+          //       console.error('No server record ID found for survey_user_input')
+          //       break
+          //     }
+              
+          //     console.log(`Updating survey_user_input_line: ${id} -> ${serverId}`)
+              
+          //     // Check if there are any lines to update
+          //     const existingLines = await database.getAll(`SELECT id FROM survey_user_input_line WHERE user_input_id = ?`, [id])
+          //     console.log(`Found ${existingLines.length} lines to update`)
+              
+          //     if (existingLines.length > 0) {
+          //       const updateUserInputLines = await database.execute(
+          //         `UPDATE survey_user_input_line SET user_input_id = ? WHERE user_input_id = ?`, 
+          //         [serverId, id]
+          //       )
+          //       console.log('updateUserInputLines result:', updateUserInputLines)
+          //       console.log(`Successfully updated ${updateUserInputLines.rowsAffected || 0} survey_user_input_line records`)
+          //     } else {
+          //       console.log('No survey_user_input_line records found to update')
+          //     }
+          //   } catch (error) {
+          //     console.error('Error updating survey_user_input_line records:', error)
+          //   }
+          // }
+
+
+          // const updateLocal = await database.execute(
+          //   `UPDATE ${op.table} SET id = ? WHERE id = ?`,
+          //   [serverRecord.result.record.id, id]
+          // );
+          // console.log('UPDATED LOCAL RECORD', updateLocal)
 
           // const updatedLocalRecord = await database.get(`SELECT * FROM odoo_gms_grower WHERE id = ?`, [serverRecord.id])
           // console.log('UPDDATED LOCAL RECORD',updatedLocalRecord)
@@ -349,12 +401,12 @@ export class Connector implements PowerSyncBackendConnector {
           // Configure the request based on your Insomnia example
           const patchOptions = {
             method: 'PATCH',
-            url: `http://45.84.138.225:8070/api/update/${id}?table_name=${odooTableName}&last_synced_date=${newLastSyncedDate}`, // Use the destructured id here
+            url: `https://commercial.ctl.odoo.ws/api/update/${id}?table_name=${odooTableName}&last_synced_date=${newLastSyncedDate}`, // Use the destructured id here
             headers: {
-              cookie: 'session_id=sZqyvCm3Paya3UgTLe1R5FY9EAyEA6-jmNbzuT3Egt20Yphpl8UJHxqzd0qjYUhzWnG7tMuLVluXaUYFfhPT; frontend_lang=en_GB',
+              cookie: 'session_id=HSmgwMezMpOkqXBA9bsn5ik3vG6T0oO7Hlr3lISoMwhxIjJoqSSloOe3p9Zrfjqb6wzRfvWXPjsIhO_K4PvM; frontend_lang=en_GB',
               'Content-Type': 'application/json',
               'User-Agent': 'insomnia/11.0.2',
-              'X-FO-TOKEN': 'cfa0c7b5-9c87-4d8c-87c1-f8394fe1c94a'
+              'X-FO-TOKEN': '54a486c5-319c-4925-bb0b-adfa6ea84e5a'
             },
             data: {
               jsonrpc: '2.0',

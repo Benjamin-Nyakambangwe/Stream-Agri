@@ -35,7 +35,7 @@ const Inputs = () => {
       powersync.registerListener({
         statusChanged: (status) => {
           setSyncStatus(status.connected);
-          console.log('PowerSync status Inputs Screen:', status);
+          // console.log('PowerSync status Inputs Screen:', status);
         }
       });
     }, [])
@@ -120,7 +120,7 @@ const Inputs = () => {
   }
 
   const getInputConfirmationsLines = async () => {
-    const inputConfirmationsLines = await powersync.execute(`SELECT * FROM odoo_gms_input_confirmations_lines`);
+    const inputConfirmationsLines = await powersync.execute(`SELECT * FROM odoo_gms_input_confirmations_lines WHERE issue_state = 'issued'`);
     // console.log('inputConfirmationsLines', inputConfirmationsLines.rows?._array);
   }
 
@@ -151,14 +151,19 @@ const Inputs = () => {
         ON icl.input_confirmations_id = ic.id
       LEFT JOIN odoo_gms_input_pack ip 
         ON ic.input_pack_id = ip.id
-      WHERE pcr.field_technician_id = 148
+      WHERE pcr.field_technician_id = 148 AND icl.issue_state = 'issued'
     `;
     
-    const result = await powersync.execute(query);
-    const rows = result.rows?._array || [];
-    console.log('Input Confirmation Lines Data:', rows);
-    setGrowerWithInputData(rows);
-    return rows;
+    const result = await powersync.watch(query, [], {
+      onResult: (result) => {
+        console.log('Input Confirmation Lines Data:', result.rows?._array);
+        setGrowerWithInputData(result.rows?._array || []);
+      }
+    });
+    // const rows = result.rows?._array || [];
+    // console.log('Input Confirmation Lines Data:', rows);
+    // setGrowerWithInputData(rows);
+    // return rows;
   }
 
   useEffect(() => {

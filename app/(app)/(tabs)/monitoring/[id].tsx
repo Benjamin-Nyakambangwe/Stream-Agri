@@ -5,6 +5,10 @@ import { powersync, setupPowerSync } from '@/powersync/system';
 import { SurveyQuestionRecord } from '@/powersync/Schema';
 import { Calendar, Save } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import * as Crypto from 'expo-crypto'; // Still needed for line UUIDs
+import * as SecureStore from 'expo-secure-store';
+import * as Location from 'expo-location';
 
 const SurveyResponse = () => {
     const { id } = useLocalSearchParams()
@@ -13,6 +17,34 @@ const SurveyResponse = () => {
     const [loading, setLoading] = useState(true)
     const [questionAnswers, setQuestionAnswers] = useState<{[key: string]: any[]}>({}) // Store answers grouped by question_id
     const [showDatePicker, setShowDatePicker] = useState<{[key: string]: boolean}>({}) // Track which date pickers are visible
+    const [productionCycleValue, setProductionCycleValue] = useState('')
+    const [productionCycleRegValue, setProductionCycleRegValue] = useState('')
+    const [productionCycleReg, setProductionCycleReg] = useState<any[]>([])
+    const [latitude, setLatitude] = useState('')
+    const [longitude, setLongitude] = useState('')
+    const randomID = Math.floor(Math.random() * 1000000); // Random integer ID for local use
+
+    const getEmployeeId = async () => {
+        const employeeId = await SecureStore.getItemAsync('employeeId')
+        return employeeId || '148' // fallback to default
+    }
+
+        const handleProductionCycleChange = async (text: string) => {
+        console.log('handleProductionCycleChange called with:', text)
+        
+        // Remove CY prefix if it exists and ensure it starts with CY
+        let cleanText = text.replace(/^CY/i, '')
+        let prefixedText = `CY${cleanText}`
+        
+        console.log('prefixedText', prefixedText)
+        
+        setProductionCycleValue(prefixedText)
+        
+        // Fix SQL query with proper quotes
+        const productionCycleReg = await powersync.getAll(`SELECT pcr.id, pcr.grower_name, pcr.production_cycle_name, g.grower_number FROM odoo_gms_production_cycle_registration pcr JOIN odoo_gms_grower g ON pcr.grower_id = g.id WHERE pcr.production_cycle_name LIKE '%${prefixedText}%'`)
+        console.log('productionCycleReg query result:', productionCycleReg)
+        setProductionCycleReg(productionCycleReg)
+    }
 
     useEffect(() => {
         console.log('useEffect SurveyResponse Screen')
@@ -39,6 +71,12 @@ const SurveyResponse = () => {
             })
             
             setQuestionAnswers(answersGrouped)
+            
+            // Fetch initial production cycle registrations
+            const allProductionCycles = await powersync.getAll(`SELECT pcr.id, pcr.grower_name, pcr.production_cycle_name, g.grower_number FROM odoo_gms_production_cycle_registration pcr JOIN odoo_gms_grower g ON pcr.grower_id = g.id WHERE pcr.production_cycle_name LIKE '%CY26%'`)
+            console.log('Initial production cycles:', allProductionCycles)
+            setProductionCycleReg(allProductionCycles)
+            
             setLoading(false)
         }
         fetchSurveyData()
@@ -179,13 +217,14 @@ const SurveyResponse = () => {
                     <View className="gap-2">
                         {simpleChoices.map((choice) => {
                             const parsedValue = parseValue(choice.value)
+                            const isSelected = currentValue === choice.id // Compare with choice.id instead of choice.value
                             return (
                                 <TouchableOpacity
                                     key={choice.id}
-                                    className={`p-3 rounded-lg border-2 ${currentValue === choice.value ? 'bg-blue-100 border-blue-500' : 'bg-gray-50 border-gray-200'}`}
-                                    onPress={() => handleResponseChange(questionId, choice.value)}
+                                    className={`p-3 rounded-lg border-2 ${isSelected ? 'bg-blue-100 border-blue-500' : 'bg-gray-50 border-gray-200'}`}
+                                    onPress={() => handleResponseChange(questionId, choice.id)} // Store choice.id instead of choice.value
                                 >
-                                    <Text className={`font-semibold ${currentValue === choice.value ? 'text-blue-700' : 'text-gray-600'}`}>
+                                    <Text className={`font-semibold ${isSelected ? 'text-blue-700' : 'text-gray-600'}`}>
                                         {parsedValue}
                                     </Text>
                                 </TouchableOpacity>
@@ -204,18 +243,19 @@ const SurveyResponse = () => {
                     <View className="gap-2">
                         {multipleChoices.map((choice) => {
                             const parsedValue = parseValue(choice.value)
+                            const isSelected = selectedChoices.includes(choice.id) // Compare with choice.id instead of choice.value
                             return (
                                 <TouchableOpacity
                                     key={choice.id}
-                                    className={`p-3 rounded-lg border-2 ${selectedChoices.includes(choice.value) ? 'bg-purple-100 border-purple-500' : 'bg-gray-50 border-gray-200'}`}
+                                    className={`p-3 rounded-lg border-2 ${isSelected ? 'bg-purple-100 border-purple-500' : 'bg-gray-50 border-gray-200'}`}
                                     onPress={() => {
-                                        const newSelections = selectedChoices.includes(choice.value)
-                                            ? selectedChoices.filter((c: string) => c !== choice.value)
-                                            : [...selectedChoices, choice.value]
+                                        const newSelections = selectedChoices.includes(choice.id)
+                                            ? selectedChoices.filter((c: any) => c !== choice.id) // Filter out choice.id
+                                            : [...selectedChoices, choice.id] // Add choice.id
                                         handleResponseChange(questionId, newSelections)
                                     }}
                                 >
-                                    <Text className={`font-semibold ${selectedChoices.includes(choice.value) ? 'text-purple-700' : 'text-gray-600'}`}>
+                                    <Text className={`font-semibold ${isSelected ? 'text-purple-700' : 'text-gray-600'}`}>
                                         {parsedValue}
                                     </Text>
                                 </TouchableOpacity>
@@ -342,11 +382,41 @@ const SurveyResponse = () => {
         }
     }
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         console.log('Survey responses:', responses)
-        Alert.alert('Success', 'Survey responses saved!', [
-            { text: 'OK', onPress: () => router.back() }
-        ])
+
+        // Get location first
+        await getLocation()
+        
+        // Then submit the survey
+        await submitSurveyUserInput()
+    }
+
+        const getLocation = async () => {
+        try {
+            console.log('Getting Location');
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            console.log('Location permission status:', status);
+            
+            if (status === 'granted') {
+                const location = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced,
+                });
+                console.log('Location obtained:', location.coords.latitude, location.coords.longitude);
+                setLatitude(location.coords.latitude.toString());
+                setLongitude(location.coords.longitude.toString());
+            } else {
+                console.log('Location permission not granted, using default coordinates');
+                // Don't show alert, just use default coordinates
+                setLatitude('37.774929');
+                setLongitude('-122.419416');
+            }
+        } catch (error) {
+            console.error('Error getting location:', error);
+            // Use default coordinates if location fails
+            setLatitude('37.774929');
+            setLongitude('-122.419416');
+        }
     }
 
     if (loading) {
@@ -355,6 +425,99 @@ const SurveyResponse = () => {
                 <Text className="text-lg text-gray-600">Loading survey...</Text>
             </View>
         )
+    }
+
+    const submitSurveyUserInput = async () => {
+        try {
+            console.log('Attempting insert with productionCycleRegValue:', productionCycleRegValue)
+
+            // Get employee ID
+            const employeeId = await getEmployeeId()
+            console.log('Using employee ID:', employeeId)
+
+            const currentID = Crypto.randomUUID()
+            
+            // Use actual location coordinates or fallback to defaults
+            const lat = latitude || '37.774929'
+            const lng = longitude || '-122.419416'
+            console.log('Using coordinates:', lat, lng)
+            
+            console.log('CURRENT ID (random integer):', currentID)
+
+            const result = await powersync.execute(
+                `INSERT INTO survey_user_input (id, survey_id, a020_reference, production_cycle_registration_id, production_cycle_id, employee_id, captured_latitude, captured_longitude, mobile_app_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                [currentID, id, 'SV00002', productionCycleRegValue, 14, employeeId, lat, lng, currentID]
+            )
+            console.log('survey_user_input insert result:', result)
+
+            // Insert all survey responses
+
+            console.log('Using currentID for survey_user_input_line:', currentID)
+            for (const [key, value] of Object.entries(responses)) {
+                console.log('Inserting response - key:', key, 'value:', value)
+                const lineUUID = Crypto.randomUUID(); // Generate a new UUID for each line
+                console.log('LINE UUID', lineUUID)
+                console.log('Line user_input_id:', currentID)
+                
+                // Check for required values
+                if (!productionCycleRegValue) {
+                    console.error('productionCycleRegValue is null/undefined!')
+                }
+                if (!employeeId) {
+                    console.error('employeeId is null/undefined!')
+                }
+                
+                // Insert parameters with proper integer types
+                const completeParams = [
+                    lineUUID, // id (still UUID string for line record)
+                    9999, // user_input_id (integer - will be updated by connector after sync)
+                    parseInt(id as string), // survey_id
+                    parseInt(key), // question_id
+                    0, // question_sequence (default)
+                    parseInt(value) || null, // suggested_answer_id
+                    'suggestion', // answer_type
+                    parseInt(employeeId) || null, // employee_id
+                    parseInt(productionCycleRegValue) || null, // production_registration_cycle_id
+                    currentID
+                ]
+                
+                console.log('Complete insert parameters:', completeParams)
+
+                try {
+                    await powersync.execute(
+                        `INSERT INTO survey_user_input_line (id, user_input_id, survey_id, question_id, question_sequence, suggested_answer_id, answer_type, employee_id, production_registration_cycle_id, mobile_app_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                        completeParams
+                    )
+                } catch (error) {
+                    console.error('INSERT FAILED - No rows affected for line:', completeParams)
+                    Alert.alert('Error', `Insert error: ${error}`)
+                }
+                
+
+                // const lineResult = await powersync.execute(
+                //     `INSERT INTO survey_user_input_line (id, user_input_id, survey_id, question_id, question_sequence, suggested_answer_id, answer_type, employee_id, production_registration_cycle_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                //     completeParams
+                // )
+                // console.log('survey_user_input_line insert result:', lineResult)
+                
+                // if (lineResult.rowsAffected === 0) {
+                //     console.error('INSERT FAILED - No rows affected for line:', completeParams)
+                // }
+            }
+
+            console.log('Final currentID before success:', currentID)
+            Alert.alert('Success', 'Survey responses saved successfully!', [
+                { text: 'OK', onPress: () => router.back() }
+            ])
+
+            //Get all survey_user_input_line
+            const allSurveyUserInputLines = await powersync.getAll(`SELECT * FROM survey_user_input_line WHERE user_input_id = ?`, [currentID])
+            console.log('allSurveyUserInputLines', allSurveyUserInputLines)
+
+        } catch (error) {
+            console.error('ACTUAL INSERT ERROR:', error)
+            Alert.alert('Error', `Insert error: ${error}`)
+        }
     }
 
     return (
@@ -370,6 +533,25 @@ const SurveyResponse = () => {
             }} />
             <View className="flex-1 bg-[#65435C]">
                 <ScrollView className="flex-1 p-4">
+                    <View className="bg-white rounded-2xl p-4 mb-4 flex-row items-center gap-2">
+                    <TextInput
+                        className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-base flex-1"
+                        style={{ flex: 0.25 }}
+                        placeholder="CY"
+                        value={productionCycleValue || 'CY'}
+                        onChangeText={(text) => handleProductionCycleChange(text)}
+                    />
+                    <View className="bg-gray-50 border border-gray-200 rounded-lg" style={{ flex: 0.75 }}>
+                        <Picker
+                            selectedValue={productionCycleRegValue}
+                            onValueChange={(itemValue) => setProductionCycleRegValue(itemValue)}
+                        >
+                            {productionCycleReg.map((item) => (
+                                <Picker.Item key={item.id} label={item.grower_number + ' - ' + item.grower_name + ' - ' + item.production_cycle_name} value={item.id} />
+                            ))}
+                        </Picker>
+                    </View>
+                    </View>
                     <View className="bg-white rounded-2xl p-4 mb-4">
                         {questions.map((question, index) => (
                             <View key={question.id} className="mb-6">

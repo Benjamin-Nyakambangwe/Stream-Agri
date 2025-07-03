@@ -23,7 +23,7 @@ const Monitoring = () => {
       powersync.registerListener({
         statusChanged: (status) => {
           setSyncStatus(status.connected);
-          console.log('PowerSync status Monitoring Screen:', status);
+          // console.log('PowerSync status Monitoring Screen:', status);
         }
       });
     }, [])
@@ -108,8 +108,8 @@ const Monitoring = () => {
 
         <FlatList
           data={surveys}
-          numColumns={2}
-          columnWrapperStyle={{ justifyContent: 'space-between' }}
+          // numColumns={1}
+          // columnWrapperStyle={{ justifyContent: 'space-between' }}
           renderItem={({ item }) => {
             // Parse the title JSON string to get localized text
             let displayTitle = item.title || 'Untitled';
@@ -130,7 +130,7 @@ const Monitoring = () => {
               <TouchableOpacity 
                 className="bg-white rounded-2xl p-6 items-center justify-center h-40 mb-4 shadow-lg" 
                 style={{ 
-                  width: '48%',
+                  width: '100%',
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.1,
@@ -139,17 +139,34 @@ const Monitoring = () => {
                   borderLeftWidth: 4,
                   borderLeftColor: '#1AD3BB'
                 }}
-                onPress={() => router.push(`/monitoring/${item.id}` as any)}
+                // onPress={() => router.push(`/monitoring/${item.id}` as any)}
               >
+                <View className="flex-row items-center justify-between mx-16">
+                <View className="flex-col items-center justify-between w-full">
                 <View className="h-10 w-10 bg-[#1AD3BB] rounded-full items-center justify-center mb-3">
                   <BarChart size={20} color="white" />
                 </View>
                 <Text className="text-lg font-bold text-[#65435C] text-center leading-tight">
                   {displayTitle}
                 </Text>
-                <Text className="text-sm text-gray-500 mt-1 text-center">
-                  Survey
-                </Text>
+                  <Text className="text-sm text-gray-500 mt-1 text-center">
+                    Survey
+                  </Text>
+                </View>
+
+                <View className="flex-col items-center justify-between w-full">
+                  <TouchableOpacity className="bg-[#65435C] rounded-xl p-2 w-[70%] mb-2 items-center justify-center"
+                  onPress={() => router.push(`/monitoring/${item.id}` as any)}
+                  >
+                    <Text className="text-white">Start Survey</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity className="bg-[#65435C] rounded-xl p-2 w-[70%] items-center justify-center"
+                  onPress={() => router.push(`/monitoring/completed?id=${item.id}` as any)}
+                  >
+                    <Text className="text-white">View Completed</Text>
+                  </TouchableOpacity>
+                </View>
+                </View>
               </TouchableOpacity>
             );
           }}

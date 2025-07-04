@@ -362,7 +362,11 @@ const odoo_gms_input_confirmations_lines = new Table(
     write_date: column.text,
     excel_hectares: column.real,
     issue_state: column.text,
-    input_confirmations_id_id: column.integer
+    input_confirmations_id_id: column.integer,
+    latitude: column.text,
+    longitude: column.text,
+    grower_image: column.text,
+    grower_national_id_image: column.text
   },
   { indexes: {} }
 );

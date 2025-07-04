@@ -16,7 +16,7 @@ type JoinedGrowerData = ProductionCycleRegistrationRecord & {
   };
 
 // Tab type
-type TabType = 'issued' | 'received';
+type TabType = 'issued' | 'received' | 'returned';
 
 const Inputs = () => {
   const session = useSession();
@@ -30,6 +30,7 @@ const Inputs = () => {
   const [syncStatus, setSyncStatus] = useState(false);
   const [growerWithInputData, setGrowerWithInputData] = useState<any[]>([]);
   const [growerWithInputDataReceived, setGrowerWithInputDataReceived] = useState<any[]>([]);
+  const [growerWithInputDataReturned, setGrowerWithInputDataReturned] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('issued');
 
   useFocusEffect(
@@ -206,12 +207,50 @@ const Inputs = () => {
     // return rows;
   }
 
+  const getGrowerWithInputDataReturned = async () => {
+    console.log('Getting Input Confirmation Lines Data');
+    const query = `
+      SELECT 
+        icl.*,
+        pcr.first_name,
+        pcr.surname,
+        pcr.grower_name,
+        pcr.b010_contract_scale as contracted_hectares,
+        pcr.production_cycle_name,
+        ic.grv_number,
+        ic.date_input,
+        ic.state as confirmation_state,
+        ip.name as input_pack_name,
+        ip.code as input_pack_code
+      FROM odoo_gms_input_confirmations_lines icl
+      LEFT JOIN odoo_gms_production_cycle_registration pcr 
+        ON icl.production_cycle_registration_id = pcr.id
+      LEFT JOIN odoo_gms_input_confirmations ic 
+        ON icl.input_confirmations_id = ic.id
+      LEFT JOIN odoo_gms_input_pack ip 
+        ON ic.input_pack_id = ip.id
+      WHERE pcr.field_technician_id = 148 AND icl.issue_state = 'returned'
+    `;
+    
+    const result = await powersync.watch(query, [], {
+      onResult: (result) => {
+        console.log('Input Confirmation Lines Data Returned:', result.rows?._array);
+        setGrowerWithInputDataReturned(result.rows?._array || []);
+      }
+    });
+    // const rows = result.rows?._array || [];
+    // console.log('Input Confirmation Lines Data:', rows);
+    // setGrowerWithInputData(rows);
+    // return rows;
+  }
+
   useEffect(() => {
     getInputConfirmations();
     getInputConfirmationsLines();
     getInputPacks();
     getGrowerWithInputData()
     getGrowerWithInputDataReceived()
+    getGrowerWithInputDataReturned()
   }, []);
 
   return (
@@ -277,11 +316,20 @@ const Inputs = () => {
                 Received
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              className={`flex-1 py-3 rounded-lg ${activeTab === 'returned' ? 'bg-[#65435C]' : 'bg-transparent'}`}
+              onPress={() => setActiveTab('returned')}
+            >
+              <Text className={`text-center font-semibold ${activeTab === 'returned' ? 'text-white' : 'text-[#65435C]'}`}>
+                Returned
+              </Text>
+            </TouchableOpacity>
           </View>
          
           
           <FlashList
-      data={activeTab === 'issued' ? growerWithInputData : growerWithInputDataReceived}
+      data={activeTab === 'issued' ? growerWithInputData : activeTab === 'received' ? growerWithInputDataReceived : growerWithInputDataReturned}
       renderItem={({ item }: { item: any }) => growerItem(item)}
       estimatedItemSize={200}
       keyboardShouldPersistTaps="handled"

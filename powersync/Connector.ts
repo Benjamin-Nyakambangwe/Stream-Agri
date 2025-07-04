@@ -208,7 +208,7 @@ export class Connector implements PowerSyncBackendConnector {
       // The PowerSync instance URL or self-hosted endpoint
       endpoint: powerSyncURI,
       // token: employeeJwt || '' // Provide empty string as fallback
-      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NTE1NzEzNTAsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY4MjJmNTgyMGMyODk5OGMyOGVmMTUwMS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzUxNjE0NTUwfQ.Wky3IDOcD1dU2A6ahx0Z9ZWjiUuSRb-IsnaD8i_9aJ-362erHaxlqyfmldOvnKW9eliOflgNL84OqOG6a5dC4qqYfMR1s4tdk_5gdquGIod-T0Gj6XBfHxPnedqm4k06Z-eh_AxauE1r6ub2NrBM-uaddCMbTjL2-dRvSce1K-T-t8YPDZv3GX5s6c9cYsgE343TFeLK2Y2oAt5UBDEGg7J3UvUBVhUhfDvJ6sXdbKiwZvYw94_-wB1G9cCVLN83k9Q-N_NvOmhzMAAV0JqfpPMVYSiGDa-QGl14PHuqtWrzOFO2VYeBdtNqgflI66r8ONjrTIUKbDM2W1T8opt7pA'
+      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NTE2MDU1NTQsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY4MjJmNTgyMGMyODk5OGMyOGVmMTUwMS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzUxNjQ4NzU0fQ.NqMYDSc-TLiRKrw8JUvgnrx5XJbbLBCQnpz7NKE0fpm0UkO3m0tizgWUc8BjNrBe7D--zADT6zaaTGlH1mLSi6N1b2MFpvkb0UTb76u4JcQIxdlgJuP5Ktf-s9C10b42WLGEvNn8_rroSg3Tpu7QULvM00ESMHhOuNjKfS4Ol81_h1jjKvtUP16PwSkQdZ1sOXweKQ2_PLOuaQ9Kw2MVrh6TPfbSkoYaviDkdExQaSe_3zjvw2KOu1UzcI03pm0tmtB5A-ZB2n8Bd3puzqh9mZ8l05uefAhB1f8PVYiq-RrXyytPK-f05k_QVJjwL99q0qVtpdEGH40PrWDSLOcbNA'
     };
   }
 
@@ -260,6 +260,13 @@ export class Connector implements PowerSyncBackendConnector {
           //   },
           //   data: recordData
           // };
+          
+          // If op.table include odoo_gms_ then remove odoo_gms_ from the table name
+          let tableName = op.table
+          if (tableName.includes('odoo_gms_')) {
+            tableName = tableName.replace('odoo_gms_', '')
+          }
+
 
           const options = {
             method: 'POST',
@@ -273,7 +280,7 @@ export class Connector implements PowerSyncBackendConnector {
               jsonrpc: '2.0',
               method: 'call',
               params: {
-                type: op.table,
+                type: tableName,
                 data: recordData
               }
             }
@@ -371,7 +378,7 @@ export class Connector implements PowerSyncBackendConnector {
 
           //FETCH CURRENT LOCAL RECORD
           const currentRecord = await database.get(`SELECT * FROM ${tableName} WHERE id = ?`, [id]);
-          console.log('currentRecord', currentRecord)
+          // console.log('currentRecord', currentRecord)
 
           //COMPARE RECORD TO SEND WITH CURRENT RECORD AND ONLY KEEP MATCHING VALUES
           let newRecordDataToSend: {[key: string]: any} = {};
@@ -380,7 +387,7 @@ export class Connector implements PowerSyncBackendConnector {
               newRecordDataToSend[key] = value;
             }
           }
-          console.log('newRecordDataToSend', newRecordDataToSend)
+          // console.log('newRecordDataToSend', newRecordDataToSend)
 
           // ADD LAST SYNCED DATE TO NEW RECORD DATA TO SEND
           // newRecordDataToSend['last_synced_date'] = lastSyncedDate
@@ -417,11 +424,11 @@ export class Connector implements PowerSyncBackendConnector {
             }
           };
           
-          console.log('Sending PATCH request:', patchOptions);
+          // console.log('Sending PATCH request:', patchOptions);
           const response = await axios.request(patchOptions);
           console.log('PATCH response:', response.data);
           console.log('#####################################################')
-          console.log('PATCHED RECORD', newRecordDataToSend)
+          // console.log('PATCHED RECORD', newRecordDataToSend)
           console.log('#####################################################')
         } catch (error) {
           console.error('PATCH request failed:', error);

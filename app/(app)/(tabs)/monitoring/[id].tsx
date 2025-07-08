@@ -431,6 +431,11 @@ const SurveyResponse = () => {
         try {
             console.log('Attempting insert with productionCycleRegValue:', productionCycleRegValue)
 
+            if (!productionCycleRegValue) {
+                Alert.alert('Error', 'Please select a production cycle')
+                return
+            }
+
             // Get employee ID
             const employeeId = await getEmployeeId()
             console.log('Using employee ID:', employeeId)
@@ -455,9 +460,12 @@ const SurveyResponse = () => {
             console.log('Using currentID for survey_user_input_line:', currentID)
             for (const [key, value] of Object.entries(responses)) {
                 console.log('Inserting response - key:', key, 'value:', value)
-                const lineUUID = Crypto.randomUUID(); // Generate a new UUID for each line
-                console.log('LINE UUID', lineUUID)
-                console.log('Line user_input_id:', currentID)
+                const lineUUID = Crypto.randomUUID();
+                
+                // Find the question to get its type
+                const question = questions.find(q => q.id.toString() === key);
+                const questionType = question?.question_type || 'text_box';
+                console.log('Question type for', key, ':', questionType)
                 
                 // Check for required values
                 if (!productionCycleRegValue) {
@@ -467,27 +475,113 @@ const SurveyResponse = () => {
                     console.error('employeeId is null/undefined!')
                 }
                 
-                // Insert parameters with proper integer types
-                const completeParams = [
-                    lineUUID, // id (still UUID string for line record)
-                    9999, // user_input_id (integer - will be updated by connector after sync)
-                    parseInt(id as string), // survey_id
-                    parseInt(key), // question_id
-                    0, // question_sequence (default)
-                    parseInt(value) || null, // suggested_answer_id
-                    'suggestion', // answer_type
-                    parseInt(employeeId) || null, // employee_id
-                    parseInt(productionCycleRegValue) || null, // production_registration_cycle_id
-                    currentID
-                ]
+                // Dynamic answer type and value based on question type
+                let answerType = '';
+                let insertQuery = '';
+                let completeParams = [];
                 
-                console.log('Complete insert parameters:', completeParams)
+                if (questionType === 'simple_choice' || questionType === 'multiple_choice') {
+                    // Use suggested_answer_id for choice questions
+                    answerType = 'suggestion';
+                    insertQuery = `INSERT INTO survey_user_input_line (id, user_input_id, survey_id, question_id, question_sequence, suggested_answer_id, answer_type, employee_id, production_registration_cycle_id, mobile_app_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    completeParams = [
+                        lineUUID,
+                        9999,
+                        parseInt(id as string),
+                        parseInt(key),
+                        0,
+                        parseInt(value) || null, // suggested_answer_id
+                        answerType,
+                        parseInt(employeeId) || null,
+                        parseInt(productionCycleRegValue) || null,
+                        currentID
+                    ];
+                } else if (questionType === 'numerical_box') {
+                    // Use value_numerical_box for numbers
+                    answerType = 'numerical_box';
+                    insertQuery = `INSERT INTO survey_user_input_line (id, user_input_id, survey_id, question_id, question_sequence, value_numerical_box, answer_type, employee_id, production_registration_cycle_id, mobile_app_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    completeParams = [
+                        lineUUID,
+                        9999,
+                        parseInt(id as string),
+                        parseInt(key),
+                        0,
+                        parseFloat(value) || null, // value_numerical_box
+                        answerType,
+                        parseInt(employeeId) || null,
+                        parseInt(productionCycleRegValue) || null,
+                        currentID
+                    ];
+                } else if (questionType === 'date') {
+                    // Use value_date for dates
+                    answerType = 'date';
+                    insertQuery = `INSERT INTO survey_user_input_line (id, user_input_id, survey_id, question_id, question_sequence, value_date, answer_type, employee_id, production_registration_cycle_id, mobile_app_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    completeParams = [
+                        lineUUID,
+                        9999,
+                        parseInt(id as string),
+                        parseInt(key),
+                        0,
+                        value || null, // value_date
+                        answerType,
+                        parseInt(employeeId) || null,
+                        parseInt(productionCycleRegValue) || null,
+                        currentID
+                    ];
+                } else if (questionType === 'datetime') {
+                    // Use value_datetime for datetime
+                    answerType = 'datetime';
+                    insertQuery = `INSERT INTO survey_user_input_line (id, user_input_id, survey_id, question_id, question_sequence, value_datetime, answer_type, employee_id, production_registration_cycle_id, mobile_app_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    completeParams = [
+                        lineUUID,
+                        9999,
+                        parseInt(id as string),
+                        parseInt(key),
+                        0,
+                        value || null, // value_datetime
+                        answerType,
+                        parseInt(employeeId) || null,
+                        parseInt(productionCycleRegValue) || null,
+                        currentID
+                    ];
+                }  else if (questionType === 'scale') {
+                    // Use value_scale for scale
+                    answerType = 'scale';
+                    insertQuery = `INSERT INTO survey_user_input_line (id, user_input_id, survey_id, question_id, question_sequence, value_scale, answer_type, employee_id, production_registration_cycle_id, mobile_app_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    completeParams = [
+                        lineUUID,
+                        9999,
+                        parseInt(id as string),
+                        parseInt(key),
+                        0,
+                        value || null, // value_scale
+                        answerType,
+                        parseInt(employeeId) || null,
+                        parseInt(productionCycleRegValue) || null,
+                        currentID
+                    ];
+                } else {
+                    // Default to value_text_box for text_box, char_box, yes_no, etc.
+                    answerType = 'text_box';
+                    insertQuery = `INSERT INTO survey_user_input_line (id, user_input_id, survey_id, question_id, question_sequence, value_text_box, answer_type, employee_id, production_registration_cycle_id, mobile_app_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    completeParams = [
+                        lineUUID,
+                        9999,
+                        parseInt(id as string),
+                        parseInt(key),
+                        0,
+                        value?.toString() || null, // value_text_box
+                        answerType,
+                        parseInt(employeeId) || null,
+                        parseInt(productionCycleRegValue) || null,
+                        currentID
+                    ];
+                }
+                
+                console.log('Dynamic insert params:', { questionType, answerType, completeParams })
 
                 try {
-                    await powersync.execute(
-                        `INSERT INTO survey_user_input_line (id, user_input_id, survey_id, question_id, question_sequence, suggested_answer_id, answer_type, employee_id, production_registration_cycle_id, mobile_app_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                        completeParams
-                    )
+                    await powersync.execute(insertQuery, completeParams)
                 } catch (error) {
                     console.error('INSERT FAILED - No rows affected for line:', completeParams)
                     Alert.alert('Error', `Insert error: ${error}`)

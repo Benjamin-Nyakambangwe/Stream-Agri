@@ -75,7 +75,7 @@ const Inputs = () => {
       [],
       {
         onResult: (result) => {
-          console.log('Joined growers data updated, count:', result.rows?._array?.length);
+          // console.log('Joined growers data updated, count:', result.rows?._array?.length);
           if (result.rows?._array) {
             const growersData = result.rows._array as JoinedGrowerData[];
             setGrowers(growersData);
@@ -158,9 +158,9 @@ const Inputs = () => {
       WHERE pcr.field_technician_id = 148 AND icl.issue_state = 'issued'
     `;
     
-    const result = await powersync.watch(query, [], {
+    const result = powersync.watch(query, [], {
       onResult: (result) => {
-        console.log('Input Confirmation Lines Data:', result.rows?._array);
+        // console.log('Input Confirmation Lines Data:', result.rows?._array);
         setGrowerWithInputData(result.rows?._array || []);
       }
     });
@@ -195,9 +195,9 @@ const Inputs = () => {
       WHERE pcr.field_technician_id = 148 AND icl.issue_state = 'received'
     `;
     
-    const result = await powersync.watch(query, [], {
+    const result = powersync.watch(query, [], {
       onResult: (result) => {
-        console.log('Input Confirmation Lines Data Received:', result.rows?._array);
+        // console.log('Input Confirmation Lines Data Received:', result.rows?._array);
         setGrowerWithInputDataReceived(result.rows?._array || []);
       }
     });
@@ -232,9 +232,9 @@ const Inputs = () => {
       WHERE pcr.field_technician_id = 148 AND icl.issue_state = 'returned'
     `;
     
-    const result = await powersync.watch(query, [], {
+    const result = powersync.watch(query, [], {
       onResult: (result) => {
-        console.log('Input Confirmation Lines Data Returned:', result.rows?._array);
+        // console.log('Input Confirmation Lines Data Returned:', result.rows?._array);
         setGrowerWithInputDataReturned(result.rows?._array || []);
       }
     });

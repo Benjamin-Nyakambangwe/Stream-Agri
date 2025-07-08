@@ -208,7 +208,7 @@ export class Connector implements PowerSyncBackendConnector {
       // The PowerSync instance URL or self-hosted endpoint
       endpoint: powerSyncURI,
       // token: employeeJwt || '' // Provide empty string as fallback
-      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NTE2MDU1NTQsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY4MjJmNTgyMGMyODk5OGMyOGVmMTUwMS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzUxNjQ4NzU0fQ.NqMYDSc-TLiRKrw8JUvgnrx5XJbbLBCQnpz7NKE0fpm0UkO3m0tizgWUc8BjNrBe7D--zADT6zaaTGlH1mLSi6N1b2MFpvkb0UTb76u4JcQIxdlgJuP5Ktf-s9C10b42WLGEvNn8_rroSg3Tpu7QULvM00ESMHhOuNjKfS4Ol81_h1jjKvtUP16PwSkQdZ1sOXweKQ2_PLOuaQ9Kw2MVrh6TPfbSkoYaviDkdExQaSe_3zjvw2KOu1UzcI03pm0tmtB5A-ZB2n8Bd3puzqh9mZ8l05uefAhB1f8PVYiq-RrXyytPK-f05k_QVJjwL99q0qVtpdEGH40PrWDSLOcbNA'
+      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NTE5NjIwMjYsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY4MjJmNTgyMGMyODk5OGMyOGVmMTUwMS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzUyMDA1MjI2fQ.IL6x7OkGLL_TAlpZYy_DA4NlnnSj4J2c6CzunjMwOGLAh2oqQgFnO7z3GkZwa2yEGviiHOtUOzYAU2KavibIfeoARljjrVynfrsGK0TA61ZGH_Wvbl6uOyf-lXNOIvYJgkvSj55vqZKmlPFM9tT1v9_JnICoRwxPL74X7UqoOR9MFty335HgZZM5p7afvTGeoDQs-o_rIl3VqlZ1i120vPurMf5nR2W9BPpnYiZ-RCRoM22uepRjrRDlk1Hfvpy8jdgqmx40jnMroOxn8PDxkDLx2h7m3nxfMDpIyatipfkNUHhufRQzIweGj8lzRzuzVKM5tszc5IwycLDBHexpBA'
     };
   }
 
@@ -218,6 +218,7 @@ export class Connector implements PowerSyncBackendConnector {
   * See example implementation here:https://docs.powersync.com/client-sdk-references/react-native-and-expo#3-integrate-with-your-backend
   */
   async uploadData(database: AbstractPowerSyncDatabase) {
+    console.log('🔄 uploadData method started...');
 
     /**
     * For batched crud transactions, use data.getCrudBatch(n);
@@ -226,10 +227,39 @@ export class Connector implements PowerSyncBackendConnector {
     const transaction = await database.getNextCrudTransaction();
 
     if (!transaction) {
+      console.log('❌ No pending CRUD transactions found');
       return;
     }
 
+    console.log(`✅ Found transaction with ${transaction.crud.length} operations`);
+
+
+
+    // ADD THIS DEBUG SECTION:
+    console.log('🔍 Debugging transaction.crud:');
+    console.log('transaction.crud type:', typeof transaction.crud);
+    console.log('transaction.crud is array:', Array.isArray(transaction.crud));
+    console.log('transaction.crud:', transaction.crud);
+    // console.log('transaction.crud[0]:', transaction.crud[0]);
+
+
+    console.log('Raw crud check:', !!transaction.crud);
+    console.log('Crud length check:', transaction.crud?.length);
+    // console.log('First element direct access:', transaction.crud?.[0]);
+
+    // Test if we can iterate
+    try {
+      console.log('🧪 Testing iteration...');
+      // transaction.crud.forEach((op, index) => {
+      //   console.log(`Operation ${index}:`, op);
+      // });
+    } catch (error) {
+      console.error('❌ Iteration failed:', error);
+    }
+
+
     for (const op of transaction.crud) {
+      console.log('🎯 INSIDE FOR LOOP - This should show!');
       // The data that needs to be changed in the remote db
       const record = { ...op.opData, id: op.id };
       console.log('record', record)
@@ -369,7 +399,7 @@ export class Connector implements PowerSyncBackendConnector {
 
 
           console.log('#####################################################')
-          console.log('PATCH', record)
+          // console.log('PATCH', record)
           console.log('#####################################################')
           console.log('Executing PATCH operation...');
         try {
@@ -426,7 +456,8 @@ export class Connector implements PowerSyncBackendConnector {
           
           // console.log('Sending PATCH request:', patchOptions);
           const response = await axios.request(patchOptions);
-          console.log('PATCH response:', response.data);
+          // console.log('PATCH response:', response.data);
+          console.log('PATCH response:');
           console.log('#####################################################')
           // console.log('PATCHED RECORD', newRecordDataToSend)
           console.log('#####################################################')

@@ -10,6 +10,7 @@ import * as Location from 'expo-location';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Crypto from 'expo-crypto';
+import * as SecureStore from 'expo-secure-store';
 
 // Define interfaces for your data types
 interface GrowerApplication {
@@ -211,11 +212,13 @@ if (photo?.base64) {
   const createGrowerApplication = async () => {
     console.log('CREATING GROWER APPLICATION');
 
+    const employeeId = await getEmployeeId();
+
 
 
     try {
-      await powersync.execute(`INSERT INTO odoo_gms_grower_application (id, production_cycle_id, production_scheme_id, region_id, activity_id, field_technician_id, grower_number, b010_first_name, b020_surname, middle_name, b030_national_id, b040_phone_number, grower_latitude, grower_longitude, gender, grower_date_of_birth, b010_contract_scale, b020_contracted_yield, b030_contracted_volume, b040_contracted_price, b050_contracted_return, grower_image, grower_national_id_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [UUID, productionCycle, productionScheme, region, activity, fieldTechnician, growerNumber, firstName, surname, middleName, nationalId, phoneNumber, latitude, longitude, gender, dateOfBirth, contractScale, contractedYield, contractedVolume, contractedPrice, contractedReturn, growerImageEncoded, idImageEncoded]
+      await powersync.execute(`INSERT INTO odoo_gms_grower_application (id, production_cycle_id, production_scheme_id, region_id, activity_id, field_technician_id, grower_number, b010_first_name, b020_surname, middle_name, b030_national_id, b040_phone_number, grower_latitude, grower_longitude, gender, grower_date_of_birth, b010_contract_scale, b020_contracted_yield, b030_contracted_volume, b040_contracted_price, b050_contracted_return, grower_image, grower_national_id_image, submitted_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+        [UUID, productionCycle, productionScheme, region, activity, employeeId, growerNumber, firstName, surname, middleName, nationalId, phoneNumber, latitude, longitude, gender, dateOfBirth, contractScale, contractedYield, contractedVolume, contractedPrice, contractedReturn, growerImageEncoded, idImageEncoded, employeeId]
       ).then(() => {
         console.log('Grower Application Created');
       }).catch((error) => {
@@ -292,6 +295,13 @@ if (photo?.base64) {
       Alert.alert('Permission not granted');
       return;
     }
+  }
+
+  const getEmployeeId = async () => {
+    const employeeId = await SecureStore.getItemAsync('odoo_employee_id');
+    alert('Employee ID: ' + employeeId);
+    console.log('Employee ID', employeeId);
+    return employeeId;
   }
 
 
@@ -528,7 +538,7 @@ if (photo?.base64) {
                       </Picker>
                     </View>
                 </View>
-                <View className="flex-row items-center justify-between my-2">
+                {/* <View className="flex-row items-center justify-between my-2">
                     <Text className="text-gray-600 w-1/3">Field Technician</Text>
                     <View className="border border-gray-300 rounded-md w-2/3">
                     <Picker
@@ -540,7 +550,7 @@ if (photo?.base64) {
                       ))}
                       </Picker>
                     </View>
-                </View>
+                </View> */}
                 <View className="flex-row items-center justify-between my-2">
                     <Text className="text-gray-600 w-1/3">Latitude</Text>
                     <View className="flex-row items-center justify-between w-2/3">

@@ -180,6 +180,8 @@ export default function GrowerModal() {
   };
 
   const updateInputIssue = async () => {
+
+    
     if (!growerImage || !growerNationalIdImage || !latitude || !longitude) {
       Alert.alert('Missing Images', 'Please capture both grower and national ID images before confirming.');
       return;

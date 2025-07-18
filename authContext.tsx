@@ -1,6 +1,7 @@
 import { useContext, createContext, type PropsWithChildren, ReactNode, useState, useEffect } from 'react';
 import { useStorageState } from './useStorageState';
 import axios from 'axios';
+import * as Device from 'expo-device';
 import * as SecureStore from 'expo-secure-store';
 // import bcrypt from 'bcryptjs';
 import { setupPowerSync } from './powersync/system';
@@ -19,8 +20,8 @@ interface OdooUserData {
 }
 
 // Default values for Odoo connection
-const DEFAULT_API_URL = process.env.EXPO_PUBLIC_ODOO_SERVER_IP  ;
-const DEFAULT_DB = process.env.EXPO_PUBLIC_ODOO_DATABASE;
+const DEFAULT_API_URL = process.env.EXPO_PUBLIC_ODOO_SERVER_IP || '';
+const DEFAULT_DB = process.env.EXPO_PUBLIC_ODOO_DATABASE || '';
 
 const AuthContext = createContext<{
   logIn: (password: string, phoneNumber: string, mobileAppPasswordHash: string, mobile_app_password_salt: string) => Promise<boolean>;
@@ -80,7 +81,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
     } catch (error) {
       console.error('Error getting server URL:', error);
     }
-    return DEFAULT_API_URL;
+    return DEFAULT_API_URL || 'https://commercial.ctl.odoo.ws';
   };
 
   // Get the database name from secure storage
@@ -93,7 +94,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
     } catch (error) {
       console.error('Error getting database name:', error);
     }
-    return DEFAULT_DB;
+    return DEFAULT_DB || 'commercial_ctl_odoo_ws';
   };
 
   return (
@@ -121,17 +122,60 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
           const apiBaseUrl = await getServerUrl();
 
           try {
-            const response = await fetch(`${process.env.EXPO_PUBLIC_APP_URL}/login`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ password, phoneNumber, apiBaseUrl }),
-            });
+            // const response = await fetch(`${process.env.EXPO_PUBLIC_APP_URL}/login`, {
+            //   method: 'POST',
+            //   headers: {
+            //     'Content-Type': 'application/json',
+            //   },
+            //   body: JSON.stringify({ password, phoneNumber, apiBaseUrl }),
+            // });
             
-            const data = await response.json();
-            console.log('Response Data From Login')
-            console.log(data)
+            // const data = await response.json();
+            // console.log('Response Data From Login')
+            // console.log(data)
+
+            // const { phoneNumber, password, apiBaseUrl } = await request.json();
+    console.log('phone_number', phoneNumber);
+    console.log('apiBaseUrl', apiBaseUrl);
+
+    const session_id = await SecureStore.getItemAsync('odoo_session_id');
+       
+    const options = {
+      method: 'POST',
+      url: `${apiBaseUrl}/api/fo/login`,
+      headers: {
+        cookie: `frontend_lang=en_GB; session_id=${session_id}`,
+        'Content-Type': 'application/json',
+      },
+      data: {
+        jsonrpc: '2.0',
+        method: 'call',
+        params: {
+          phone_number: phoneNumber,
+          password,
+          device_info: {
+            deviceModel: Device.modelName || 'Unknown', 
+            deviceName: Device.deviceName || 'Unknown'
+          }
+        }
+      }
+    };
+
+    console.log('Sending request to:', options.url);
+    console.log('Request payload:', JSON.stringify(options.data));
+    
+    // Make the request to the Odoo API
+    const response = await axios.request(options);
+    console.log('API response status:', response.status);
+    console.log('API response data:', JSON.stringify(response.data));
+    const data = response.data;
+    
+    // If login is successful, generate JWT
+    // if (response.data?.result?.success) {
+    //   const employeeData = response.data.result.employee;
+    //   const sessionToken = response.data.result.session_token;
+
+    console.log('data', data)
 
             if (data.result.success) {
               // setSession(JSON.stringify(data.user));
@@ -142,14 +186,12 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
                 name: data.result.employee.name,
                 workPhone: phoneNumber,
                 session_id: data.result.session_token,
-                session_expiry: data.result.expiry,
-                jwt: data.jwt
+                session_expiry: data.result.expiry
               };
 
               setSession(JSON.stringify(userData));
               await SecureStore.setItemAsync('odoo_custom_session_id', data.result.session_token);
               await SecureStore.setItemAsync('odoo_employee_id', String(data.result.employee.id));
-              await SecureStore.setItemAsync('employee_jwt', data.jwt);
               return true;
             } else {
               setError('Invalid response from server');

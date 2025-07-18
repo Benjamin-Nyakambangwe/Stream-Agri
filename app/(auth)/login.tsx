@@ -37,6 +37,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
   const [workPhone, setWorkPhone] = useState<string>("")
   const [userId, setUserId] = useState<number>(0)
   const [syncStatus, setSyncStatus] = useState<string>("")
+  const [syncProgress, setSyncProgress] = useState<string>('');
   
   const { logIn, localLogin, error: authError } = useSession()
   const router = useRouter()
@@ -66,6 +67,12 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
         statusChanged: (status) => {
           setSyncStatus(JSON.stringify(status));
           // console.log('PowerSync status:', status);
+          
+          if (status.connected) {
+            setSyncProgress('Ready to login');
+          } else {
+            setSyncProgress('Connecting...');
+          }
         }
       });
     }, [])
@@ -77,31 +84,65 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
 
 
   const handleLogin = async () => {
-    // setIsLoggingIn(true)
     console.log('Login Pressed')
-    // const currentUser = await appDatabase.getAllAsync('SELECT * FROM users WHERE work_phone = ?', [phoneNumber])
-    // console.log(currentUser)
     console.log('phoneNumber', phoneNumber)
-    console.log("Now queying powersync")
-    // let currentUser = []
+
+    if(isConnected){
+      const allEmployees = await powersync.getAll('SELECT * FROM hr_employee')
+      console.log('allEmployees', allEmployees)
+      if(allEmployees.length === 0){
+        setLoginError("No employees found. Please check your connection and try again.")
+        return
+      }
+    }else{
+      console.log('No internet connection')
+    }
     
+    // Check PowerSync status first
+    const syncStatus = powersync.currentStatus;
+    console.log('PowerSync status:', syncStatus);
+    
+    if (!syncStatus.connected) {
+      setLoginError("Connecting to server... Please wait.");
+      return;
+    }
+    
+    // Check if hr_employee table has data
     try {
-      const currentUser = await powersync.get<Employee>('SELECT * from hr_employee WHERE mobile_phone = ?', [phoneNumber])
+      const employeeCount = await powersync.get('SELECT COUNT(*) as count FROM hr_employee');
+      console.log('Employee records available:', employeeCount);
+      
+      if (!employeeCount || employeeCount.count === 0) {
+        setLoginError("Syncing employee data... Please wait and try again.");
+        return;
+      }
+    } catch (tableError) {
+      console.error('Table check error:', tableError);
+      setLoginError("System not ready. Please wait for initial sync.");
+      return;
+    }
+    
+    // Now proceed with normal login
+    try {
+      let currentUser: any = {}
+      if(!isConnected){
+      console.log('Now queying powersync')
+      currentUser = await powersync.get<Employee>('SELECT * from hr_employee WHERE mobile_phone = ?', [phoneNumber]);
       console.log('currentUser from powersync login page')
       console.log(currentUser)
-
+      }
       if (!currentUser) {
         console.log('No user found with phone number:', phoneNumber)
-        setLoginError("User not found")
+        // setLoginError("User not found")
         return
       } else {
         console.log('User found, setting credentials')
         console.log('currentUser', currentUser)
-        console.log('currentUser.mobile_app_password', currentUser.mobile_app_password)
-        setMobileAppPasswordHash(currentUser.mobile_app_password)
-        setFullName(currentUser.name)
-        setWorkPhone(currentUser.mobile_phone)
-        setUserId(currentUser.id)
+        console.log('currentUser.mobile_app_password', currentUser.mobile_app_password || '')
+        setMobileAppPasswordHash(currentUser.mobile_app_password || '')
+        setFullName(currentUser.name || '')
+        setWorkPhone(currentUser.mobile_phone || '')
+        setUserId(currentUser.id || 0)
         
         if (!phoneNumber || !password) {
           setLoginError("Please enter both phone number and password")
@@ -230,6 +271,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
               <TouchableOpacity 
                 className="bg-[#65435C] rounded-md m-3" 
                 onPress={handleLogin}
+                // disabled={!syncStatus.connected || isLoggingIn}
                 disabled={isLoggingIn}
               >
                 {isLoggingIn ? (

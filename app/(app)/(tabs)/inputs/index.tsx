@@ -69,7 +69,7 @@ const Inputs = () => {
         r.grower_id as registration_grower_id,
         g.id as grower_table_id,
         g.grower_number as grower_number
-      FROM odoo_gms_production_cycle_registration r
+      FROM odoo_gms_production_cycle_registration r 
       LEFT JOIN odoo_gms_grower g ON CAST(r.grower_id AS TEXT) = g.id
       ORDER BY r.grower_name`,
       [],
@@ -134,6 +134,7 @@ const Inputs = () => {
   }
 
   const getGrowerWithInputData = async () => {
+    const employee_id = await SecureStore.getItemAsync('odoo_employee_id')
     console.log('Getting Input Confirmation Lines Data');
     const query = `
       SELECT 
@@ -155,10 +156,10 @@ const Inputs = () => {
         ON icl.input_confirmations_id = ic.id
       LEFT JOIN odoo_gms_input_pack ip 
         ON ic.input_pack_id = ip.id
-      WHERE pcr.field_technician_id = 148 AND icl.issue_state = 'issued'
+      WHERE pcr.field_technician_id = ? AND icl.issue_state = 'issued'
     `;
     
-    const result = powersync.watch(query, [], {
+    const result = powersync.watch(query, [employee_id], {
       onResult: (result) => {
         // console.log('Input Confirmation Lines Data:', result.rows?._array);
         setGrowerWithInputData(result.rows?._array || []);
@@ -171,6 +172,7 @@ const Inputs = () => {
   }
 
   const getGrowerWithInputDataReceived = async () => {
+    const employee_id = await SecureStore.getItemAsync('odoo_employee_id')
     console.log('Getting Input Confirmation Lines Data');
     const query = `
       SELECT 
@@ -192,10 +194,10 @@ const Inputs = () => {
         ON icl.input_confirmations_id = ic.id
       LEFT JOIN odoo_gms_input_pack ip 
         ON ic.input_pack_id = ip.id
-      WHERE pcr.field_technician_id = 148 AND icl.issue_state = 'received'
+      WHERE pcr.field_technician_id = ? AND icl.issue_state = 'received'
     `;
     
-    const result = powersync.watch(query, [], {
+    const result = powersync.watch(query, [employee_id], {
       onResult: (result) => {
         // console.log('Input Confirmation Lines Data Received:', result.rows?._array);
         setGrowerWithInputDataReceived(result.rows?._array || []);
@@ -208,6 +210,7 @@ const Inputs = () => {
   }
 
   const getGrowerWithInputDataReturned = async () => {
+    const employee_id = await SecureStore.getItemAsync('odoo_employee_id')
     console.log('Getting Input Confirmation Lines Data');
     const query = `
       SELECT 
@@ -229,10 +232,10 @@ const Inputs = () => {
         ON icl.input_confirmations_id = ic.id
       LEFT JOIN odoo_gms_input_pack ip 
         ON ic.input_pack_id = ip.id
-      WHERE pcr.field_technician_id = 148 AND icl.issue_state = 'returned'
+      WHERE pcr.field_technician_id = ? AND icl.issue_state = 'returned'
     `;
     
-    const result = powersync.watch(query, [], {
+    const result = powersync.watch(query, [employee_id], {
       onResult: (result) => {
         // console.log('Input Confirmation Lines Data Returned:', result.rows?._array);
         setGrowerWithInputDataReturned(result.rows?._array || []);

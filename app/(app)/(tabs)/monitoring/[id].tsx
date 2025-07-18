@@ -25,7 +25,7 @@ const SurveyResponse = () => {
     const randomID = Math.floor(Math.random() * 1000000); // Random integer ID for local use
 
     const getEmployeeId = async () => {
-        const employeeId = await SecureStore.getItemAsync('employeeId')
+        const employeeId = await SecureStore.getItemAsync('odoo_employee_id')
         return employeeId || '148' // fallback to default
     }
 
@@ -40,13 +40,19 @@ const SurveyResponse = () => {
         
         setProductionCycleValue(prefixedText)
         
-        // Fix SQL query with proper quotes
-        const productionCycleReg = await powersync.getAll(`SELECT pcr.id, pcr.grower_name, pcr.production_cycle_name, g.grower_number FROM odoo_gms_production_cycle_registration pcr JOIN odoo_gms_grower g ON pcr.grower_id = g.id WHERE pcr.production_cycle_name LIKE '%${prefixedText}%'`)
+        // Get employee ID first, then use it in parameterized query
+        const employeeId = await getEmployeeId()
+        const productionCycleReg = await powersync.getAll(`
+            SELECT pcr.id, pcr.grower_name, pcr.production_cycle_name, g.grower_number 
+            FROM odoo_gms_production_cycle_registration pcr 
+            JOIN odoo_gms_grower g ON pcr.grower_id = g.id 
+            WHERE pcr.field_technician_id = ? AND pcr.production_cycle_name LIKE ?
+        `, [employeeId, `%${prefixedText}%`])
         console.log('productionCycleReg query result:', productionCycleReg)
         setProductionCycleReg(productionCycleReg)
     }
 
-    useEffect(() => {
+    useFocusEffect (useCallback(() => {
         console.log('useEffect SurveyResponse Screen')
         const fetchSurveyData = async () => {
             // Fetch questions
@@ -73,14 +79,20 @@ const SurveyResponse = () => {
             setQuestionAnswers(answersGrouped)
             
             // Fetch initial production cycle registrations
-            const allProductionCycles = await powersync.getAll(`SELECT pcr.id, pcr.grower_name, pcr.production_cycle_name, g.grower_number FROM odoo_gms_production_cycle_registration pcr JOIN odoo_gms_grower g ON pcr.grower_id = g.id WHERE pcr.production_cycle_name LIKE '%CY26%'`)
+            const employeeId = await getEmployeeId()
+            const allProductionCycles = await powersync.getAll(`
+                SELECT pcr.id, pcr.grower_name, pcr.production_cycle_name, g.grower_number 
+                FROM odoo_gms_production_cycle_registration pcr 
+                JOIN odoo_gms_grower g ON pcr.grower_id = g.id 
+                WHERE pcr.field_technician_id = ?
+            `, [employeeId])
             console.log('Initial production cycles:', allProductionCycles)
             setProductionCycleReg(allProductionCycles)
             
             setLoading(false)
         }
         fetchSurveyData()
-    }, [])
+    }, []))
 
     // Parse question title JSON
     const parseTitle = (title: string | null) => {

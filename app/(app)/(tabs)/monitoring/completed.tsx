@@ -247,7 +247,7 @@ const Completed = () => {
     const [expandedResponses, setExpandedResponses] = useState<Set<string>>(new Set())
 
     const getEmployeeId = async () => {
-        const employeeId = await SecureStore.getItemAsync('employeeId')
+        const employeeId = await SecureStore.getItemAsync('odoo_employee_id')
         return employeeId
     }
 
@@ -264,6 +264,9 @@ const Completed = () => {
     const fetchCompletedSurveys = async () => {
         try {
             console.log('Fetching completed surveys for survey_id:', id)
+            
+            // Get the employee ID first
+            const employeeId = await getEmployeeId()
     
             // First get the survey responses
             const surveyResponses = await powersync.getAll(`
@@ -278,11 +281,11 @@ const Completed = () => {
                     sui.create_date
                 FROM survey_user_input sui
                 LEFT JOIN survey_survey ss ON sui.survey_id = ss.id
-                LEFT JOIN odoo_gms_production_cycle_registration pcr ON sui.production_cycle_registration_id = pcr.id
+                INNER JOIN odoo_gms_production_cycle_registration pcr ON pcr.field_technician_id = ? AND sui.production_cycle_registration_id = pcr.id
                 LEFT JOIN odoo_gms_grower g ON pcr.grower_id = g.id
                 WHERE sui.survey_id = ?
                 ORDER BY sui.create_date DESC
-            `, [id])
+            `, [employeeId, id])
 
         // For each survey response, get the questions and answers
         const responsesWithQA = await Promise.all(

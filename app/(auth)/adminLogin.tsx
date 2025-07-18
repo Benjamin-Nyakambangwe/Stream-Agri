@@ -1,14 +1,15 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Button, TextInput, ActivityIndicator, Alert } from "react-native"
 import {Image} from "expo-image"
 import { Eye, EyeOff, Mail, Lock, Settings, Database } from "lucide-react-native"
 import { useSession } from "@/authContext"
-import { useRouter } from "expo-router"
+import { useFocusEffect, useRouter } from "expo-router"
 import * as SecureStore from 'expo-secure-store';
 import axios from "axios";
 import { powersync } from "@/powersync/system";
+import { Connector } from "@/powersync/Connector";
 
 
 interface LoginScreenProps {
@@ -58,10 +59,25 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
     loadSettings();
   }, []);
 
+  const [syncStatus, setSyncStatus] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      
+      console.log('useFocusEffect Admin Login Screen');
+      powersync.registerListener({
+        statusChanged: (status) => {
+          setSyncStatus(status.connected);
+          console.log('PowerSync status Admin Login Screen:', status);
+        }
+      });
+    }, [])
+  );
   
 
   const handleAdminLogin = async () => {
     console.log('Admin Login Pressed')
+
     if (!adminUsername || !adminPassword) {
       setLoginError("Please enter both admin username and password")
       return
@@ -77,6 +93,9 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
       if (success) {
         // Navigate to main app
         console.log('Admin Login Success')
+        const connector = new Connector();
+        const currentStatus = powersync.connect(connector);
+        console.log('Current Status:', currentStatus);
         getUsers()
         // router.replace("/(auth)/login")
       } else {

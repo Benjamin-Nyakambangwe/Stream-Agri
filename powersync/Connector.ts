@@ -180,6 +180,7 @@ import { AbstractPowerSyncDatabase, PowerSyncBackendConnector, UpdateType } from
 import axios from "axios";
 import * as SecureStore from 'expo-secure-store';
 import { useSession } from "@/authContext";
+import { powersync } from "./system";
 export class Connector implements PowerSyncBackendConnector {
   /**
   * Implement fetchCredentials to obtain a JWT from your authentication service.
@@ -189,11 +190,46 @@ export class Connector implements PowerSyncBackendConnector {
   * https://docs.powersync.com/installation/authentication-setup/firebase-auth
   */
   async fetchCredentials(database?: AbstractPowerSyncDatabase) {
-    // const powerSyncURI = await SecureStore.getItemAsync('power_sync_uri')
-    const powerSyncURI = 'https://6822f5820c28998c28ef1501.powersync.journeyapps.com'
-    const employeeJwt = await SecureStore.getItemAsync('employee_jwt')
+    const powerSyncURI = await SecureStore.getItemAsync('power_sync_uri')
+    const sessionID = await SecureStore.getItemAsync('odoo_admin_session_id')
+    const token = await SecureStore.getItemAsync('odoo_custom_session_id')
+    const serverURL = await SecureStore.getItemAsync('odoo_server_ip')
 
-    
+    console.log('sessionID', sessionID)
+    console.log('token', token)
+    console.log('serverURL', serverURL)
+    console.log('powerSyncURI', powerSyncURI)
+
+
+    // const powerSyncURI = 'https://6822f5820c28998c28ef1501.powersync.journeyapps.com'
+    // const employeeJwt = await SecureStore.getItemAsync('employee_jwt')
+
+    const getEmployeeJwt = async () => {
+      const options = {
+        method: 'POST',
+        url: `https://${serverURL}/api/powersync/token`,
+        headers: {
+          cookie: `${sessionID}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'insomnia/11.0.2',
+          'X-FO-TOKEN': token || '9dc4de70-d3fb-4ec0-99b3-4074bd152604'
+        },
+        data: {}
+      };
+      
+      const response = await axios.request(options)
+      console.log('getEmployeeJwt response', response.data)
+      console.log('getEmployeeJwt response.data.result.token', response.data.result.token)
+      if(response.data.result.success) {
+        const allEmployees = await powersync.getAll('SELECT * FROM hr_employee')
+      console.log('allEmployees here', allEmployees)
+      }else {
+        console.log('Connection not successfulr')
+      }
+      return response.data.result.token
+    }
+
+    const employeeJwt = await getEmployeeJwt()
     // If powerSyncURI is null, return null or use a default endpoint
     if (powerSyncURI === null) {
       console.log('No powerSyncURI found')
@@ -207,8 +243,8 @@ export class Connector implements PowerSyncBackendConnector {
     return {
       // The PowerSync instance URL or self-hosted endpoint
       endpoint: powerSyncURI,
-      // token: employeeJwt || '' // Provide empty string as fallback
-      token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NTE5NjIwMjYsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY4MjJmNTgyMGMyODk5OGMyOGVmMTUwMS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzUyMDA1MjI2fQ.IL6x7OkGLL_TAlpZYy_DA4NlnnSj4J2c6CzunjMwOGLAh2oqQgFnO7z3GkZwa2yEGviiHOtUOzYAU2KavibIfeoARljjrVynfrsGK0TA61ZGH_Wvbl6uOyf-lXNOIvYJgkvSj55vqZKmlPFM9tT1v9_JnICoRwxPL74X7UqoOR9MFty335HgZZM5p7afvTGeoDQs-o_rIl3VqlZ1i120vPurMf5nR2W9BPpnYiZ-RCRoM22uepRjrRDlk1Hfvpy8jdgqmx40jnMroOxn8PDxkDLx2h7m3nxfMDpIyatipfkNUHhufRQzIweGj8lzRzuzVKM5tszc5IwycLDBHexpBA'
+      token: employeeJwt || '' // Provide empty string as fallback
+      // token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6InBvd2Vyc3luYy1kZXYtMzIyM2Q0ZTMifQ.eyJzdWIiOiIxNDgiLCJpYXQiOjE3NTIwNDEyODYsImlzcyI6Imh0dHBzOi8vcG93ZXJzeW5jLWFwaS5qb3VybmV5YXBwcy5jb20iLCJhdWQiOiJodHRwczovLzY4MjJmNTgyMGMyODk5OGMyOGVmMTUwMS5wb3dlcnN5bmMuam91cm5leWFwcHMuY29tIiwiZXhwIjoxNzUyMDg0NDg2fQ.qgKn0D9DllBm5hXJG12nbDlYhL3-YAOtRC0dIiboZLkK1RbfF56orZ0fDToZ0F0H684jnYtWlf2DVfCsUkVAEfTGteKx6pV7vNJuugldll5njJ2NLs_kh4Flcp4ZnzAWPQfJMcLqvV1T-wQu3MaZk_Y4su5vuMLR7bBbDyQhKAC-YqQpZb6aSLKCVp2EOjmwZ05m_EIRE0fRRxNorDDiimOclaAkFMqpojX-ZwTzm9KAEV1QGHYrztTrOOcO1W5AoOzxw3ibvKk_0ZIsfs_8nZxpiCL-Tw-_wZMr34-y4yvCr7kTg1MoKMTHMvJKZERYz5BltLn8y9i7A_46K-GHCQ'
     };
   }
 
@@ -219,6 +255,9 @@ export class Connector implements PowerSyncBackendConnector {
   */
   async uploadData(database: AbstractPowerSyncDatabase) {
     console.log('🔄 uploadData method started...');
+    const sessionID = await SecureStore.getItemAsync('odoo_admin_session_id')
+    const token = await SecureStore.getItemAsync('odoo_custom_session_id')
+    const serverURL = await SecureStore.getItemAsync('odoo_server_ip')
 
     /**
     * For batched crud transactions, use data.getCrudBatch(n);
@@ -300,11 +339,11 @@ export class Connector implements PowerSyncBackendConnector {
 
           const options = {
             method: 'POST',
-            url: 'https://commercial.ctl.odoo.ws/api/fo/create',
+            url: `https://${serverURL}/api/fo/create`,
             headers: {
               'Content-Type': 'application/json',
               // 'User-Agent': 'insomnia/11.2.0',
-              'X-FO-TOKEN': 'ae23da26-0ce5-4a9e-857d-9d0144982b60'
+              'X-FO-TOKEN': token
             },
             data: {
               jsonrpc: '2.0',
@@ -438,12 +477,12 @@ export class Connector implements PowerSyncBackendConnector {
           // Configure the request based on your Insomnia example
           const patchOptions = {
             method: 'PATCH',
-            url: `https://commercial.ctl.odoo.ws/api/update/${id}?table_name=${odooTableName}&last_synced_date=${newLastSyncedDate}`, // Use the destructured id here
+            url: `https://${serverURL}/api/update/${id}?table_name=${odooTableName}&last_synced_date=${newLastSyncedDate}`, // Use the destructured id here
             headers: {
-              cookie: 'session_id=HSmgwMezMpOkqXBA9bsn5ik3vG6T0oO7Hlr3lISoMwhxIjJoqSSloOe3p9Zrfjqb6wzRfvWXPjsIhO_K4PvM; frontend_lang=en_GB',
+              cookie: `${sessionID}; frontend_lang=en_GB`,
               'Content-Type': 'application/json',
               'User-Agent': 'insomnia/11.0.2',
-              'X-FO-TOKEN': '54a486c5-319c-4925-bb0b-adfa6ea84e5a'
+              'X-FO-TOKEN': token
             },
             data: {
               jsonrpc: '2.0',

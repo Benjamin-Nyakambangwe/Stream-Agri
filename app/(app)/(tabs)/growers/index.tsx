@@ -54,51 +54,66 @@ const Growers = () => {
     console.log('useEffect growers')
     // Initialize PowerSync if not already initialized
     setupPowerSync();
-    // Set up a watch query to get and monitor growers data
+    
     const controller = new AbortController();
-    // console.log('Setting up growers data watcher with JOIN...');
-    powersync.watch(
-      `SELECT 
-        r.id, 
-        r.grower_name, 
-        r.mobile, 
-        r.production_scheme_id, 
-        r.production_cycle_name,
-        r.first_name,
-        r.surname,
-        r.grower_id as registration_grower_id,
-        g.id as grower_table_id,
-        g.grower_number as grower_number
-      FROM odoo_gms_production_cycle_registration r
-      LEFT JOIN odoo_gms_grower g ON CAST(r.grower_id AS TEXT) = g.id
-      ORDER BY r.grower_name`,
-      [],
-      {
-        onResult: (result) => {
-          console.log('Joined growers data updated, count:', result.rows?._array?.length);
-          if (result.rows?._array) {
-            // Log the first few records to debug
-            if (result.rows._array.length > 0) {
-              // console.log('Sample record:', JSON.stringify(result.rows._array[0]));
-              // console.log('Join fields:', result.rows._array.slice(0, 3).map(row => ({
-              //   registration_grower_id: row.registration_grower_id,
-              //   grower_table_id: row.grower_table_id
-              // })));
-            }
-            const growersData = result.rows._array as JoinedGrowerData[];
-            setGrowers(growersData);
-            setFilteredGrowers(growersData);
-          }
+
+    const setupGrowerWatch = async () => {
+      try {
+        // Get the current employee ID
+        const employeeId = await SecureStore.getItemAsync('odoo_employee_id');
+        if (!employeeId) {
+          console.error('No employee ID found');
+          setError('Employee ID not found');
           setLoading(false);
-        },
-        onError: (err) => {
-          console.error('Error fetching growers:', err);
-          setError(err.message);
-          setLoading(false);
+          return;
         }
-      },
-      { signal: controller.signal }
-    );
+
+        console.log('Setting up growers data watcher with employee ID:', employeeId);
+        // Set up a watch query to get and monitor growers data
+        powersync.watch(
+          `SELECT 
+            r.id, 
+            r.grower_name, 
+            r.mobile, 
+            r.production_scheme_id, 
+            r.production_cycle_name,
+            r.first_name,
+            r.surname,
+            r.grower_id as registration_grower_id,
+            g.id as grower_table_id,
+            g.grower_number as grower_number
+          FROM odoo_gms_production_cycle_registration r
+          LEFT JOIN odoo_gms_grower g ON CAST(r.grower_id AS TEXT) = g.id
+          WHERE r.field_technician_id = ?
+          ORDER BY r.grower_name`,
+          [employeeId],
+          {
+            onResult: (result) => {
+              console.log('Joined growers data updated, count:', result.rows?._array?.length);
+              if (result.rows?._array) {
+                const growersData = result.rows._array as JoinedGrowerData[];
+                setGrowers(growersData);
+                setFilteredGrowers(growersData);
+              }
+              setLoading(false);
+            },
+            onError: (err) => {
+              console.error('Error fetching growers:', err);
+              setError(err.message);
+              setLoading(false);
+            }
+          },
+          { signal: controller.signal }
+        );
+      } catch (error) {
+        console.error('Error in setupGrowerWatch:', error);
+        setError('Failed to setup growers watch');
+        setLoading(false);
+      }
+    };
+
+    // Call the async function
+    setupGrowerWatch();
     
     return () => {
       controller.abort();

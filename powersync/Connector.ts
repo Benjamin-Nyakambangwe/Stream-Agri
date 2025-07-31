@@ -212,7 +212,7 @@ export class Connector implements PowerSyncBackendConnector {
           cookie: `${sessionID}`,
           'Content-Type': 'application/json',
           'User-Agent': 'insomnia/11.0.2',
-          'X-FO-TOKEN': token || '9dc4de70-d3fb-4ec0-99b3-4074bd152604'
+          'X-FO-TOKEN': token || '9430c485-d1d0-4152-aec1-481c7d910d45'
         },
         data: {}
       };
@@ -221,10 +221,9 @@ export class Connector implements PowerSyncBackendConnector {
       console.log('getEmployeeJwt response', response.data)
       console.log('getEmployeeJwt response.data.result.token', response.data.result.token)
       if(response.data.result.success) {
-        const allEmployees = await powersync.getAll('SELECT * FROM hr_employee')
-      console.log('allEmployees here', allEmployees)
+        console.log('Authentication successful - data will sync shortly')
       }else {
-        console.log('Connection not successfulr')
+        console.log('Connection not successful')
       }
       return response.data.result.token
     }

@@ -624,6 +624,74 @@ const survey_user_input_line = new Table(
   { indexes: {} }
 );
 
+const odoo_gms_collection_voucher = new Table(
+  {
+    // id column (text) is automatically included
+    region_id: column.integer,
+    input_pack_id: column.integer,
+    truck_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    driver_name: column.text,
+    driver_mobile: column.text,
+    driver_national_id: column.text,
+    state: column.text,
+    name: column.text,
+    collection_date: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    voucher_request_id: column.integer
+  },
+  { indexes: {} }
+);
+
+const odoo_gms_truck_reg = new Table(
+  {
+    // id column (text) is automatically included
+    create_uid: column.integer,
+    write_uid: column.integer,
+    name: column.text,
+    reg_number: column.text,
+    reg_number_trailer: column.text,
+    phone_number: column.text,
+    create_date: column.text,
+    write_date: column.text
+  },
+  { indexes: {} }
+);
+
+const odoo_gms_product_group = new Table(
+  {
+    // id column (text) is automatically included
+    collection_point_id: column.integer,
+    region_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    name: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    units: column.real,
+    b020_multiplier: column.text,
+    round_up: column.integer
+  },
+  { indexes: {} }
+);
+
+const odoo_gms_collection_point = new Table(
+  {
+    // id column (text) is automatically included
+    region_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    name: column.text,
+    address: column.text,
+    contact_number: column.text,
+    create_date: column.text,
+    write_date: column.text
+  },
+  { indexes: {} }
+);
+
 export const AppSchema = new Schema({
   hr_employee,
   odoo_gms_grower,
@@ -642,7 +710,11 @@ export const AppSchema = new Schema({
   survey_question_answer,
   survey_survey,
   survey_user_input,
-  survey_user_input_line
+  survey_user_input_line,
+  odoo_gms_collection_voucher,
+  odoo_gms_truck_reg,
+  odoo_gms_product_group,
+  odoo_gms_collection_point
 });
 
 
@@ -666,3 +738,7 @@ export type SurveyQuestionAnswerRecord = Database['survey_question_answer'];
 export type SurveySurveyRecord = Database['survey_survey'];
 export type SurveyUserInputRecord = Database['survey_user_input'];
 export type SurveyUserInputLineRecord = Database['survey_user_input_line'];
+export type CollectionVoucherRecord = Database['odoo_gms_collection_voucher'];
+export type TruckRegRecord = Database['odoo_gms_truck_reg'];
+export type ProductGroupRecord = Database['odoo_gms_product_group'];
+export type CollectionPointRecord = Database['odoo_gms_collection_point'];

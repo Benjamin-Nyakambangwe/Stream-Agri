@@ -34,6 +34,9 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
   const [adminUsername, setAdminUsername] = useState("")
   const [adminPassword, setAdminPassword] = useState("")
   const [powerSyncURI, setPowerSyncURI] = useState("")
+  const [downloadProgress, setDownloadProgress] = useState(0)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncStatusText, setSyncStatusText] = useState("")
 
   const { adminLogin, session, error: authError } = useSession()
   const router = useRouter()
@@ -94,18 +97,77 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
         // Navigate to main app
         console.log('Admin Login Success')
         const connector = new Connector();
+        
+        // Listen for sync completion before checking for users
+        setIsSyncing(true);
+        setSyncStatusText("Connecting to PowerSync...");
+        
+        const unregister = powersync.registerListener({
+          statusChanged: (status) => {
+            console.log('🔄 PowerSync status during admin login:', {
+              connected: status.connected,
+              lastSyncedAt: status.lastSyncedAt,
+              downloadProgress: status.downloadProgress
+            });
+            
+            // Update progress bar
+            if (status.downloadProgress && typeof status.downloadProgress === 'number') {
+              setDownloadProgress(status.downloadProgress * 100);
+              setSyncStatusText(`Downloading data... ${Math.round(status.downloadProgress * 100)}%`);
+            } else if (status.connected && !status.lastSyncedAt) {
+              setSyncStatusText("Connected, preparing to sync...");
+              setDownloadProgress(10);
+            } else if (!status.connected) {
+              setSyncStatusText("Connecting to PowerSync...");
+              setDownloadProgress(5);
+            }
+            
+            // Only check for users once we're connected AND have synced data
+            if (status.connected && status.lastSyncedAt) {
+              console.log('✅ PowerSync connected and synced - checking for employees');
+              setSyncStatusText("Sync complete! Loading employees...");
+              setDownloadProgress(100);
+              
+              setTimeout(() => {
+                setIsSyncing(false);
+                unregister(); // Stop listening once we've synced
+                getUsers();
+              }, 500);
+            }
+          }
+        });
+        
         const currentStatus = powersync.connect(connector);
         console.log('Current Status:', currentStatus);
-        getUsers()
-        // router.replace("/(auth)/login")
+        
+        // Also check if already connected (in case connection was instant)
+        setTimeout(() => {
+          const status = powersync.currentStatus;
+          if (status?.connected && status?.lastSyncedAt) {
+            console.log('💡 Already connected and synced - checking employees immediately');
+            setSyncStatusText("Already synced! Loading employees...");
+            setDownloadProgress(100);
+            setTimeout(() => {
+              setIsSyncing(false);
+              unregister();
+              getUsers();
+            }, 500);
+          }
+        }, 1000);
       } else {
         console.log('Admin Login Failed')
         console.log(authError)
         setLoginError(authError || "Login failed. Please check your credentials.")
+        setIsSyncing(false);
+        setDownloadProgress(0);
+        setSyncStatusText("");
       }
     } catch (err) {
       setLoginError("An error occurred during login")
       console.error(err)
+      setIsSyncing(false);
+      setDownloadProgress(0);
+      setSyncStatusText("");
     } finally {
       setIsLoggingIn(false)
     }
@@ -140,13 +202,22 @@ const getUsers = async () => {
     
     if (!result || result.length === 0) {
       console.log('No employee data found - checking for sync errors');
+      setIsSyncing(false);
+      setDownloadProgress(0);
+      setSyncStatusText("");
       // Don't navigate if no data found
       alert('No employee data found. Check network connection and try again.');
     } else {
+      setIsSyncing(false);
+      setDownloadProgress(0);
+      setSyncStatusText("");
       router.replace('/login');
     }
   }).catch((error) => {
     console.error('Error fetching employee data:', error);
+    setIsSyncing(false);
+    setDownloadProgress(0);
+    setSyncStatusText("");
     alert(`Error fetching employee data: ${error.message}`);
   });
 };
@@ -242,6 +313,19 @@ const getUsers = async () => {
               />
             </View>
             
+            {/* Progress Bar */}
+            {isSyncing && (
+              <View className="mx-3 mb-4">
+                <Text className="text-sm text-[#65435C] mb-2">{syncStatusText}</Text>
+                <View className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <View 
+                    className="h-full bg-[#1AD3BB] rounded-full transition-all duration-300"
+                    style={{ width: `${downloadProgress}%` }}
+                  />
+                </View>
+              </View>
+            )}
+            
             <View className="flex-row justify-between">
               <TouchableOpacity 
                 className="bg-[#1AD3BB] rounded-md p-2 flex-1 mr-2"
@@ -250,10 +334,17 @@ const getUsers = async () => {
                 <Text className="text-white text-center">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                className="bg-[#65435C] rounded-md p-2 flex-1 ml-2"
+                className={`rounded-md p-2 flex-1 ml-2 ${
+                  isSyncing || isLoggingIn 
+                    ? 'bg-gray-400' 
+                    : 'bg-[#65435C]'
+                }`}
                 onPress={handleAdminLogin}
+                disabled={isSyncing || isLoggingIn}
               >
-                <Text className="text-white text-center">Prime</Text>
+                <Text className="text-white text-center">
+                  {isSyncing ? 'Syncing...' : isLoggingIn ? 'Priming...' : 'Prime'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

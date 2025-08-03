@@ -274,15 +274,15 @@ export class Connector implements PowerSyncBackendConnector {
 
 
     // ADD THIS DEBUG SECTION:
-    console.log('🔍 Debugging transaction.crud:');
-    console.log('transaction.crud type:', typeof transaction.crud);
-    console.log('transaction.crud is array:', Array.isArray(transaction.crud));
-    console.log('transaction.crud:', transaction.crud);
+    // console.log('🔍 Debugging transaction.crud:');
+    // console.log('transaction.crud type:', typeof transaction.crud);
+    // console.log('transaction.crud is array:', Array.isArray(transaction.crud));
+    // console.log('transaction.crud:', transaction.crud);
     // console.log('transaction.crud[0]:', transaction.crud[0]);
 
 
-    console.log('Raw crud check:', !!transaction.crud);
-    console.log('Crud length check:', transaction.crud?.length);
+    // console.log('Raw crud check:', !!transaction.crud);
+    // console.log('Crud length check:', transaction.crud?.length);
     // console.log('First element direct access:', transaction.crud?.[0]);
 
     // Test if we can iterate
@@ -292,7 +292,7 @@ export class Connector implements PowerSyncBackendConnector {
       //   console.log(`Operation ${index}:`, op);
       // });
     } catch (error) {
-      console.error('❌ Iteration failed:', error);
+      // console.error('❌ Iteration failed:', error);
     }
 
 
@@ -300,23 +300,23 @@ export class Connector implements PowerSyncBackendConnector {
       console.log('🎯 INSIDE FOR LOOP - This should show!');
       // The data that needs to be changed in the remote db
       const record = { ...op.opData, id: op.id };
-      console.log('record', record)
-      console.log('op', op)
-      console.log('op.op', op.op)
-      console.log('op.table', op.table)
-      console.log('op.id', op.id)
-      console.log('op.opData', op.opData)
+      // console.log('record', record)
+      // console.log('op', op)
+      // console.log('op.op', op.op)
+      // console.log('op.table', op.table)
+      // console.log('op.id', op.id)
+      // console.log('op.opData', op.opData)
       switch (op.op) {
         case UpdateType.PUT:
           // TODO: Instruct your backend API to CREATE a record
-          console.log('PUT', record)
+          // console.log('PUT', record)
           const { id, ...recordData } = record;
           console.log('#####################################################')
           try{
 
           console.log('#############PUT#################')
           console.log('PUTTING DATA', id)
-          console.log('RECORD DATA', recordData)
+          // console.log('RECORD DATA', recordData)
           // const options = {
           //   method: 'POST',
           //   url: 'http://45.84.138.225:8070/api/fo/create-grower-application',
@@ -355,9 +355,9 @@ export class Connector implements PowerSyncBackendConnector {
           };
           
           const response = await axios.request(options)
-          console.log('PUT response', response.data)
+          // console.log('PUT response', response.data)
           console.log('#####################################################')
-          console.log('PUT RECORD', record)
+          // console.log('PUT RECORD', record)
           console.log('#####################################################')
           
           const serverRecord = await response.data

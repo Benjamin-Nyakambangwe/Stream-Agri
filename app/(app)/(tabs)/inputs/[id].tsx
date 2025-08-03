@@ -35,7 +35,7 @@ interface DistributionPlan {
 }
 
 export default function GrowerModal() {
-  const { id, grower_id, production_scheme } = useLocalSearchParams();
+  const { id, grower_id, production_scheme, pcr_id } = useLocalSearchParams();
   const [grower, setGrower] = useState<Grower | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inputConfirmationLineData, setInputConfirmationLineData] = useState<any>(null);
@@ -53,11 +53,30 @@ export default function GrowerModal() {
   const [longitude, setLongitude] = useState<string>('');
   const [showConfirmationPopup, setShowConfirmationPopup] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [inputConfirmationLineDataArray, setInputConfirmationLineDataArray] = useState<any[]>([]);
+  const [currentInputConfirmationLineData, setCurrentInputConfirmationLineData] = useState<any>(null);
+  const [collectionVouchers, setCollectionVouchers] = useState<any[]>([]);
+  const [selectedCollectionVoucher, setSelectedCollectionVoucher] = useState<string>('');
 
   const cameraRef = useRef<CameraView>(null);
   const UUID = Crypto.randomUUID();
 
   const [isEditing, setIsEditing] = useState(false);
+
+  const getCollectionVouchers = async () => {
+    try {
+      const result = await powersync.getAll(`
+        SELECT id, state, driver_name, driver_national_id
+        FROM odoo_gms_collection_voucher 
+        WHERE state = 'ordered'
+        ORDER BY name
+      `);
+      console.log('Collection Vouchers:', result);
+      setCollectionVouchers(result);
+    } catch (error) {
+      console.error('Error fetching collection vouchers:', error);
+    }
+  };
 
   const getInputConfirmationLineData = async () => {
     console.log('Getting Input Confirmation Line Data for ID:', id);
@@ -73,7 +92,8 @@ export default function GrowerModal() {
         ic.date_input,
         ic.state as confirmation_state,
         ip.name as input_pack_name,
-        ip.code as input_pack_code
+        ip.code as input_pack_code,
+        pg.name as product_group_name
       FROM odoo_gms_input_confirmations_lines icl
       LEFT JOIN odoo_gms_production_cycle_registration pcr 
         ON icl.production_cycle_registration_id = pcr.id
@@ -81,14 +101,19 @@ export default function GrowerModal() {
         ON icl.input_confirmations_id = ic.id
       LEFT JOIN odoo_gms_input_pack ip 
         ON ic.input_pack_id = ip.id
-      WHERE icl.id = ?
+      LEFT JOIN odoo_gms_product_group pg
+        ON icl.product_group_id = pg.id
+      WHERE icl.production_cycle_registration_id = ?
     `;
-    
+          // WHERE icl.id = ?
+
     try {
-      const result = await powersync.get(query, [id]);
+      const result = await powersync.getAll(query, [pcr_id]);
       console.log('Input Confirmation Line Data:', result);
-      const inputConfirmationLineData = result as any;
+      const inputConfirmationLineData = result[0] || null; // Get first result since we expect one record
+      const inputConfirmationLineDataArray = result as any;
       setInputConfirmationLineData(inputConfirmationLineData);
+      setInputConfirmationLineDataArray(inputConfirmationLineDataArray);
     } catch (error) {
       console.error('Error fetching input confirmation line data:', error);
       setError(error instanceof Error ? error.message : 'Unknown error');
@@ -98,6 +123,7 @@ export default function GrowerModal() {
   useEffect(() => {
     requestPermission();
     getInputConfirmationLineData();
+    getCollectionVouchers();
     getCurrentLocation();
   }, [id]);
 
@@ -175,15 +201,27 @@ export default function GrowerModal() {
     setShowCamera(true);
   };
 
-  const showConfirmationModal = () => {
+  const showConfirmationModal = (item: any) => {
     setShowConfirmationPopup(true);
+    setCurrentInputConfirmationLineData(item);
+    // Reset form when opening modal
+    setSelectedCollectionVoucher('');
+    setGrowerImage(null);
+    setGrowerNationalIdImage(null);
+    setGrowerImageEncoded(null);
+    setGrowerNationalIdImageEncoded(null);
   };
 
-  const updateInputIssue = async () => {
+  const updateInputIssue = async (item: any) => {
 
     
     if (!growerImage || !growerNationalIdImage || !latitude || !longitude) {
       Alert.alert('Missing Images', 'Please capture both grower and national ID images before confirming.');
+      return;
+    }
+
+    if (!selectedCollectionVoucher) {
+      Alert.alert('Missing Collection Voucher', 'Please select a collection voucher before confirming.');
       return;
     }
 
@@ -194,12 +232,18 @@ export default function GrowerModal() {
       // Update the input confirmation line with new status and captured data
       await powersync.execute(`
         UPDATE odoo_gms_input_confirmations_lines 
-        SET issue_state = ?, latitude = ?, longitude = ?, grower_image = ?, grower_national_id_image = ?
+        SET issue_state = ?, latitude = ?, longitude = ?, grower_image = ?, grower_national_id_image = ?, voucher_id = ?
         WHERE id = ?
-      `, ['received', latitude, longitude, growerImageEncoded, growerNationalIdImageEncoded, id]);
+      `, ['received', latitude, longitude, growerImageEncoded, growerNationalIdImageEncoded, selectedCollectionVoucher, item.id]);
 
       Alert.alert('Success', 'Input delivery confirmed successfully!');
       setShowConfirmationPopup(false);
+      // Reset selection
+      setSelectedCollectionVoucher('');
+      setGrowerImage(null);
+      setGrowerNationalIdImage(null);
+      setGrowerImageEncoded(null);
+      setGrowerNationalIdImageEncoded(null);
       router.back();
     } catch (error) {
       console.error('Error updating input issue:', error);
@@ -209,7 +253,7 @@ export default function GrowerModal() {
     }
   };
 
-  const submitReturnInput = async () => {
+  const submitReturnInput = async (item: any) => {
     // Are you sure you want to return this input?
 
     Alert.alert('Are you sure you want to return this input?', 'This action cannot be undone.', [
@@ -224,7 +268,7 @@ export default function GrowerModal() {
             UPDATE odoo_gms_input_confirmations_lines
             SET issue_state = ?, latitude = ?, longitude = ?
             WHERE id = ?
-          `, ['returned', latitude, longitude, id]);
+          `, ['returned', latitude, longitude, item.id]);
 
           // Alert.alert('Success', 'Input delivery returned successfully!');
           // setShowConfirmationPopup(false);
@@ -258,7 +302,7 @@ export default function GrowerModal() {
             {inputConfirmationLineData?.issue_state === 'issued' && (
             <View className="flex-row justify-between items-center p-4 border-b border-gray-100 ">
 
-            <TouchableOpacity 
+            {/* <TouchableOpacity 
               className="h-10 w-32 rounded-xl bg-[#1AD3BB] items-center justify-center flex-row gap-2"
               onPress={showConfirmationModal}
               >
@@ -271,7 +315,27 @@ export default function GrowerModal() {
               >
                 <Text className="text-white text-md">RETURN</Text>
               <X size={20} color="white" className="w-10 h-10" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+
+            <Text className="text-[#65435C] font-bold text-md text-left flex-1">
+                      {inputConfirmationLineData?.input_pack_name || 'N/A'}
+              </Text>
+              <Text className="text-[#65435C] font-bold text-lg text-right flex-1 mr-2">
+                      {inputConfirmationLineData?.production_cycle_name || 'N/A'}
+              </Text>
+              {/* <View className={`px-3 py-1 rounded-lg ${
+                      inputConfirmationLineData?.issue_state === 'issued' ? 'bg-blue-100' : 
+                      inputConfirmationLineData?.issue_state === 'received' ? 'bg-yellow-100' : 'bg-green-100'
+                    }`}>
+                      <Text className={`text-md font-medium ${
+                        inputConfirmationLineData?.issue_state === 'issued' ? 'text-blue-800' : 
+                        inputConfirmationLineData?.issue_state === 'received' ? 'text-yellow-800' : 'text-green-800'
+                      }`}>
+                        {inputConfirmationLineData?.issue_state.toUpperCase() || 'Unknown'}
+                      </Text>
+                    </View> */}
+
+              
           </View>
           )}
             <ScrollView className="flex-1 px-4 py-6">
@@ -307,7 +371,7 @@ export default function GrowerModal() {
                 </View>
 
                 {/* Details List */}
-                <View className="space-y-4">
+                {/* <View className="space-y-4">
                   <View className="flex-row justify-between items-center py-3 border-b border-gray-100">
                     <Text className="text-gray-600 font-medium">Production Cycle</Text>
                     <Text className="text-[#65435C] font-semibold text-right flex-1 ml-4">
@@ -336,8 +400,51 @@ export default function GrowerModal() {
                       </Text>
                     </View>
                   </View>
-                </View>
+                </View> */}
               </View>
+
+              <View className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+
+                {inputConfirmationLineDataArray.map((item: any, index: number) => (
+                  <View className="flex-row justify-between items-center py-3 border-b border-gray-100" key={index}>
+                    <Text className="text-gray-900 text-lg font-bold">{item.issued_packs} * {item.product_group_name}</Text>
+                     
+                     {item.issue_state === 'issued' ? (
+                       <View className="flex-row justify-between items-center py-3 border-b border-gray-100 gap-2.5" >
+                         <TouchableOpacity 
+                           className="h-8 w-24 rounded-lg bg-[#1AD3BB] items-center justify-center flex-row gap-0.5"
+                           onPress={() => showConfirmationModal(item)}
+                           >
+                             <Text className="text-white text-xs">RECEIVE</Text>
+                           {/* <CheckCheck size={12} color="white" className="w-10 h-10" /> */}
+                         </TouchableOpacity>
+                         <TouchableOpacity 
+                           className="h-8 w-24 rounded-lg bg-red-500 items-center justify-center flex-row gap-0.5"
+                           onPress={() => submitReturnInput(item)}
+                           >
+                             <Text className="text-white text-xs">RETURN</Text>
+                           {/* <X size={12} color="white" className="w-10 h-10" /> */}
+                         </TouchableOpacity>
+                       </View>
+                     ) : (
+                       <View className={`px-3 py-1 rounded-lg ${
+                         item.issue_state === 'received' ? 'bg-yellow-100' : 
+                         item.issue_state === 'returned' ? 'bg-green-100' : 'bg-gray-100'
+                       }`}>
+                         <Text className={`text-sm font-medium ${
+                           item.issue_state === 'received' ? 'text-yellow-800' : 
+                           item.issue_state === 'returned' ? 'text-green-800' : 'text-gray-800'
+                         }`}>
+                           {item.issue_state?.toUpperCase() || 'Unknown'}
+                         </Text>
+                       </View>
+                     )}
+                   </View>
+
+                 ))}
+               
+               </View>
+
             </ScrollView>
 
             {/* Camera Modal */}
@@ -450,33 +557,55 @@ export default function GrowerModal() {
                           )}
                         </TouchableOpacity>
                       </View>
+                      
+                      {/* Collection Voucher Select */}
+                      <View className="bg-gray-50 rounded-xl p-4 mb-6">
+                        <Text className="text-[#65435C] font-semibold mb-2">Select Collection Voucher</Text>
+                        <Picker
+                          selectedValue={selectedCollectionVoucher}
+                          onValueChange={(itemValue) => setSelectedCollectionVoucher(itemValue)}
+                          style={{ height: 50, width: '100%' }}
+                        >
+                          <Picker.Item label="Select a collection voucher..." value="" />
+                          {collectionVouchers.map((voucher) => (
+                            <Picker.Item 
+                              key={voucher.id} 
+                              label={`${voucher.driver_name} (${voucher.driver_national_id})`} 
+                              value={voucher.id} 
+                            />
+                          ))}
+                        </Picker>
+                      </View>
 
                       {/* Grower Info Summary */}
                       <View className="bg-gray-50 rounded-xl p-4 mb-6">
                         <Text className="text-[#65435C] font-semibold mb-2">Delivery Summary</Text>
                         <Text className="text-gray-600">
-                          Grower: {inputConfirmationLineData?.first_name} {inputConfirmationLineData?.surname}
+                          Grower: {currentInputConfirmationLineData?.first_name} {currentInputConfirmationLineData?.surname}
                         </Text>
                         <Text className="text-gray-600">
-                          Input Pack: {inputConfirmationLineData?.input_pack_name}
+                          Input Pack: {currentInputConfirmationLineData?.product_group_name}
                         </Text>
                         <Text className="text-gray-600">
-                          Hectares: {inputConfirmationLineData?.excel_hectares || '0'} Ha
+                          Issued Packs: {currentInputConfirmationLineData?.issued_packs}
+                        </Text>
+                        <Text className="text-gray-600">
+                          Hectares: {currentInputConfirmationLineData?.excel_hectares || '0'} Ha
                         </Text>
                       </View>
 
                       {/* Confirm Button */}
                       <TouchableOpacity 
                         className={`rounded-xl p-4 ${
-                          growerImage && growerNationalIdImage && !isSubmitting 
+                          growerImage && growerNationalIdImage && selectedCollectionVoucher && !isSubmitting 
                             ? 'bg-[#65435C]' 
                             : 'bg-gray-300'
                         }`}
-                        onPress={updateInputIssue}
-                        disabled={!growerImage || !growerNationalIdImage || isSubmitting}
+                        onPress={() => updateInputIssue(currentInputConfirmationLineData)}
+                        disabled={!growerImage || !growerNationalIdImage || !selectedCollectionVoucher || isSubmitting}
                       >
                         <Text className={`text-center font-semibold text-lg ${
-                          growerImage && growerNationalIdImage && !isSubmitting 
+                          growerImage && growerNationalIdImage && selectedCollectionVoucher && !isSubmitting 
                             ? 'text-white' 
                             : 'text-gray-500'
                         }`}>

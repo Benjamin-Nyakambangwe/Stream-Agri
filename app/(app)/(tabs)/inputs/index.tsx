@@ -28,9 +28,9 @@ const Inputs = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [syncStatus, setSyncStatus] = useState(false);
-  const [growerWithInputData, setGrowerWithInputData] = useState<any[]>([]);
-  const [growerWithInputDataReceived, setGrowerWithInputDataReceived] = useState<any[]>([]);
-  const [growerWithInputDataReturned, setGrowerWithInputDataReturned] = useState<any[]>([]);
+  const [growerWithInputData, setGrowerWithInputData] = useState<{[key: string]: any[]}>({});
+  const [growerWithInputDataReceived, setGrowerWithInputDataReceived] = useState<{[key: string]: any[]}>({});
+  const [growerWithInputDataReturned, setGrowerWithInputDataReturned] = useState<{[key: string]: any[]}>({});
   const [activeTab, setActiveTab] = useState<TabType>('issued');
 
   useFocusEffect(
@@ -161,19 +161,27 @@ const Inputs = () => {
     
     const result = powersync.watch(query, [employee_id], {
       onResult: (result) => {
-        // console.log('Input Confirmation Lines Data:', result.rows?._array);
-        setGrowerWithInputData(result.rows?._array || []);
+        const data = result.rows?._array || [];
+        
+        // Group by production_cycle_registration_id
+        const groupedData = data.reduce((acc: {[key: string]: any[]}, item: any) => {
+          const registrationId = item.production_cycle_registration_id;
+          if (!acc[registrationId]) {
+            acc[registrationId] = [];
+          }
+          acc[registrationId].push(item);
+          return acc;
+        }, {});
+        
+        // console.log('Grouped Input Confirmation Lines Data:', groupedData);
+        setGrowerWithInputData(groupedData);
       }
     });
-    // const rows = result.rows?._array || [];
-    // console.log('Input Confirmation Lines Data:', rows);
-    // setGrowerWithInputData(rows);
-    // return rows;
   }
 
   const getGrowerWithInputDataReceived = async () => {
     const employee_id = await SecureStore.getItemAsync('odoo_employee_id')
-    console.log('Getting Input Confirmation Lines Data');
+    console.log('Getting Input Confirmation Lines Data Received');
     const query = `
       SELECT 
         icl.*,
@@ -199,19 +207,27 @@ const Inputs = () => {
     
     const result = powersync.watch(query, [employee_id], {
       onResult: (result) => {
-        // console.log('Input Confirmation Lines Data Received:', result.rows?._array);
-        setGrowerWithInputDataReceived(result.rows?._array || []);
+        const data = result.rows?._array || [];
+        
+        // Group by production_cycle_registration_id
+        const groupedData = data.reduce((acc: {[key: string]: any[]}, item: any) => {
+          const registrationId = item.production_cycle_registration_id;
+          if (!acc[registrationId]) {
+            acc[registrationId] = [];
+          }
+          acc[registrationId].push(item);
+          return acc;
+        }, {});
+        
+        // console.log('Grouped Input Confirmation Lines Data Received:', groupedData);
+        setGrowerWithInputDataReceived(groupedData);
       }
     });
-    // const rows = result.rows?._array || [];
-    // console.log('Input Confirmation Lines Data:', rows);
-    // setGrowerWithInputData(rows);
-    // return rows;
   }
 
   const getGrowerWithInputDataReturned = async () => {
     const employee_id = await SecureStore.getItemAsync('odoo_employee_id')
-    console.log('Getting Input Confirmation Lines Data');
+    console.log('Getting Input Confirmation Lines Data Returned');
     const query = `
       SELECT 
         icl.*,
@@ -237,14 +253,22 @@ const Inputs = () => {
     
     const result = powersync.watch(query, [employee_id], {
       onResult: (result) => {
-        // console.log('Input Confirmation Lines Data Returned:', result.rows?._array);
-        setGrowerWithInputDataReturned(result.rows?._array || []);
+        const data = result.rows?._array || [];
+        
+        // Group by production_cycle_registration_id
+        const groupedData = data.reduce((acc: {[key: string]: any[]}, item: any) => {
+          const registrationId = item.production_cycle_registration_id;
+          if (!acc[registrationId]) {
+            acc[registrationId] = [];
+          }
+          acc[registrationId].push(item);
+          return acc;
+        }, {});
+        
+        // console.log('Grouped Input Confirmation Lines Data Returned:', groupedData);
+        setGrowerWithInputDataReturned(groupedData);
       }
     });
-    // const rows = result.rows?._array || [];
-    // console.log('Input Confirmation Lines Data:', rows);
-    // setGrowerWithInputData(rows);
-    // return rows;
   }
 
   useEffect(() => {
@@ -332,7 +356,12 @@ const Inputs = () => {
          
           
           <FlashList
-      data={activeTab === 'issued' ? growerWithInputData : activeTab === 'received' ? growerWithInputDataReceived : growerWithInputDataReturned}
+      data={activeTab === 'issued' 
+        ? Object.values(growerWithInputData).map(group => ({...group[0], inputLines: group}))
+        : activeTab === 'received' 
+        ? Object.values(growerWithInputDataReceived).map(group => ({...group[0], inputLines: group}))
+        : Object.values(growerWithInputDataReturned).map(group => ({...group[0], inputLines: group}))
+      }
       renderItem={({ item }: { item: any }) => growerItem(item)}
       estimatedItemSize={200}
       keyboardShouldPersistTaps="handled"
@@ -363,7 +392,8 @@ const growerItem = (item: any) => {
             params: { 
                 id: item.id,
                 grower_id: item.registration_grower_id,
-                production_scheme: item.production_cycle_name
+                production_scheme: item.production_cycle_name,
+                pcr_id: item.production_cycle_registration_id
             }
         })}>
             <View className="flex-row items-center justify-between">

@@ -373,8 +373,10 @@ const odoo_gms_input_confirmations_lines = new Table(
     state: column.text,
     issued_packs: column.real,
     voucher_id: column.integer,
-    grower_image: column.text,
-    grower_national_id_image: column.text
+    mobile_grower_image: column.text,
+    mobile_grower_national_id_image: column.text,
+    grower_image_url: column.text,
+    grower_national_id_image_url: column.text
   },
   { indexes: {} }
 );
@@ -700,6 +702,34 @@ const odoo_gms_collection_point = new Table(
   { indexes: {} }
 );
 
+const survey_register = new Table(
+  {
+    // id column (text) is automatically included
+    survey_instance_id: column.integer,
+    survey_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    name: column.text,
+    b010_target_reference: column.text,
+    b020_target_name: column.text,
+    c010_status: column.text,
+    b030_scheduled_date: column.text,
+    create_date: column.text,
+    write_date: column.text,
+    production_cycle_registration_id: column.integer,
+    production_cycle_id: column.integer,
+    employee_id: column.integer,
+    province_id: column.integer,
+    b040_capture_date: column.text,
+    field_tech: column.integer,
+    region_id: column.integer,
+    grower_id: column.integer,
+    grower_name: column.text,
+    grower_number: column.text
+  },
+  { indexes: {} }
+);
+
 export const AppSchema = new Schema({
   hr_employee,
   odoo_gms_grower,
@@ -722,7 +752,8 @@ export const AppSchema = new Schema({
   odoo_gms_collection_voucher,
   odoo_gms_truck_reg,
   odoo_gms_product_group,
-  odoo_gms_collection_point
+  odoo_gms_collection_point,
+  survey_register
 });
 
 
@@ -750,3 +781,4 @@ export type CollectionVoucherRecord = Database['odoo_gms_collection_voucher'];
 export type TruckRegRecord = Database['odoo_gms_truck_reg'];
 export type ProductGroupRecord = Database['odoo_gms_product_group'];
 export type CollectionPointRecord = Database['odoo_gms_collection_point'];
+export type SurveyRegisterRecord = Database['survey_register'];

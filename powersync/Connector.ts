@@ -211,8 +211,8 @@ export class Connector implements PowerSyncBackendConnector {
         headers: {
           cookie: `${sessionID}`,
           'Content-Type': 'application/json',
-          'User-Agent': 'insomnia/11.0.2',
-          'X-FO-TOKEN': token || '9430c485-d1d0-4152-aec1-481c7d910d45'
+          // 'User-Agent': 'insomnia/11.0.2',
+          'X-FO-TOKEN': token 
         },
         data: {}
       };
@@ -455,6 +455,13 @@ export class Connector implements PowerSyncBackendConnector {
               newRecordDataToSend[key] = value;
             }
           }
+
+          // Filter out columns that should not be synced to server
+          const columnsToIgnore = ['mobile_grower_image', 'mobile_grower_national_id_image'];
+            columnsToIgnore.forEach(column => {
+              delete newRecordDataToSend[column];
+              console.log('skipping column', column)
+            });
           // console.log('newRecordDataToSend', newRecordDataToSend)
 
           // ADD LAST SYNCED DATE TO NEW RECORD DATA TO SEND

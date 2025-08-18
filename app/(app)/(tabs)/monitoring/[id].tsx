@@ -22,6 +22,8 @@ const SurveyResponse = () => {
     const [productionCycleReg, setProductionCycleReg] = useState<any[]>([])
     const [latitude, setLatitude] = useState('')
     const [longitude, setLongitude] = useState('')
+    const [surveyRegister, setSurveyRegister] = useState<any[]>([])
+    const [currentSurveyRegister, setCurrentSurveyRegister] = useState<any>(null)
     const randomID = Math.floor(Math.random() * 1000000); // Random integer ID for local use
 
     const getEmployeeId = async () => {
@@ -29,32 +31,38 @@ const SurveyResponse = () => {
         return employeeId || '148' // fallback to default
     }
 
-        const handleProductionCycleChange = async (text: string) => {
-        console.log('handleProductionCycleChange called with:', text)
+    //     const handleProductionCycleChange = async (text: string) => {
+    //     console.log('handleProductionCycleChange called with:', text)
         
-        // Remove CY prefix if it exists and ensure it starts with CY
-        let cleanText = text.replace(/^CY/i, '')
-        let prefixedText = `CY${cleanText}`
+    //     // Remove CY prefix if it exists and ensure it starts with CY
+    //     let cleanText = text.replace(/^CY/i, '')
+    //     let prefixedText = `CY${cleanText}`
         
-        console.log('prefixedText', prefixedText)
+    //     console.log('prefixedText', prefixedText)
         
-        setProductionCycleValue(prefixedText)
+    //     setProductionCycleValue(prefixedText)
         
-        // Get employee ID first, then use it in parameterized query
-        const employeeId = await getEmployeeId()
-        const productionCycleReg = await powersync.getAll(`
-            SELECT pcr.id, pcr.grower_name, pcr.production_cycle_name, g.grower_number 
-            FROM odoo_gms_production_cycle_registration pcr 
-            JOIN odoo_gms_grower g ON pcr.grower_id = g.id 
-            WHERE pcr.field_technician_id = ? AND pcr.production_cycle_name LIKE ?
-        `, [employeeId, `%${prefixedText}%`])
-        console.log('productionCycleReg query result:', productionCycleReg)
-        setProductionCycleReg(productionCycleReg)
-    }
+    //     // Get employee ID first, then use it in parameterized query
+    //     const employeeId = await getEmployeeId()
+    //     const productionCycleReg = await powersync.getAll(`
+    //         SELECT pcr.id, pcr.grower_name, pcr.production_cycle_name, g.grower_number 
+    //         FROM odoo_gms_production_cycle_registration pcr 
+    //         JOIN odoo_gms_grower g ON pcr.grower_id = g.id 
+    //         WHERE pcr.field_technician_id = ? AND pcr.production_cycle_name LIKE ?
+    //     `, [employeeId, `%${prefixedText}%`])
+    //     console.log('productionCycleReg query result:', productionCycleReg)
+    //     setProductionCycleReg(productionCycleReg)
+    // }
 
     useFocusEffect (useCallback(() => {
         console.log('useEffect SurveyResponse Screen')
         const fetchSurveyData = async () => {
+
+            // Fetch Survey Register
+            const surveyRegister = await powersync.getAll(`SELECT id, grower_name, grower_number, production_cycle_id, production_cycle_registration_id FROM survey_register WHERE c010_status = 'draft'`)
+            console.log('surveyRegister', surveyRegister)
+            setSurveyRegister(surveyRegister)
+
             // Fetch questions
             const questions = await powersync.getAll(`SELECT id, survey_id, question_type, title FROM survey_question WHERE survey_id = ${id}`)
             console.log('questions', questions)
@@ -80,14 +88,14 @@ const SurveyResponse = () => {
             
             // Fetch initial production cycle registrations
             const employeeId = await getEmployeeId()
-            const allProductionCycles = await powersync.getAll(`
-                SELECT pcr.id, pcr.grower_name, pcr.production_cycle_name, g.grower_number 
-                FROM odoo_gms_production_cycle_registration pcr 
-                JOIN odoo_gms_grower g ON pcr.grower_id = g.id 
-                WHERE pcr.field_technician_id = ?
-            `, [employeeId])
-            console.log('Initial production cycles:', allProductionCycles)
-            setProductionCycleReg(allProductionCycles)
+            // const allProductionCycles = await powersync.getAll(`
+            //     SELECT pcr.id, pcr.grower_name, pcr.production_cycle_name, g.grower_number 
+            //     FROM odoo_gms_production_cycle_registration pcr 
+            //     JOIN odoo_gms_grower g ON pcr.grower_id = g.id 
+            //     WHERE pcr.field_technician_id = ?
+            // `, [employeeId])
+            // console.log('Initial production cycles:', allProductionCycles)
+            // setProductionCycleReg(allProductionCycles)
             
             setLoading(false)
         }
@@ -396,6 +404,12 @@ const SurveyResponse = () => {
 
     const handleSubmit = async () => {
         console.log('Survey responses:', responses)
+        console.log('Current survey register:', currentSurveyRegister)
+
+        if (!currentSurveyRegister || !currentSurveyRegister.id) {
+            Alert.alert('Error', 'Please select a survey register')
+            return
+        }
 
         // Get location first
         await getLocation()
@@ -441,12 +455,12 @@ const SurveyResponse = () => {
 
     const submitSurveyUserInput = async () => {
         try {
-            console.log('Attempting insert with productionCycleRegValue:', productionCycleRegValue)
+            // console.log('Attempting insert with productionCycleRegValue:', productionCycleRegValue)
 
-            if (!productionCycleRegValue) {
-                Alert.alert('Error', 'Please select a production cycle')
-                return
-            }
+            // if (!productionCycleRegValue) {
+            //     Alert.alert('Error', 'Please select a production cycle')
+            //     return
+            // }
 
             // Get employee ID
             const employeeId = await getEmployeeId()
@@ -462,8 +476,8 @@ const SurveyResponse = () => {
             console.log('CURRENT ID (random integer):', currentID)
 
             const result = await powersync.execute(
-                `INSERT INTO survey_user_input (id, survey_id, a020_reference, production_cycle_registration_id, production_cycle_id, employee_id, captured_latitude, captured_longitude, mobile_app_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                [currentID, id, 'SV00002', productionCycleRegValue, 14, employeeId, lat, lng, currentID]
+                `INSERT INTO survey_user_input (id, survey_id, a020_reference, production_cycle_registration_id, production_cycle_id, employee_id, captured_latitude, captured_longitude, mobile_app_id, survey_register_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                [currentID, id, 'SV00002', currentSurveyRegister.production_cycle_registration_id, currentSurveyRegister.production_cycle_id, employeeId, lat, lng, currentID, currentSurveyRegister.id]
             )
             console.log('survey_user_input insert result:', result)
 
@@ -639,7 +653,7 @@ const SurveyResponse = () => {
             }} />
             <View className="flex-1 bg-[#65435C]">
                 <ScrollView className="flex-1 p-4">
-                    <View className="bg-white rounded-2xl p-4 mb-4 flex-row items-center gap-2">
+                    {/* <View className="bg-white rounded-2xl p-4 mb-4 flex-row items-center gap-2">
                     <TextInput
                         className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-base flex-1"
                         style={{ flex: 0.25 }}
@@ -657,6 +671,17 @@ const SurveyResponse = () => {
                             ))}
                         </Picker>
                     </View>
+                    </View> */}
+
+                    <View className="bg-gray-50 border border-gray-200 rounded-lg mb-2" style={{ flex: 0.75 }}>
+                        <Picker
+                            selectedValue={currentSurveyRegister}
+                            onValueChange={(itemValue) => setCurrentSurveyRegister(itemValue)}
+                        >
+                            {surveyRegister.map((item) => (
+                                <Picker.Item key={item.id} label={item.grower_name + ' - ' + item.grower_number} value={item} />
+                            ))}
+                        </Picker>
                     </View>
                     <View className="bg-white rounded-2xl p-4 mb-4">
                         {questions.map((question, index) => (

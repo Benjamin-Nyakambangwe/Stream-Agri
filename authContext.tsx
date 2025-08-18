@@ -4,7 +4,6 @@ import axios from 'axios';
 import * as Device from 'expo-device';
 import * as SecureStore from 'expo-secure-store';
 // import bcrypt from 'bcryptjs';
-import { setupPowerSync } from './powersync/system';
 import 'react-native-get-random-values';
 // import bcrypt from 'react-native-bcrypt';
 import * as Crypto from 'expo-crypto';
@@ -390,20 +389,7 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
             }
             
             if (response.data && response.data.result) {
-              // Successfully logged in, try to trigger sync
-              console.log('Login successful, setting up PowerSync...');
-              
-              try {
-                // Import the PowerSync setup function and call it
-                // const { setupPowerSync } = require('../powersync/system');
-                console.log('Setting up PowerSync after login');
-                await setupPowerSync();
-                console.log('PowerSync setup completed');
-              } catch (syncError) {
-                console.error('Error setting up PowerSync:', syncError);
-                // Continue even if PowerSync setup fails
-              }
-              
+              console.log('Admin login successful');
               return true;
             } else {
               console.log(response.data)

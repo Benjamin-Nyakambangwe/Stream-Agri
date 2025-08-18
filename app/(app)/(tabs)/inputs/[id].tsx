@@ -45,10 +45,10 @@ export default function GrowerModal() {
   const [permission, requestPermission] = useCameraPermissions();
   const [showCamera, setShowCamera] = useState<boolean>(false);
   const [activeCamera, setActiveCamera] = useState<'grower_image' | 'grower_national_id' | null>(null);
-  const [growerImage, setGrowerImage] = useState<string | null>(null);
-  const [growerNationalIdImage, setGrowerNationalIdImage] = useState<string | null>(null);
-  const [growerImageEncoded, setGrowerImageEncoded] = useState<string | null>(null);
-  const [growerNationalIdImageEncoded, setGrowerNationalIdImageEncoded] = useState<string | null>(null);
+  const [mobileGrowerImage, setMobileGrowerImage] = useState<string | null>(null);
+  const [mobileGrowerNationalIdImage, setMobileGrowerNationalIdImage] = useState<string | null>(null);
+  const [mobileGrowerImageEncoded, setMobileGrowerImageEncoded] = useState<string | null>(null);
+  const [mobileGrowerNationalIdImageEncoded, setMobileGrowerNationalIdImageEncoded] = useState<string | null>(null);
   const [latitude, setLatitude] = useState<string>('');
   const [longitude, setLongitude] = useState<string>('');
   const [showConfirmationPopup, setShowConfirmationPopup] = useState<boolean>(false);
@@ -164,7 +164,6 @@ export default function GrowerModal() {
 
   const takePicture = async () => {
     if (!showCamera || !cameraRef.current) return;
-
     try {
       const photo = await cameraRef.current.takePictureAsync({ base64: true });
 
@@ -180,11 +179,11 @@ export default function GrowerModal() {
         const paddedBase64 = fixBase64Padding(base64Data);
         
         if (activeCamera === 'grower_image') {
-          setGrowerImage(`data:image/jpg;base64,${paddedBase64}`);
-          setGrowerImageEncoded(paddedBase64);
+          setMobileGrowerImage(`data:image/jpg;base64,${paddedBase64}`);
+          setMobileGrowerImageEncoded(paddedBase64);
         } else if (activeCamera === 'grower_national_id') {
-          setGrowerNationalIdImage(`data:image/jpg;base64,${paddedBase64}`);
-          setGrowerNationalIdImageEncoded(paddedBase64);
+          setMobileGrowerNationalIdImage(`data:image/jpg;base64,${paddedBase64}`);
+          setMobileGrowerNationalIdImageEncoded(paddedBase64);
         }
       }
       
@@ -206,16 +205,101 @@ export default function GrowerModal() {
     setCurrentInputConfirmationLineData(item);
     // Reset form when opening modal
     setSelectedCollectionVoucher('');
-    setGrowerImage(null);
-    setGrowerNationalIdImage(null);
-    setGrowerImageEncoded(null);
-    setGrowerNationalIdImageEncoded(null);
+    setMobileGrowerImage(null);
+    setMobileGrowerNationalIdImage(null);
+    setMobileGrowerImageEncoded(null);
+    setMobileGrowerNationalIdImageEncoded(null);
   };
 
-  const updateInputIssue = async (item: any) => {
+  const sendGrowerImageToServer = async (mobileGrowerImageEncoded: string) => {
+    console.log('Sending grower image to server');
+    // console.log('Mobile Grower Image Encoded:', mobileGrowerImageEncoded);
 
-    
-    if (!growerImage || !growerNationalIdImage || !latitude || !longitude) {
+    try {
+      const options = {
+        method: 'POST',
+        url: 'http://128.199.51.123/api/upload/',
+        headers: {'Content-Type': 'application/json'},
+        timeout: 30000, // 30 second timeout
+        data: {
+          image: mobileGrowerImageEncoded,
+        }
+      };
+      
+      const response = await axios.request(options);
+      console.log('Grower image upload response:', response.data);
+      
+      if (response.data.error) {
+        console.error('Server error uploading grower image:', response.data.error);
+        throw new Error(response.data.error);
+      }
+      
+      if (!response.data.url) {
+        throw new Error('Server did not return image URL');
+      }
+      
+      return response.data.url;
+    } catch (error) {
+      console.error('Error uploading grower image:', error);
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('Image upload timed out. Please check your internet connection and try again.');
+        } else if (error.response) {
+          throw new Error(`Server error: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`);
+        } else if (error.request) {
+          throw new Error('Network error. Please check your internet connection and try again.');
+        }
+      }
+      throw new Error('Failed to upload grower image. Please try again.');
+    }
+  };
+
+  const sendGrowerNationalIdImageToServer = async (mobileGrowerNationalIdImageEncoded: string) => {
+    console.log('Sending grower national ID image to server');
+
+    try {
+      const options = {
+        method: 'POST',
+        url: 'http://128.199.51.123/api/upload/',
+        headers: {'Content-Type': 'application/json'},
+        timeout: 30000, // 30 second timeout
+        data: {
+          image: mobileGrowerNationalIdImageEncoded,
+        }
+      };
+
+      const response = await axios.request(options);
+      console.log('National ID image upload response:', response.data);
+
+      if (response.data.error) {
+        console.error('Server error uploading national ID image:', response.data.error);
+        throw new Error(response.data.error);
+      }
+
+      if (!response.data.url) {
+        throw new Error('Server did not return image URL');
+      }
+
+      return response.data.url;
+    } catch (error) {
+      console.error('Error uploading national ID image:', error);
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('National ID image upload timed out. Please check your internet connection and try again.');
+        } else if (error.response) {
+          throw new Error(`Server error: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`);
+        } else if (error.request) {
+          throw new Error('Network error. Please check your internet connection and try again.');
+        }
+      }
+      throw new Error('Failed to upload national ID image. Please try again.');
+    }
+  };
+
+
+
+  const updateInputIssue = async (item: any) => {
+    if (!mobileGrowerImage || !mobileGrowerNationalIdImage || !latitude || !longitude) {
       Alert.alert('Missing Images', 'Please capture both grower and national ID images before confirming.');
       return;
     }
@@ -226,28 +310,54 @@ export default function GrowerModal() {
     }
 
     setIsSubmitting(true);
+    
     try {
-      console.log('UPDATE INPUT ISSUE with images and location');
+      console.log('Starting image upload process...');
+      
+      // Upload images with proper error handling
+      let growerImageUrl, growerNationalIdImageUrl;
+      
+      try {
+        growerImageUrl = await sendGrowerImageToServer(mobileGrowerImageEncoded || '');
+        console.log('Grower image uploaded successfully');
+      } catch (error) {
+        console.error('Failed to upload grower image:', error);
+        Alert.alert('Upload Error', `Failed to upload grower image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        return;
+      }
+      
+      try {
+        growerNationalIdImageUrl = await sendGrowerNationalIdImageToServer(mobileGrowerNationalIdImageEncoded || '');
+        console.log('National ID image uploaded successfully');
+      } catch (error) {
+        console.error('Failed to upload national ID image:', error);
+        Alert.alert('Upload Error', `Failed to upload national ID image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        return;
+      }
+
+      console.log('Both images uploaded successfully, updating database...');
       
       // Update the input confirmation line with new status and captured data
       await powersync.execute(`
         UPDATE odoo_gms_input_confirmations_lines 
-        SET issue_state = ?, latitude = ?, longitude = ?, grower_image = ?, grower_national_id_image = ?, voucher_id = ?
+        SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?, grower_image_url = ?, grower_national_id_image_url = ?, mobile_grower_image = ?, mobile_grower_national_id_image = ?
         WHERE id = ?
-      `, ['received', latitude, longitude, growerImageEncoded, growerNationalIdImageEncoded, selectedCollectionVoucher, item.id]);
+      `, ['received', latitude, longitude, selectedCollectionVoucher, growerImageUrl, growerNationalIdImageUrl, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, item.id]);
 
+      console.log('Database updated successfully');
       Alert.alert('Success', 'Input delivery confirmed successfully!');
+      
       setShowConfirmationPopup(false);
       // Reset selection
       setSelectedCollectionVoucher('');
-      setGrowerImage(null);
-      setGrowerNationalIdImage(null);
-      setGrowerImageEncoded(null);
-      setGrowerNationalIdImageEncoded(null);
+      setMobileGrowerImage(null);
+      setMobileGrowerNationalIdImage(null);
+      setMobileGrowerImageEncoded(null);
+      setMobileGrowerNationalIdImageEncoded(null);
       router.back();
     } catch (error) {
       console.error('Error updating input issue:', error);
-      Alert.alert('Error', 'Failed to confirm delivery. Please try again.');
+      Alert.alert('Error', `Failed to confirm delivery: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -523,9 +633,9 @@ export default function GrowerModal() {
                           className="bg-white border border-gray-300 rounded-lg p-2 w-[48%] h-40"
                           onPress={() => openCamera('grower_image')}
                         >
-                          {growerImage ? (
+                          {mobileGrowerImage ? (
                             <Image 
-                              source={{ uri: growerImage }} 
+                              source={{ uri: mobileGrowerImage }} 
                               className="w-full h-full rounded-lg" 
                               resizeMode="cover"
                             />
@@ -542,9 +652,9 @@ export default function GrowerModal() {
                           className="bg-white border border-gray-300 rounded-lg p-2 w-[48%] h-40"
                           onPress={() => openCamera('grower_national_id')}
                         >
-                          {growerNationalIdImage ? (
+                          {mobileGrowerNationalIdImage ? (
                             <Image 
-                              source={{ uri: growerNationalIdImage }} 
+                              source={{ uri: mobileGrowerNationalIdImage }} 
                               className="w-full h-full rounded-lg" 
                               resizeMode="cover"
                             />
@@ -597,19 +707,19 @@ export default function GrowerModal() {
                       {/* Confirm Button */}
                       <TouchableOpacity 
                         className={`rounded-xl p-4 ${
-                          growerImage && growerNationalIdImage && selectedCollectionVoucher && !isSubmitting 
+                          mobileGrowerImage && mobileGrowerNationalIdImage && selectedCollectionVoucher && !isSubmitting 
                             ? 'bg-[#65435C]' 
                             : 'bg-gray-300'
                         }`}
                         onPress={() => updateInputIssue(currentInputConfirmationLineData)}
-                        disabled={!growerImage || !growerNationalIdImage || !selectedCollectionVoucher || isSubmitting}
+                        disabled={!mobileGrowerImage || !mobileGrowerNationalIdImage || !selectedCollectionVoucher || isSubmitting}
                       >
                         <Text className={`text-center font-semibold text-lg ${
-                          growerImage && growerNationalIdImage && selectedCollectionVoucher && !isSubmitting 
+                          mobileGrowerImage && mobileGrowerNationalIdImage && selectedCollectionVoucher && !isSubmitting 
                             ? 'text-white' 
                             : 'text-gray-500'
                         }`}>
-                          {isSubmitting ? 'Confirming...' : 'Confirm Delivery'}
+                          {isSubmitting ? 'Uploading & Confirming...' : 'Confirm Delivery'}
                         </Text>
                       </TouchableOpacity>
 

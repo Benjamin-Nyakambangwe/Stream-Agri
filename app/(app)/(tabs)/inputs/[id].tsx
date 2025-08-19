@@ -324,36 +324,42 @@ export default function GrowerModal() {
       // Upload images with proper error handling
       let growerImageUrl, growerNationalIdImageUrl;
 
-      if (isConnected) {
+    //   if (isConnected) {
       
-      try {
-        growerImageUrl = await sendGrowerImageToServer(mobileGrowerImageEncoded || '');
-        console.log('Grower image uploaded successfully');
-      } catch (error) {
-        console.error('Failed to upload grower image:', error);
-        Alert.alert('Upload Error', `Failed to upload grower image: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        return;
-      }
+    //   try {
+    //     growerImageUrl = await sendGrowerImageToServer(mobileGrowerImageEncoded || '');
+    //     console.log('Grower image uploaded successfully');
+    //   } catch (error) {
+    //     console.error('Failed to upload grower image:', error);
+    //     Alert.alert('Upload Error', `Failed to upload grower image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    //     return;
+    //   }
       
-      try {
-        growerNationalIdImageUrl = await sendGrowerNationalIdImageToServer(mobileGrowerNationalIdImageEncoded || '');
-        console.log('National ID image uploaded successfully');
-      } catch (error) {
-        console.error('Failed to upload national ID image:', error);
-        Alert.alert('Upload Error', `Failed to upload national ID image: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        return;
-      }
+    //   try {
+    //     growerNationalIdImageUrl = await sendGrowerNationalIdImageToServer(mobileGrowerNationalIdImageEncoded || '');
+    //     console.log('National ID image uploaded successfully');
+    //   } catch (error) {
+    //     console.error('Failed to upload national ID image:', error);
+    //     Alert.alert('Upload Error', `Failed to upload national ID image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    //     return;
+    //   }
 
-      console.log('Both images uploaded successfully, updating database...');
+    //   console.log('Both images uploaded successfully, updating database...');
 
-    }
+    // }
       
       // Update the input confirmation line with new status and captured data
       await powersync.execute(`
         UPDATE odoo_gms_input_confirmations_lines 
-        SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?, grower_image_url = ?, grower_national_id_image_url = ?
+        SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?
         WHERE id = ?
-      `, ['received', latitude, longitude, selectedCollectionVoucher, growerImageUrl, growerNationalIdImageUrl, item.id]);
+      `, ['received', latitude, longitude, selectedCollectionVoucher, item.id]);
+
+      // await powersync.execute(`
+      //   UPDATE odoo_gms_input_confirmations_lines 
+      //   SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?, grower_image_url = ?, grower_national_id_image_url = ?
+      //   WHERE id = ?
+      // `, ['received', latitude, longitude, selectedCollectionVoucher, growerImageUrl, growerNationalIdImageUrl, item.id]);
 
       console.log('Database updated successfully');
       Alert.alert('Success', 'Input delivery confirmed successfully!');

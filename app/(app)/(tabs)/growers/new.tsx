@@ -214,12 +214,51 @@ if (photo?.base64) {
 
     const employeeId = await getEmployeeId();
 
+    // Define field mappings - only include fields that have non-empty values
+    const fieldMappings = [
+      { column: 'id', value: UUID, required: true }, // UUID is always required
+      { column: 'production_cycle_id', value: productionCycle },
+      { column: 'production_scheme_id', value: productionScheme },
+      { column: 'region_id', value: region },
+      { column: 'activity_id', value: activity },
+      { column: 'field_technician_id', value: employeeId },
+      { column: 'grower_number', value: growerNumber },
+      { column: 'b010_first_name', value: firstName },
+      { column: 'b020_surname', value: surname },
+      { column: 'middle_name', value: middleName },
+      { column: 'b030_national_id', value: nationalId },
+      { column: 'b040_phone_number', value: phoneNumber },
+      { column: 'grower_latitude', value: latitude },
+      { column: 'grower_longitude', value: longitude },
+      { column: 'gender', value: gender },
+      { column: 'grower_date_of_birth', value: dateOfBirth },
+      { column: 'b010_contract_scale', value: contractScale },
+      { column: 'b020_contracted_yield', value: contractedYield },
+      { column: 'b030_contracted_volume', value: contractedVolume },
+      { column: 'b040_contracted_price', value: contractedPrice },
+      { column: 'b050_contracted_return', value: contractedReturn },
+      { column: 'grower_image', value: growerImageEncoded },
+      { column: 'grower_national_id_image', value: idImageEncoded },
+      { column: 'submitted_by', value: employeeId }
+    ];
 
+    // Filter out empty values (keep required fields and non-empty values)
+    const validFields = fieldMappings.filter(field => 
+      field.required || (field.value && field.value.toString().trim() !== '')
+    );
+
+    // Build the dynamic SQL statement
+    const columns = validFields.map(field => field.column).join(', ');
+    const placeholders = validFields.map(() => '?').join(', ');
+    const values = validFields.map(field => field.value);
+
+    const sql = `INSERT INTO odoo_gms_grower_application (${columns}) VALUES (${placeholders})`;
+
+    console.log('Dynamic SQL:', sql);
+    console.log('Values:', values);
 
     try {
-      await powersync.execute(`INSERT INTO odoo_gms_grower_application (id, production_cycle_id, production_scheme_id, region_id, activity_id, field_technician_id, grower_number, b010_first_name, b020_surname, middle_name, b030_national_id, b040_phone_number, grower_latitude, grower_longitude, gender, grower_date_of_birth, b010_contract_scale, b020_contracted_yield, b030_contracted_volume, b040_contracted_price, b050_contracted_return, grower_image, grower_national_id_image, submitted_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [UUID, productionCycle, productionScheme, region, activity, employeeId, growerNumber, firstName, surname, middleName, nationalId, phoneNumber, latitude, longitude, gender, dateOfBirth, contractScale, contractedYield, contractedVolume, contractedPrice, contractedReturn, growerImageEncoded, idImageEncoded, employeeId]
-      ).then(() => {
+      await powersync.execute(sql, values).then(() => {
         console.log('Grower Application Created');
       }).catch((error) => {
         console.error('Error creating grower application:', error);

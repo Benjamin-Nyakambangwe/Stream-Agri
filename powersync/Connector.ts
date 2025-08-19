@@ -316,7 +316,7 @@ export class Connector implements PowerSyncBackendConnector {
 
           console.log('#############PUT#################')
           console.log('PUTTING DATA', id)
-          // console.log('RECORD DATA', recordData)
+          console.log('RECORD DATA', recordData)
           // const options = {
           //   method: 'POST',
           //   url: 'http://45.84.138.225:8070/api/fo/create-grower-application',
@@ -355,13 +355,14 @@ export class Connector implements PowerSyncBackendConnector {
           };
           
           const response = await axios.request(options)
-          // console.log('PUT response', response.data)
+          console.log('PUT response', response.data)
           console.log('#####################################################')
           // console.log('PUT RECORD', record)
           console.log('#####################################################')
           
           const serverRecord = await response.data
-          console.log('serverRecord', serverRecord.result.record.id)
+          console.log('serverRecord', serverRecord)
+          // console.log('serverRecord', serverRecord.result.record.id)
 
           // if (op.table === 'survey_user_input') {
           //   console.log('survey_user_input - updating related lines')

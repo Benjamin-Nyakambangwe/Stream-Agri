@@ -9,6 +9,7 @@ import axios from 'axios';
 import * as Location from 'expo-location';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as Crypto from 'expo-crypto';
+import { useNetwork } from '@/NetworkContext';
 
 // Define interfaces for your data types
 interface Grower {
@@ -35,6 +36,7 @@ interface DistributionPlan {
 }
 
 export default function GrowerModal() {
+  const { isConnected } = useNetwork()
   const { id, grower_id, production_scheme, pcr_id } = useLocalSearchParams();
   const [grower, setGrower] = useState<Grower | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -220,7 +222,7 @@ export default function GrowerModal() {
         method: 'POST',
         url: 'http://128.199.51.123/api/upload/',
         headers: {'Content-Type': 'application/json'},
-        timeout: 30000, // 30 second timeout
+        // timeout: 30000, // 30 second timeout
         data: {
           image: mobileGrowerImageEncoded,
         }
@@ -262,7 +264,7 @@ export default function GrowerModal() {
         method: 'POST',
         url: 'http://128.199.51.123/api/upload/',
         headers: {'Content-Type': 'application/json'},
-        timeout: 30000, // 30 second timeout
+        // timeout: 30000, // 30 second timeout
         data: {
           image: mobileGrowerNationalIdImageEncoded,
         }
@@ -304,6 +306,11 @@ export default function GrowerModal() {
       return;
     }
 
+    await powersync.execute(`
+      INSERT INTO media_files (id, mobile_grower_image, mobile_grower_national_id_image, create_date, write_date)
+      VALUES (?, ?, ?, ?, ?)
+    `, [item.id, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, new Date().toISOString(), new Date().toISOString()]);
+
     if (!selectedCollectionVoucher) {
       Alert.alert('Missing Collection Voucher', 'Please select a collection voucher before confirming.');
       return;
@@ -316,6 +323,8 @@ export default function GrowerModal() {
       
       // Upload images with proper error handling
       let growerImageUrl, growerNationalIdImageUrl;
+
+      if (isConnected) {
       
       try {
         growerImageUrl = await sendGrowerImageToServer(mobileGrowerImageEncoded || '');
@@ -336,13 +345,15 @@ export default function GrowerModal() {
       }
 
       console.log('Both images uploaded successfully, updating database...');
+
+    }
       
       // Update the input confirmation line with new status and captured data
       await powersync.execute(`
         UPDATE odoo_gms_input_confirmations_lines 
-        SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?, grower_image_url = ?, grower_national_id_image_url = ?, mobile_grower_image = ?, mobile_grower_national_id_image = ?
+        SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?, grower_image_url = ?, grower_national_id_image_url = ?
         WHERE id = ?
-      `, ['received', latitude, longitude, selectedCollectionVoucher, growerImageUrl, growerNationalIdImageUrl, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, item.id]);
+      `, ['received', latitude, longitude, selectedCollectionVoucher, growerImageUrl, growerNationalIdImageUrl, item.id]);
 
       console.log('Database updated successfully');
       Alert.alert('Success', 'Input delivery confirmed successfully!');

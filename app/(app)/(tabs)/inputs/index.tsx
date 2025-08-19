@@ -8,7 +8,8 @@ import { FlashList } from '@shopify/flash-list'
 import { RefreshCcw } from 'lucide-react-native'
 import { useNetwork } from '@/NetworkContext'
 import { powersync, setupPowerSync } from '@/powersync/system';
-import { ProductionCycleRegistrationRecord } from '@/powersync/Schema'
+import { ProductionCycleRegistrationRecord } from '@/powersync/Schema';
+import { runImageUploadServiceOnce } from '@/utils/imageUploadService';
 
 // Combined type for joined data
 type JoinedGrowerData = ProductionCycleRegistrationRecord & {
@@ -266,12 +267,25 @@ const Inputs = () => {
         }, {});
         
         // console.log('Grouped Input Confirmation Lines Data Returned:', groupedData);
-        setGrowerWithInputDataReturned(groupedData);
-      }
-    });
-  }
+              setGrowerWithInputDataReturned(groupedData);
+    }
+  });
+}
 
-  useEffect(() => {
+// Manual trigger for image upload service (for testing)
+const handleManualImageUpload = async () => {
+  try {
+    console.log('🔄 Manually triggering image upload service');
+    Alert.alert('Image Upload', 'Starting image upload service...');
+    await runImageUploadServiceOnce();
+    Alert.alert('Success', 'Image upload service completed successfully!');
+  } catch (error) {
+    console.error('Error running image upload service:', error);
+    Alert.alert('Error', `Failed to run image upload service: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+useEffect(() => {
     getInputConfirmations();
     getInputConfirmationsLines();
     getInputPacks();
@@ -292,6 +306,9 @@ const Inputs = () => {
         headerShown: true,
         headerRight: () => (
             <View className="mr-4 flex-row items-center gap-2">
+                <TouchableOpacity onPress={handleManualImageUpload}>
+                  <RefreshCcw size={20} color="#65435C" />
+                </TouchableOpacity>
                 <TouchableOpacity onPress={()=> console.log('refreshing')}>
                   {syncStatus === true ? (
                     <PlugZap size={24} color="#1AD3BB" />

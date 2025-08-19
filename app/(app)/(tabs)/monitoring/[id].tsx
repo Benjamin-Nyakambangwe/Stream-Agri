@@ -494,9 +494,9 @@ const SurveyResponse = () => {
                 console.log('Question type for', key, ':', questionType)
                 
                 // Check for required values
-                if (!productionCycleRegValue) {
-                    console.error('productionCycleRegValue is null/undefined!')
-                }
+                // if (!productionCycleRegValue) {
+                //     console.error('productionCycleRegValue is null/undefined!')
+                // }
                 if (!employeeId) {
                     console.error('employeeId is null/undefined!')
                 }

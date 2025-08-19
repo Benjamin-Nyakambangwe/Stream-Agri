@@ -373,8 +373,8 @@ const odoo_gms_input_confirmations_lines = new Table(
     state: column.text,
     issued_packs: column.real,
     voucher_id: column.integer,
-    mobile_grower_image: column.text,
-    mobile_grower_national_id_image: column.text,
+    // mobile_grower_image: column.text,
+    // mobile_grower_national_id_image: column.text,
     grower_image_url: column.text,
     grower_national_id_image_url: column.text
   },
@@ -730,6 +730,16 @@ const survey_register = new Table(
   { indexes: {} }
 );
 
+const media_files = new Table({
+  id: column.integer,
+  mobile_grower_image: column.text,
+  mobile_grower_national_id_image: column.text,
+  create_date: column.text,
+  write_date: column.text
+}, {
+  localOnly: true
+});
+
 export const AppSchema = new Schema({
   hr_employee,
   odoo_gms_grower,
@@ -753,7 +763,8 @@ export const AppSchema = new Schema({
   odoo_gms_truck_reg,
   odoo_gms_product_group,
   odoo_gms_collection_point,
-  survey_register
+  survey_register,
+  media_files
 });
 
 
@@ -782,3 +793,4 @@ export type TruckRegRecord = Database['odoo_gms_truck_reg'];
 export type ProductGroupRecord = Database['odoo_gms_product_group'];
 export type CollectionPointRecord = Database['odoo_gms_collection_point'];
 export type SurveyRegisterRecord = Database['survey_register'];
+export type MediaFilesRecord = Database['media_files'];

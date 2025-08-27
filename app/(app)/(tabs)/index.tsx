@@ -1,18 +1,60 @@
 import { View, Text, TouchableOpacity, Dimensions } from 'react-native'
-import React from 'react'
+import React, { useCallback, useState, useEffect } from 'react'
 import { CircleUserRound, FolderSync, Wifi, Users, Settings, BarChart, Leaf, ChevronRight, Building } from 'lucide-react-native';
 
 import { useSession } from '@/authContext';
 import { exportDatabase } from '@/export-db';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { useNetwork } from '@/NetworkContext';
+import { forceRunImageUploadService, getUploadPendingCount } from '@/utils/imageUploadService';
+import * as SecureStore from 'expo-secure-store';
 
 
 const index = () => {
   const { session, isLoading } = useSession();
   const router = useRouter();
   const { isConnected } = useNetwork()
+  const [pendingUploads, setPendingUploads] = useState(0);
+  const [serverIP, setServerIP] = useState<string | null>(null);
   console.log(session)
+
+  // Fetch server IP on component mount
+  useEffect(() => {
+    const getServerIP = async () => {
+      try {
+        const ip = await SecureStore.getItemAsync('odoo_server_ip');
+        setServerIP(ip);
+      } catch (error) {
+        console.error('Error fetching server IP:', error);
+      }
+    };
+    getServerIP();
+  }, []);
+  
+  // Update pending uploads count
+  const updatePendingCount = async () => {
+    try {
+      const count = await getUploadPendingCount();
+      setPendingUploads(count);
+    } catch (error) {
+      console.error('Error getting pending uploads count:', error);
+      setPendingUploads(0);
+    }
+  };
+  
+  // Trigger image upload check when main screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      // Update pending count when screen comes into focus
+      updatePendingCount();
+      
+      if (isConnected) {
+        forceRunImageUploadService().catch(error => 
+          console.log('Main screen image upload check failed:', error)
+        );
+      }
+    }, [isConnected])
+  );
   
   // Calculate dynamic tile sizes based on screen width
   const screenWidth = Dimensions.get('window').width;
@@ -26,6 +68,13 @@ const index = () => {
       headerRight: () => (
         <TouchableOpacity onPress={() => router.push('/(app)/settings' as any)}>
           <View className='flex flex-row items-center gap-2 mr-4'>
+            {pendingUploads > 0 && (
+              <View className="px-2 py-1 rounded-full bg-yellow-500">
+                <Text className="text-white text-xs font-medium">
+                  {pendingUploads}
+                </Text>
+              </View>
+            )}
             {isConnected ? (
               <>
                 <Wifi size={20} color="#1AD3BB" />
@@ -42,7 +91,7 @@ const index = () => {
           <View className='flex flex-row items-center gap-2 ml-4'>
             <Building size={25} color="#1AD3BB" />
             {/* <Text className="ml-1 text-[#65435C] font-semibold">{session?.name}</Text> */}
-            <Text className="text-2xl ml-1 text-[#65435C] font-semibold">CURVERID</Text>
+            <Text className="text-2xl ml-1 text-[#65435C] font-semibold">{serverIP?.includes('clt') ? 'CURVERID' : 'TCOZ'}</Text>
           </View>
         </TouchableOpacity>
       ),

@@ -68,7 +68,12 @@ export const EXPORT_TABLES: ExportTable[] = [
     name: 'odoo_gms_activity',
     displayName: 'Activities',
     query: 'SELECT * FROM odoo_gms_activity'
+  },
+  {name: 'media_files',
+    displayName: 'Media Files',
+    query: 'SELECT * FROM media_files'
   }
+
 ];
 
 export const exportTableToCSV = async (tableName: string, displayName: string, query: string): Promise<string> => {

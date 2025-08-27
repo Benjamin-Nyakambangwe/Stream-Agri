@@ -9,7 +9,7 @@ import { RefreshCcw } from 'lucide-react-native'
 import { useNetwork } from '@/NetworkContext'
 import { powersync, setupPowerSync } from '@/powersync/system';
 import { ProductionCycleRegistrationRecord } from '@/powersync/Schema';
-import { runImageUploadServiceOnce } from '@/utils/imageUploadService';
+import { runImageUploadServiceOnce, forceRunImageUploadService, getUploadPendingCount } from '@/utils/imageUploadService';
 
 // Combined type for joined data
 type JoinedGrowerData = ProductionCycleRegistrationRecord & {
@@ -33,7 +33,11 @@ const Inputs = () => {
   const [growerWithInputDataReceived, setGrowerWithInputDataReceived] = useState<{[key: string]: any[]}>({});
   const [growerWithInputDataReturned, setGrowerWithInputDataReturned] = useState<{[key: string]: any[]}>({});
   const [activeTab, setActiveTab] = useState<TabType>('issued');
-
+  const [unsyncedImages, setUnsyncedImages] = useState(0);
+  // Individual loading states for each tab
+  const [loadingIssued, setLoadingIssued] = useState(true);
+  const [loadingReceived, setLoadingReceived] = useState(true);
+  const [loadingReturned, setLoadingReturned] = useState(true);
   useFocusEffect(
     useCallback(() => {
       console.log('useFocusEffect Inputs Screen');
@@ -137,6 +141,7 @@ const Inputs = () => {
   const getGrowerWithInputData = async () => {
     const employee_id = await SecureStore.getItemAsync('odoo_employee_id')
     console.log('Getting Input Confirmation Lines Data');
+    setLoadingIssued(true);
     const query = `
       SELECT 
         icl.*,
@@ -176,6 +181,7 @@ const Inputs = () => {
         
         // console.log('Grouped Input Confirmation Lines Data:', groupedData);
         setGrowerWithInputData(groupedData);
+        setLoadingIssued(false);
       }
     });
   }
@@ -183,6 +189,7 @@ const Inputs = () => {
   const getGrowerWithInputDataReceived = async () => {
     const employee_id = await SecureStore.getItemAsync('odoo_employee_id')
     console.log('Getting Input Confirmation Lines Data Received');
+    setLoadingReceived(true);
     const query = `
       SELECT 
         icl.*,
@@ -222,6 +229,7 @@ const Inputs = () => {
         
         // console.log('Grouped Input Confirmation Lines Data Received:', groupedData);
         setGrowerWithInputDataReceived(groupedData);
+        setLoadingReceived(false);
       }
     });
   }
@@ -229,6 +237,7 @@ const Inputs = () => {
   const getGrowerWithInputDataReturned = async () => {
     const employee_id = await SecureStore.getItemAsync('odoo_employee_id')
     console.log('Getting Input Confirmation Lines Data Returned');
+    setLoadingReturned(true);
     const query = `
       SELECT 
         icl.*,
@@ -267,10 +276,23 @@ const Inputs = () => {
         }, {});
         
         // console.log('Grouped Input Confirmation Lines Data Returned:', groupedData);
-              setGrowerWithInputDataReturned(groupedData);
-    }
-  });
-}
+        setGrowerWithInputDataReturned(groupedData);
+        setLoadingReturned(false);
+      }
+    });
+  }
+
+// Update pending uploads count
+const updatePendingUploadsCount = async () => {
+  try {
+    const count = await getUploadPendingCount();
+    setUnsyncedImages(count);
+    console.log(`📊 Found ${count} records with pending image uploads`);
+  } catch (error) {
+    console.error('Error getting pending uploads count:', error);
+    setUnsyncedImages(0);
+  }
+};
 
 // Manual trigger for image upload service (for testing)
 const handleManualImageUpload = async () => {
@@ -278,7 +300,11 @@ const handleManualImageUpload = async () => {
     console.log('🔄 Manually triggering image upload service');
     Alert.alert('Image Upload', 'Starting image upload service...');
     await runImageUploadServiceOnce();
-    Alert.alert('Success', 'Image upload service completed successfully!');
+    
+    // Update count after upload attempt
+    await updatePendingUploadsCount();
+    
+    // Alert.alert('Success', 'Image upload service completed successfully!');
   } catch (error) {
     console.error('Error running image upload service:', error);
     Alert.alert('Error', `Failed to run image upload service: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -292,7 +318,33 @@ useEffect(() => {
     getGrowerWithInputData()
     getGrowerWithInputDataReceived()
     getGrowerWithInputDataReturned()
+    
+    // Update pending uploads count when screen loads
+    updatePendingUploadsCount();
+    
+    // Trigger image upload check when screen loads
+    forceRunImageUploadService().catch(error => 
+      console.log('Image upload check failed:', error)
+    );
   }, []);
+
+  // Also trigger when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      getGrowerWithInputData()
+      getGrowerWithInputDataReceived()
+      getGrowerWithInputDataReturned()
+      // Update pending uploads count when focusing on screen
+      updatePendingUploadsCount();
+      
+      // Only trigger upload service if connected to network
+      if (isConnected) {
+        forceRunImageUploadService().catch(error => 
+          console.log('Image upload focus check failed:', error)
+        );
+      }
+    }, [isConnected])
+  );
 
   return (
     <>
@@ -306,7 +358,13 @@ useEffect(() => {
         headerShown: true,
         headerRight: () => (
             <View className="mr-4 flex-row items-center gap-2">
-                <TouchableOpacity onPress={handleManualImageUpload}>
+                <View className={`px-2 py-1 rounded-full ${unsyncedImages > 0 ? 'bg-[#65435C]' : 'bg-[#1AD3BB]'}`}>
+                  <Text className="text-white text-xs font-medium mr-2">
+                    {/* Number of pending image uploads */}
+                    {unsyncedImages > 0 ? `${unsyncedImages} pending images` : 'Images up to date'}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={handleManualImageUpload} className="mr-2">
                   <RefreshCcw size={20} color="#65435C" />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={()=> console.log('refreshing')}>
@@ -347,42 +405,71 @@ useEffect(() => {
               className={`flex-1 py-3 rounded-lg ${activeTab === 'issued' ? 'bg-[#65435C]' : 'bg-transparent'}`}
               onPress={() => setActiveTab('issued')}
             >
-              <Text className={`text-center font-semibold ${activeTab === 'issued' ? 'text-white' : 'text-[#65435C]'}`}>
-                Issued
-              </Text>
+              <View className="flex-row items-center justify-center">
+                <Text className={`text-center font-semibold ${activeTab === 'issued' ? 'text-white' : 'text-[#65435C]'}`}>
+                  Issued
+                </Text>
+                {loadingIssued && (
+                  <View className="ml-2 w-2 h-2 bg-yellow-500 rounded-full" />
+                )}
+              </View>
             </TouchableOpacity>
             
             <TouchableOpacity
               className={`flex-1 py-3 rounded-lg ${activeTab === 'received' ? 'bg-[#65435C]' : 'bg-transparent'}`}
               onPress={() => setActiveTab('received')}
             >
-              <Text className={`text-center font-semibold ${activeTab === 'received' ? 'text-white' : 'text-[#65435C]'}`}>
-                Received
-              </Text>
+              <View className="flex-row items-center justify-center">
+                <Text className={`text-center font-semibold ${activeTab === 'received' ? 'text-white' : 'text-[#65435C]'}`}>
+                  Received
+                </Text>
+                {loadingReceived && (
+                  <View className="ml-2 w-2 h-2 bg-yellow-500 rounded-full" />
+                )}
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
               className={`flex-1 py-3 rounded-lg ${activeTab === 'returned' ? 'bg-[#65435C]' : 'bg-transparent'}`}
               onPress={() => setActiveTab('returned')}
             >
-              <Text className={`text-center font-semibold ${activeTab === 'returned' ? 'text-white' : 'text-[#65435C]'}`}>
-                Returned
-              </Text>
+              <View className="flex-row items-center justify-center">
+                <Text className={`text-center font-semibold ${activeTab === 'returned' ? 'text-white' : 'text-[#65435C]'}`}>
+                  Returned
+                </Text>
+                {loadingReturned && (
+                  <View className="ml-2 w-2 h-2 bg-yellow-500 rounded-full" />
+                )}
+              </View>
             </TouchableOpacity>
           </View>
          
           
-          <FlashList
-      data={activeTab === 'issued' 
-        ? Object.values(growerWithInputData).map(group => ({...group[0], inputLines: group}))
-        : activeTab === 'received' 
-        ? Object.values(growerWithInputDataReceived).map(group => ({...group[0], inputLines: group}))
-        : Object.values(growerWithInputDataReturned).map(group => ({...group[0], inputLines: group}))
-      }
-      renderItem={({ item }: { item: any }) => growerItem(item)}
-      estimatedItemSize={200}
-      keyboardShouldPersistTaps="handled"
-    />
+          {/* Loading indicator for the current tab */}
+          {((activeTab === 'issued' && loadingIssued) || 
+            (activeTab === 'received' && loadingReceived) || 
+            (activeTab === 'returned' && loadingReturned)) && (
+            <View className="flex-1 justify-center items-center">
+              <Text className="text-[#65435C] text-lg">Loading {activeTab} data...</Text>
+            </View>
+          )}
+          
+          {/* Show data only when not loading */}
+          {!((activeTab === 'issued' && loadingIssued) || 
+              (activeTab === 'received' && loadingReceived) || 
+              (activeTab === 'returned' && loadingReturned)) && (
+            <FlashList
+              data={activeTab === 'issued' 
+                ? Object.values(growerWithInputData).map(group => ({...group[0], inputLines: group}))
+                : activeTab === 'received' 
+                ? Object.values(growerWithInputDataReceived).map(group => ({...group[0], inputLines: group}))
+                : Object.values(growerWithInputDataReturned).map(group => ({...group[0], inputLines: group}))
+              }
+              renderItem={({ item }: { item: any }) => growerItem(item)}
+              estimatedItemSize={200}
+              keyboardShouldPersistTaps="handled"
+            />
+          )}
     </View>
     </View>
     </>

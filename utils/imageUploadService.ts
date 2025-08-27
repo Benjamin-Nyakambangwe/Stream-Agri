@@ -6,8 +6,9 @@ import axios from 'axios';
  * Runs every 15 minutes to upload images that failed during initial confirmation
  */
 
-const IMAGE_UPLOAD_SERVER = 'http://128.199.51.123/api/upload/';
-const RETRY_INTERVAL = 3 * 60 * 1000; // 15 minutes in milliseconds
+const IMAGE_UPLOAD_SERVER = 'https://gmsapp.eport.systems/api/upload/';
+const RETRY_INTERVAL = 30 * 1000; // 30 seconds - much more reliable in production
+const MIN_TIME_BETWEEN_CHECKS = 3 * 60 * 1000; // 3 minutes minimum between actual upload attempts
 
 interface ImageUploadRecord {
   id: string;
@@ -20,6 +21,7 @@ interface ImageUploadRecord {
 class ImageUploadService {
   private intervalId: NodeJS.Timeout | null = null;
   private isRunning = false;
+  private lastUploadAttempt = 0;
 
   /**
    * Upload grower image to server
@@ -261,11 +263,17 @@ class ImageUploadService {
    */
   private async processImageUploads(): Promise<void> {
     if (this.isRunning) {
-      console.log('⏸️ Image upload service already running, skipping this cycle');
-      return;
+      return; // Skip if already running
+    }
+
+    // Check if enough time has passed since last upload attempt
+    const now = Date.now();
+    if (now - this.lastUploadAttempt < MIN_TIME_BETWEEN_CHECKS) {
+      return; // Not enough time has passed, skip this cycle
     }
 
     this.isRunning = true;
+    this.lastUploadAttempt = now;
     console.log('🚀 Starting image upload retry service');
 
     try {
@@ -308,12 +316,12 @@ class ImageUploadService {
       return;
     }
 
-    console.log('🔄 Starting image upload retry service (runs every 15 minutes)');
+    console.log('🔄 Starting image upload retry service (checks every 30 seconds)');
     
     // Run immediately on start
     this.processImageUploads();
     
-    // Then run every 15 minutes
+    // Check every 30 seconds (much more reliable in production)
     this.intervalId = setInterval(() => {
       this.processImageUploads();
     }, RETRY_INTERVAL);
@@ -337,6 +345,43 @@ class ImageUploadService {
     console.log('🔄 Manually triggering image upload retry service');
     await this.processImageUploads();
   }
+
+  /**
+   * Force run upload service immediately (bypasses time check)
+   */
+  public async forceRun(): Promise<void> {
+    if (this.isRunning) {
+      console.log('⏸️ Upload service already running');
+      return;
+    }
+
+    this.isRunning = true;
+    this.lastUploadAttempt = Date.now();
+    console.log('🚀 Force running image upload service');
+
+    try {
+      const records = await this.findRecordsNeedingUpload();
+      
+      if (records.length === 0) {
+        console.log('✅ No records need image uploads');
+        return;
+      }
+
+      console.log(`📊 Processing ${records.length} records for image uploads`);
+      
+      for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        await this.processRecord(record);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      console.log('✅ Force upload completed successfully');
+    } catch (error) {
+      console.error('❌ Error in force upload:', error);
+    } finally {
+      this.isRunning = false;
+    }
+  }
 }
 
 // Export singleton instance
@@ -354,4 +399,75 @@ export const stopImageUploadService = () => {
 
 export const runImageUploadServiceOnce = () => {
   return imageUploadService.runOnce();
+};
+
+export const forceRunImageUploadService = () => {
+  return imageUploadService.forceRun();
+};
+
+/**
+ * Get count of records that need image uploads (for UI display)
+ */
+export const getUploadPendingCount = async (): Promise<number> => {
+  try {
+    // Query to find records with missing image URLs but that should have them
+    const confirmationLinesQuery = `
+      SELECT id, grower_image_url, grower_national_id_image_url
+      FROM odoo_gms_input_confirmations_lines
+      WHERE issue_state = 'received'
+      AND (grower_image_url IS NULL OR grower_national_id_image_url IS NULL)
+    `;
+
+    interface ConfirmationRecord {
+      id: string;
+      grower_image_url: string | null;
+      grower_national_id_image_url: string | null;
+    }
+
+    interface MediaRecord {
+      mobile_grower_image: string | null;
+      mobile_grower_national_id_image: string | null;
+    }
+
+    const confirmationRecords = await powersync.getAll(confirmationLinesQuery) as ConfirmationRecord[];
+    
+    if (confirmationRecords.length === 0) {
+      return 0;
+    }
+
+    let pendingCount = 0;
+
+    // Check each record to see if it has mobile images that need uploading
+    for (const record of confirmationRecords) {
+      try {
+        const mediaQuery = `
+          SELECT mobile_grower_image, mobile_grower_national_id_image
+          FROM media_files
+          WHERE id = ?
+        `;
+        
+        const mediaRecords = await powersync.getAll(mediaQuery, [record.id]) as MediaRecord[];
+        
+        if (mediaRecords.length > 0) {
+          const mediaRecord = mediaRecords[0];
+          
+          // Check if there are mobile images to upload for missing URLs
+          const needsGrowerImageUpload = !record.grower_image_url && mediaRecord.mobile_grower_image;
+          const needsNationalIdUpload = !record.grower_national_id_image_url && mediaRecord.mobile_grower_national_id_image;
+          
+          if (needsGrowerImageUpload || needsNationalIdUpload) {
+            pendingCount++;
+          }
+        }
+      } catch (mediaError) {
+        console.error(`Error checking media for record ${record.id}:`, mediaError);
+        // Continue with other records
+      }
+    }
+
+    return pendingCount;
+  } catch (error) {
+    console.error('Error getting upload pending count:', error);
+    return 0;
+  }
 };

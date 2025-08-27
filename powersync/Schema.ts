@@ -313,7 +313,13 @@ const odoo_gms_production_cycle_registration = new Table(
     balance: column.real,
     production_cycle_name: column.text
   },
-  { indexes: {} }
+  { 
+    indexes: {
+      // Index for JOIN operations and field technician queries
+      field_technician_idx: ['field_technician_id'],
+      grower_id_idx: ['grower_id']
+    }
+  }
 );
 
 const odoo_gms_input_confirmations = new Table(
@@ -343,7 +349,12 @@ const odoo_gms_input_confirmations = new Table(
     total_hectares: column.real,
     total_growers: column.real
   },
-  { indexes: {} }
+  { 
+    indexes: {
+      // Index for JOIN operations
+      input_pack_idx: ['input_pack_id']
+    }
+  }
 );
 
 const odoo_gms_input_confirmations_lines = new Table(
@@ -378,7 +389,14 @@ const odoo_gms_input_confirmations_lines = new Table(
     grower_image_url: column.text,
     grower_national_id_image_url: column.text
   },
-  { indexes: {} }
+  { 
+    indexes: {
+      // Index on issue_state for faster filtering
+      issue_state_idx: ['issue_state'],
+      // Composite index for the most common query pattern
+      pcr_issue_state_idx: ['production_cycle_registration_id', 'issue_state']
+    } 
+  }
 );
 
 const odoo_gms_input_pack = new Table(

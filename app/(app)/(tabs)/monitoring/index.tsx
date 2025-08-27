@@ -141,7 +141,7 @@ const Monitoring = () => {
                 }}
                 // onPress={() => router.push(`/monitoring/${item.id}` as any)}
               >
-                <View className="flex-row items-center justify-between mx-16">
+                <View className="flex-row items-center justify-evenly mx-16">
                 <View className="flex-col items-center justify-between w-full">
                 <View className="h-10 w-10 bg-[#1AD3BB] rounded-full items-center justify-center mb-3">
                   <BarChart size={20} color="white" />
@@ -155,15 +155,15 @@ const Monitoring = () => {
                 </View>
 
                 <View className="flex-col items-center justify-between w-full">
-                  <TouchableOpacity className="bg-[#65435C] rounded-xl p-2 w-[70%] mb-2 items-center justify-center"
+                  <TouchableOpacity className="bg-[#65435C] rounded-xl p-2 w-[60%] mb-2 items-center justify-center"
                   onPress={() => router.push(`/monitoring/${item.id}` as any)}
                   >
-                    <Text className="text-white">Start Survey</Text>
+                    <Text className="text-white text-center">Start Survey</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity className="bg-[#65435C] rounded-xl p-2 w-[70%] items-center justify-center"
+                  <TouchableOpacity className="bg-[#65435C] rounded-xl p-2 w-[60%] items-center justify-center"
                   onPress={() => router.push(`/monitoring/completed?id=${item.id}` as any)}
                   >
-                    <Text className="text-white">View Completed</Text>
+                    <Text className="text-white text-center">View Completed</Text>
                   </TouchableOpacity>
                 </View>
                 </View>

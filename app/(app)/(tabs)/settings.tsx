@@ -1,14 +1,24 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Text, TouchableOpacity, View, ScrollView, Alert, ActivityIndicator } from 'react-native'
-import { Stack } from 'expo-router'
+import { Stack, useFocusEffect } from 'expo-router'
 import { LogOut, Download, FileSpreadsheet } from 'lucide-react-native'
 import { useSession } from '@/authContext'
 import { EXPORT_TABLES, exportTableToCSV, shareCSVFile, exportAllTables } from '@/utils/exportUtils'
+import { forceRunImageUploadService } from '@/utils/imageUploadService'
 
 const Settings = () => {
   const { signOut } = useSession()
   const [exporting, setExporting] = useState<string | null>(null)
   const [exportingAll, setExportingAll] = useState(false)
+
+  // Trigger image upload check when settings screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      forceRunImageUploadService().catch(error => 
+        console.log('Settings image upload check failed:', error)
+      );
+    }, [])
+  );
 
   const handleExportTable = async (table: typeof EXPORT_TABLES[0]) => {
     try {

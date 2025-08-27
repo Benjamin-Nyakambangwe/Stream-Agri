@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ScrollView, Alert, Modal, Image, Button } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { CheckCheck, ChevronLeft, Pencil, X, Camera, MapPin } from 'lucide-react-native';
+import { CheckCheck, ChevronLeft, Pencil, X, Camera, MapPin, ChevronDown } from 'lucide-react-native';
 import { powersync } from '@/powersync/system';
 import { Picker } from '@react-native-picker/picker';
 import { DistributionPlanRecord, FlagsRecord, InputConfirmationsLinesRecord, ProductionSchemeRecord, RegionRecord } from '@/powersync/Schema';
@@ -59,6 +59,7 @@ export default function GrowerModal() {
   const [currentInputConfirmationLineData, setCurrentInputConfirmationLineData] = useState<any>(null);
   const [collectionVouchers, setCollectionVouchers] = useState<any[]>([]);
   const [selectedCollectionVoucher, setSelectedCollectionVoucher] = useState<string>('');
+  const [showVoucherDropdown, setShowVoucherDropdown] = useState<boolean>(false);
 
   const cameraRef = useRef<CameraView>(null);
   const UUID = Crypto.randomUUID();
@@ -68,10 +69,11 @@ export default function GrowerModal() {
   const getCollectionVouchers = async () => {
     try {
       const result = await powersync.getAll(`
-        SELECT id, state, driver_name, driver_national_id
-        FROM odoo_gms_collection_voucher 
-        WHERE state = 'ordered'
-        ORDER BY name
+        SELECT cv.id, cv.state, cv.driver_name, cv.driver_national_id, tr.name as truck_name, tr.reg_number
+        FROM odoo_gms_collection_voucher cv
+        LEFT JOIN odoo_gms_truck_reg tr ON cv.truck_id = tr.id
+        WHERE cv.state = 'ordered'
+        ORDER BY cv.name
       `);
       console.log('Collection Vouchers:', result);
       setCollectionVouchers(result);
@@ -207,6 +209,7 @@ export default function GrowerModal() {
     setCurrentInputConfirmationLineData(item);
     // Reset form when opening modal
     setSelectedCollectionVoucher('');
+    setShowVoucherDropdown(false);
     setMobileGrowerImage(null);
     setMobileGrowerNationalIdImage(null);
     setMobileGrowerImageEncoded(null);
@@ -220,7 +223,7 @@ export default function GrowerModal() {
     try {
       const options = {
         method: 'POST',
-        url: 'http://128.199.51.123/api/upload/',
+        url: 'https://gmsapp.eport.systems/api/upload/',
         headers: {'Content-Type': 'application/json'},
         // timeout: 30000, // 30 second timeout
         data: {
@@ -262,7 +265,7 @@ export default function GrowerModal() {
     try {
       const options = {
         method: 'POST',
-        url: 'http://128.199.51.123/api/upload/',
+        url: 'https://gmsapp.eport.systems/api/upload/',
         headers: {'Content-Type': 'application/json'},
         // timeout: 30000, // 30 second timeout
         data: {
@@ -349,17 +352,17 @@ export default function GrowerModal() {
     // }
       
       // Update the input confirmation line with new status and captured data
-      await powersync.execute(`
-        UPDATE odoo_gms_input_confirmations_lines 
-        SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?
-        WHERE id = ?
-      `, ['received', latitude, longitude, selectedCollectionVoucher, item.id]);
-
       // await powersync.execute(`
       //   UPDATE odoo_gms_input_confirmations_lines 
-      //   SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?, grower_image_url = ?, grower_national_id_image_url = ?
+      //   SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?
       //   WHERE id = ?
-      // `, ['received', latitude, longitude, selectedCollectionVoucher, growerImageUrl, growerNationalIdImageUrl, item.id]);
+      // `, ['received', latitude, longitude, selectedCollectionVoucher, item.id]);
+
+      await powersync.execute(`
+        UPDATE odoo_gms_input_confirmations_lines 
+        SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?, grower_image_url = ?, grower_national_id_image_url = ?
+        WHERE id = ?
+      `, ['received', latitude, longitude, selectedCollectionVoucher, growerImageUrl, growerNationalIdImageUrl, item.id]);
 
       console.log('Database updated successfully');
       Alert.alert('Success', 'Input delivery confirmed successfully!');
@@ -367,6 +370,7 @@ export default function GrowerModal() {
       setShowConfirmationPopup(false);
       // Reset selection
       setSelectedCollectionVoucher('');
+      setShowVoucherDropdown(false);
       setMobileGrowerImage(null);
       setMobileGrowerNationalIdImage(null);
       setMobileGrowerImageEncoded(null);
@@ -684,11 +688,7 @@ export default function GrowerModal() {
                           )}
                         </TouchableOpacity>
                       </View>
-                      
-                      {/* Collection Voucher Select */}
-                      <View className="bg-gray-50 rounded-xl p-4 mb-6">
-                        <Text className="text-[#65435C] font-semibold mb-2">Select Collection Voucher</Text>
-                        <Picker
+                      {/* <Picker
                           selectedValue={selectedCollectionVoucher}
                           onValueChange={(itemValue) => setSelectedCollectionVoucher(itemValue)}
                           style={{ height: 50, width: '100%' }}
@@ -697,11 +697,71 @@ export default function GrowerModal() {
                           {collectionVouchers.map((voucher) => (
                             <Picker.Item 
                               key={voucher.id} 
-                              label={`${voucher.driver_name} (${voucher.driver_national_id})`} 
+                              label={`${voucher.truck_name} -- ${voucher.reg_number} (${voucher.driver_name} - ${voucher.driver_national_id})`} 
                               value={voucher.id} 
                             />
                           ))}
-                        </Picker>
+                        </Picker> */}
+
+
+                      {/* Collection Voucher Select */}
+                      <View className="bg-gray-50 rounded-xl p-4 mb-6">
+                        <Text className="text-[#65435C] font-semibold mb-2">Select Collection Voucher</Text>
+                        <View className="relative">
+                          {/* Selected Item Display */}
+                          <TouchableOpacity 
+                            className="bg-white border border-gray-300 rounded-lg p-3 flex-row justify-between items-center"
+                            onPress={() => setShowVoucherDropdown(!showVoucherDropdown)}
+                          >
+                            <View className="flex-1">
+                              {selectedCollectionVoucher ? (
+                                <View>
+                                  {(() => {
+                                    const selectedVoucher = collectionVouchers.find(v => v.id === selectedCollectionVoucher);
+                                    return selectedVoucher ? (
+                                      <View>
+                                        <Text className="text-gray-900 font-medium">
+                                          {selectedVoucher.truck_name} -- {selectedVoucher.reg_number} ({selectedVoucher.driver_name} - {selectedVoucher.driver_national_id})
+                                        </Text>
+                                        <Text className="text-gray-500 text-xs mt-1">
+                                          Name: {selectedVoucher.truck_name} | ID: {selectedVoucher.id}
+                                        </Text>
+                                      </View>
+                                    ) : null;
+                                  })()}
+                                </View>
+                              ) : (
+                                <Text className="text-gray-500">Select a collection voucher...</Text>
+                              )}
+                            </View>
+                            <ChevronDown size={20} color="#65435C" />
+                          </TouchableOpacity>
+
+                          {/* Dropdown List */}
+                          {showVoucherDropdown && (
+                            <View className="absolute top-full left-0 right-0 z-10 bg-white border border-gray-300 rounded-lg mt-1 max-h-60">
+                              <ScrollView>
+                                {collectionVouchers.map((voucher) => (
+                                  <TouchableOpacity 
+                                    key={voucher.id}
+                                    className="p-3 border-b border-gray-100"
+                                    onPress={() => {
+                                      setSelectedCollectionVoucher(voucher.id);
+                                      setShowVoucherDropdown(false);
+                                    }}
+                                  >
+                                    <Text className="text-gray-900 font-medium">
+                                      {voucher.truck_name} -- {voucher.reg_number} ({voucher.driver_name} - {voucher.driver_national_id})
+                                    </Text>
+                                    <Text className="text-gray-500 text-xs mt-1">
+                                      Name: {voucher.truck_name} | ID: {voucher.id}
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))}
+                              </ScrollView>
+                            </View>
+                          )}
+                        </View>
                       </View>
 
                       {/* Grower Info Summary */}

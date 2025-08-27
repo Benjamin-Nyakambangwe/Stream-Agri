@@ -57,9 +57,9 @@ const SurveyResponse = () => {
     useFocusEffect (useCallback(() => {
         console.log('useEffect SurveyResponse Screen')
         const fetchSurveyData = async () => {
-
+            const employeeId = await getEmployeeId()
             // Fetch Survey Register
-            const surveyRegister = await powersync.getAll(`SELECT id, grower_name, grower_number, production_cycle_id, production_cycle_registration_id FROM survey_register WHERE c010_status = 'draft'`)
+            const surveyRegister = await powersync.getAll(`SELECT id, grower_name, grower_number, production_cycle_id, production_cycle_registration_id FROM survey_register WHERE c010_status = 'draft' AND employee_id = ${employeeId}`)
             console.log('surveyRegister', surveyRegister)
             setSurveyRegister(surveyRegister)
 
@@ -87,7 +87,7 @@ const SurveyResponse = () => {
             setQuestionAnswers(answersGrouped)
             
             // Fetch initial production cycle registrations
-            const employeeId = await getEmployeeId()
+            // const employeeId = await getEmployeeId()
             // const allProductionCycles = await powersync.getAll(`
             //     SELECT pcr.id, pcr.grower_name, pcr.production_cycle_name, g.grower_number 
             //     FROM odoo_gms_production_cycle_registration pcr 

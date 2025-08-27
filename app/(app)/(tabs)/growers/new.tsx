@@ -31,6 +31,10 @@ interface GrowerApplication {
   grower_national_id_image: string;
   latitude: string;
   longitude: string;
+  barn_latitude: string;
+  barn_longitude: string;
+  field_latitude: string;
+  field_longitude: string;
 }
 
 
@@ -45,6 +49,10 @@ export default function NewGrowerApplicationModal() {
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [latitude, setLatitude] = useState<string>('');
   const [longitude, setLongitude] = useState<string>('');
+  const [barnLatitude, setBarnLatitude] = useState<string>('');
+  const [barnLongitude, setBarnLongitude] = useState<string>('');
+  const [fieldLatitude, setFieldLatitude] = useState<string>('');
+  const [fieldLongitude, setFieldLongitude] = useState<string>('');
   const [dateOfBirth, setDateOfBirth] = useState<string>('');
   const [gender, setGender] = useState<string>('');
   const [productionScheme, setProductionScheme] = useState<string>('');
@@ -239,7 +247,11 @@ if (photo?.base64) {
       { column: 'b050_contracted_return', value: contractedReturn },
       { column: 'grower_image', value: growerImageEncoded },
       { column: 'grower_national_id_image', value: idImageEncoded },
-      { column: 'submitted_by', value: employeeId }
+      { column: 'submitted_by', value: employeeId },
+      { column: 'barn_latitude', value: barnLatitude },
+      { column: 'barn_longitude', value: barnLongitude },
+      { column: 'field_latitude', value: fieldLatitude },
+      { column: 'field_longitude', value: fieldLongitude }
     ];
 
     // Filter out empty values (keep required fields and non-empty values)
@@ -330,6 +342,42 @@ if (photo?.base64) {
       console.log('Location', location.coords.latitude, location.coords.longitude);
       setLatitude(location.coords.latitude.toString());
       setLongitude(location.coords.longitude.toString());
+    } else {
+      Alert.alert('Permission not granted');
+      return;
+    }
+  }
+
+  const getBarnLocation = async () => {
+    console.log('Getting Barn Location');
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    console.log('Status', status);
+    if (status !== 'granted') {
+      Alert.alert('Permission not granted');
+      return;
+    } else if (status === 'granted') {
+      const location = await Location.getCurrentPositionAsync();
+      console.log('Location', location.coords.latitude, location.coords.longitude);
+      setBarnLatitude(location.coords.latitude.toString());
+      setBarnLongitude(location.coords.longitude.toString());
+    } else {
+      Alert.alert('Permission not granted');
+      return;
+    }
+  }
+
+  const getFieldLocation = async () => {
+    console.log('Getting Field Location');
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    console.log('Status', status);
+    if (status !== 'granted') {
+      Alert.alert('Permission not granted');
+      return;
+    } else if (status === 'granted') {
+      const location = await Location.getCurrentPositionAsync();
+      console.log('Location', location.coords.latitude, location.coords.longitude);
+      setFieldLatitude(location.coords.latitude.toString());
+      setFieldLongitude(location.coords.longitude.toString());
     } else {
       Alert.alert('Permission not granted');
       return;
@@ -591,11 +639,11 @@ if (photo?.base64) {
                     </View>
                 </View> */}
                 <View className="flex-row items-center justify-between my-2">
-                    <Text className="text-gray-600 w-1/3">Latitude</Text>
+                    <Text className="text-gray-600 w-1/3">Home Location</Text>
                     <View className="flex-row items-center justify-between w-2/3">
                     <TextInput 
                         className="border border-gray-300 rounded-md p-2 w-[80%] mr-2" 
-                        value={latitude} 
+                        value={latitude + ' || ' + longitude} 
                         editable={false}
                         onChangeText={(text) => {
                             setLatitude(text);
@@ -610,7 +658,7 @@ if (photo?.base64) {
                     </TouchableOpacity>
                     </View>
                 </View>
-                <View className="flex-row items-center justify-between my-2">
+                {/* <View className="flex-row items-center justify-between my-2">
                     <Text className="text-gray-600 w-1/3">Longitude</Text>
                     <TextInput 
                         className="border border-gray-300 rounded-md p-2 w-2/3" 
@@ -620,6 +668,42 @@ if (photo?.base64) {
                             setLongitude(text);
                         }}
                     />
+                </View> */}
+
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Barn Location</Text>
+                    <View className="flex-row items-center justify-between w-2/3">
+                    <TextInput 
+                        className="border border-gray-300 rounded-md p-2 w-[80%] mr-2" 
+                        value={barnLatitude + ' || ' + barnLongitude} 
+                        editable={false}
+                    />
+                    <TouchableOpacity onPress={() => {
+                      getBarnLocation();
+                    }}
+                    className="bg-gray-200 rounded-md p-2 w-[15%]"
+                    >
+                      <MapPinPlus size={20} color="#65435C" />
+                    </TouchableOpacity>
+                    </View>
+                </View>
+
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Field Location</Text>
+                    <View className="flex-row items-center justify-between w-2/3">
+                    <TextInput 
+                        className="border border-gray-300 rounded-md p-2 w-[80%] mr-2" 
+                        value={fieldLatitude + ' || ' + fieldLongitude} 
+                        editable={false}
+                    />
+                    <TouchableOpacity onPress={() => {
+                      getFieldLocation();
+                    }}
+                    className="bg-gray-200 rounded-md p-2 w-[15%]"
+                    >
+                      <MapPinPlus size={20} color="#65435C" />
+                    </TouchableOpacity>
+                    </View>
                 </View>
                 <View className="flex-row items-center justify-between my-2">
                     <Text className="text-gray-600 w-1/3">Date of Birth</Text>

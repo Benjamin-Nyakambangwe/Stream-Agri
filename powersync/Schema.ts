@@ -119,12 +119,7 @@ const odoo_gms_grower = new Table(
     zip: column.text,
     city: column.text,
     contact_address_complete: column.text,
-    home_latitude: column.text,
-    home_longitude: column.text,
-    field_latitude: column.text,
-    field_longitude: column.text,
-    barn_latitude: column.text,
-    barn_longitude: column.text,
+
   },
   { indexes: {} }
 );
@@ -154,8 +149,12 @@ const odoo_gms_grower_application = new Table(
     middle_name: column.text,
     b030_national_id: column.text,
     b040_phone_number: column.text,
-    grower_latitude: column.text,
-    grower_longitude: column.text,
+    home_latitude: column.text,
+    home_longitude: column.text,
+    field_latitude: column.text,
+    field_longitude: column.text,
+    barn_latitude: column.text,
+    barn_longitude: column.text,
     gender: column.text,
     pcr_state: column.text,
     grower_name: column.text,
@@ -758,6 +757,17 @@ const media_files = new Table({
   localOnly: true
 });
 
+const grower_application_drafts = new Table({
+  id: column.text, // UUID for the draft
+  draft_name: column.text, // User-friendly name for the draft
+  form_data: column.text, // JSON string containing all form fields
+  created_at: column.text,
+  modified_at: column.text,
+  submitted_by: column.text, // Employee ID who created the draft
+}, {
+  localOnly: true // This is local-only data, not synced to server
+});
+
 export const AppSchema = new Schema({
   hr_employee,
   odoo_gms_grower,
@@ -782,7 +792,8 @@ export const AppSchema = new Schema({
   odoo_gms_product_group,
   odoo_gms_collection_point,
   survey_register,
-  media_files
+  media_files,
+  grower_application_drafts
 });
 
 
@@ -812,3 +823,4 @@ export type ProductGroupRecord = Database['odoo_gms_product_group'];
 export type CollectionPointRecord = Database['odoo_gms_collection_point'];
 export type SurveyRegisterRecord = Database['survey_register'];
 export type MediaFilesRecord = Database['media_files'];
+export type GrowerApplicationDraftRecord = Database['grower_application_drafts'];

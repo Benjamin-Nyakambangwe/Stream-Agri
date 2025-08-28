@@ -4,7 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { ChevronLeft, MapPinPlus, Pencil, X, Camera, CalendarIcon } from 'lucide-react-native';
 import { powersync } from '@/powersync/system';
 import { Picker } from '@react-native-picker/picker';
-import { DistributionPlanRecord, FlagsRecord, ProductionSchemeRecord, RegionRecord } from '@/powersync/Schema';
+import { DistributionPlanRecord, FlagsRecord, ProductionSchemeRecord, RegionRecord, GrowerApplicationDraftRecord } from '@/powersync/Schema';
 import axios from 'axios';
 import * as Location from 'expo-location';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
@@ -29,8 +29,8 @@ interface GrowerApplication {
   gender: string;
   grower_image: string;
   grower_national_id_image: string;
-  latitude: string;
-  longitude: string;
+  home_latitude: string;
+  home_longitude: string;
   barn_latitude: string;
   barn_longitude: string;
   field_latitude: string;
@@ -47,8 +47,8 @@ export default function NewGrowerApplicationModal() {
   const [growerNumber, setGrowerNumber] = useState<string>('');
   const [middleName, setMiddleName] = useState<string>('');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const [latitude, setLatitude] = useState<string>('');
-  const [longitude, setLongitude] = useState<string>('');
+  const [homeLatitude, setHomeLatitude] = useState<string>('');
+  const [homeLongitude, setHomeLongitude] = useState<string>('');
   const [barnLatitude, setBarnLatitude] = useState<string>('');
   const [barnLongitude, setBarnLongitude] = useState<string>('');
   const [fieldLatitude, setFieldLatitude] = useState<string>('');
@@ -89,6 +89,13 @@ export default function NewGrowerApplicationModal() {
 
   // Add state for showing date picker
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Draft management state
+  const [drafts, setDrafts] = useState<GrowerApplicationDraftRecord[]>([]);
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [showSaveDraftModal, setShowSaveDraftModal] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
 
   // const getProductionCycleRegistration = async () => {
   //   console.log('Getting Production Cycle Registration');
@@ -143,6 +150,156 @@ export default function NewGrowerApplicationModal() {
     console.log('Field Technician', rows);
   }
 
+  const getEmployeeId = async () => {
+    const employeeId = await SecureStore.getItemAsync('odoo_employee_id');
+    console.log('Employee ID', employeeId);
+    return employeeId;
+  }
+
+  // Draft management functions
+  const loadDrafts = async () => {
+    try {
+      const employeeId = await getEmployeeId();
+      const result = await powersync.execute(
+        'SELECT * FROM grower_application_drafts WHERE submitted_by = ? ORDER BY modified_at DESC',
+        [employeeId]
+      );
+      const draftList = result.rows?._array || [];
+      setDrafts(draftList);
+    } catch (error) {
+      console.error('Error loading drafts:', error);
+    }
+  };
+
+  const saveDraft = async (name: string) => {
+    try {
+      const employeeId = await getEmployeeId();
+      const draftId = Crypto.randomUUID();
+      const formData = {
+        firstName,
+        surname,
+        middleName,
+        nationalId,
+        growerNumber,
+        phoneNumber,
+        homeLatitude,
+        homeLongitude,
+        barnLatitude,
+        barnLongitude,
+        fieldLatitude,
+        fieldLongitude,
+        dateOfBirth,
+        gender,
+        productionScheme,
+        productionCycle,
+        region,
+        activity,
+        fieldTechnician,
+        contractScale,
+        contractedYield,
+        contractedVolume,
+        contractedPrice,
+        contractedReturn,
+        growerImageEncoded,
+        idImageEncoded
+      };
+
+      const timestamp = new Date().toISOString();
+      await powersync.execute(
+        `INSERT INTO grower_application_drafts (
+          id, draft_name, form_data, created_at, modified_at, submitted_by
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          draftId,
+          name,
+          JSON.stringify(formData),
+          timestamp,
+          timestamp,
+          employeeId
+        ]
+      );
+
+      Alert.alert('Success', 'Draft saved successfully!');
+      setShowSaveDraftModal(false);
+      setDraftName('');
+      loadDrafts();
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      Alert.alert('Error', 'Failed to save draft');
+    }
+  };
+
+  const loadDraft = async (draftId: string) => {
+    try {
+      const result = await powersync.execute(
+        'SELECT * FROM grower_application_drafts WHERE id = ?',
+        [draftId]
+      );
+      
+      if (result.rows?._array && result.rows._array.length > 0) {
+        const draft = result.rows._array[0];
+        const formData = JSON.parse(draft.form_data);
+        
+        // Load all form data back into state
+        setFirstName(formData.firstName || '');
+        setSurname(formData.surname || '');
+        setMiddleName(formData.middleName || '');
+        setNationalId(formData.nationalId || '');
+        setGrowerNumber(formData.growerNumber || '');
+        setPhoneNumber(formData.phoneNumber || '');
+        setHomeLatitude(formData.homeLatitude || '');
+        setHomeLongitude(formData.homeLongitude || '');
+        setBarnLatitude(formData.barnLatitude || '');
+        setBarnLongitude(formData.barnLongitude || '');
+        setFieldLatitude(formData.fieldLatitude || '');
+        setFieldLongitude(formData.fieldLongitude || '');
+        setDateOfBirth(formData.dateOfBirth || '');
+        setGender(formData.gender || '');
+        setProductionScheme(formData.productionScheme || '');
+        setProductionCycle(formData.productionCycle || '');
+        setRegion(formData.region || '');
+        setActivity(formData.activity || '');
+        setFieldTechnician(formData.fieldTechnician || '');
+        setContractScale(formData.contractScale || '');
+        setContractedYield(formData.contractedYield || '');
+        setContractedVolume(formData.contractedVolume || '');
+        setContractedPrice(formData.contractedPrice || '');
+        setContractedReturn(formData.contractedReturn || '');
+        
+        if (formData.growerImageEncoded) {
+          setGrowerImageEncoded(formData.growerImageEncoded);
+          setGrowerImage(`data:image/jpg;base64,${formData.growerImageEncoded}`);
+        }
+        
+        if (formData.idImageEncoded) {
+          setIdImageEncoded(formData.idImageEncoded);
+          setIdImage(`data:image/jpg;base64,${formData.idImageEncoded}`);
+        }
+
+        setSelectedDraftId(draftId);
+        setShowDraftModal(false);
+        Alert.alert('Success', 'Draft loaded successfully!');
+      }
+    } catch (error) {
+      console.error('Error loading draft:', error);
+      Alert.alert('Error', 'Failed to load draft');
+    }
+  };
+
+  const deleteDraft = async (draftId: string) => {
+    try {
+      await powersync.execute(
+        'DELETE FROM grower_application_drafts WHERE id = ?',
+        [draftId]
+      );
+      loadDrafts();
+      Alert.alert('Success', 'Draft deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting draft:', error);
+      Alert.alert('Error', 'Failed to delete draft');
+    }
+  };
+
   useEffect(() => {
     requestPermission();
     // getProductionCycleRegistration();
@@ -151,6 +308,7 @@ export default function NewGrowerApplicationModal() {
     getRegion();
     getActivity();
     getFieldTechnician();
+    loadDrafts(); // Load existing drafts
   }, []);
 
   if (!permission) {
@@ -236,8 +394,8 @@ if (photo?.base64) {
       { column: 'middle_name', value: middleName },
       { column: 'b030_national_id', value: nationalId },
       { column: 'b040_phone_number', value: phoneNumber },
-      { column: 'grower_latitude', value: latitude },
-      { column: 'grower_longitude', value: longitude },
+      { column: 'home_latitude', value: homeLatitude },
+      { column: 'home_longitude', value: homeLongitude },
       { column: 'gender', value: gender },
       { column: 'grower_date_of_birth', value: dateOfBirth },
       { column: 'b010_contract_scale', value: contractScale },
@@ -326,6 +484,19 @@ if (photo?.base64) {
 // }
 
 
+    // Delete the draft if it was loaded from an existing draft
+    if (selectedDraftId) {
+      try {
+        await powersync.execute(
+          'DELETE FROM grower_application_drafts WHERE id = ?',
+          [selectedDraftId]
+        );
+        console.log('Draft deleted after successful submission');
+      } catch (error) {
+        console.error('Error deleting draft after submission:', error);
+      }
+    }
+
     alert('Grower Created')
     router.back();
   }
@@ -340,8 +511,8 @@ if (photo?.base64) {
     } else if (status === 'granted') {
       const location = await Location.getCurrentPositionAsync();
       console.log('Location', location.coords.latitude, location.coords.longitude);
-      setLatitude(location.coords.latitude.toString());
-      setLongitude(location.coords.longitude.toString());
+      setHomeLatitude(location.coords.latitude.toString());
+      setHomeLongitude(location.coords.longitude.toString());
     } else {
       Alert.alert('Permission not granted');
       return;
@@ -384,13 +555,6 @@ if (photo?.base64) {
     }
   }
 
-  const getEmployeeId = async () => {
-    const employeeId = await SecureStore.getItemAsync('odoo_employee_id');
-    alert('Employee ID: ' + employeeId);
-    console.log('Employee ID', employeeId);
-    return employeeId;
-  }
-
 
   return (
     <SafeAreaView className="flex-1 bg-[#65435C]">
@@ -401,6 +565,14 @@ if (photo?.base64) {
               <ChevronLeft size={28} color="#65435C" />
             <Text className="text-xl font-bold text-[#65435C]">Add New Grower</Text>
             </TouchableOpacity>
+            {drafts.length > 0 && (
+              <TouchableOpacity 
+                className="bg-[#1AD3BB] px-3 py-2 rounded-lg"
+                onPress={() => setShowDraftModal(true)}
+              >
+                <Text className="text-white font-medium">Load Draft</Text>
+              </TouchableOpacity>
+            )}
           </View>
         
           {showCamera ? (
@@ -643,10 +815,10 @@ if (photo?.base64) {
                     <View className="flex-row items-center justify-between w-2/3">
                     <TextInput 
                         className="border border-gray-300 rounded-md p-2 w-[80%] mr-2" 
-                        value={latitude + ' || ' + longitude} 
+                        value={homeLatitude + ' || ' + homeLongitude} 
                         editable={false}
                         onChangeText={(text) => {
-                            setLatitude(text);
+                            setHomeLatitude(text);
                         }}
                     />
                     <TouchableOpacity onPress={() => {
@@ -782,20 +954,117 @@ if (photo?.base64) {
                   </TouchableOpacity>
                 </View>
 
-                {/* Save Button */}
+                {/* Action Buttons */}
                 <View className="flex-row justify-evenly mt-8 mb-8 gap-2">
-                <TouchableOpacity className="bg-gray-200 rounded-md w-[50%]" onPress={()=> router.back()}>
-                    <Text className="text-[#65435C] text-xl text-center p-2">Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity className="bg-[#65435C] rounded-md w-[50%]" onPress={createGrowerApplication}>
-                    <Text className="text-white text-xl text-center p-2">Send Request</Text>
-                    </TouchableOpacity>
+                  <TouchableOpacity className="bg-gray-200 rounded-md w-[30%]" onPress={()=> router.back()}>
+                    <Text className="text-[#65435C] text-lg text-center p-2">Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    className="bg-[#1AD3BB] rounded-md w-[32%]" 
+                    onPress={() => setShowSaveDraftModal(true)}
+                  >
+                    <Text className="text-white text-lg text-center p-2">Save Draft</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity className="bg-[#65435C] rounded-md w-[32%]" onPress={createGrowerApplication}>
+                    <Text className="text-white text-lg text-center p-2">Submit</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </ScrollView>
           )}
         </View>
       </View>
+
+      {/* Save Draft Modal */}
+      <Modal visible={showSaveDraftModal} transparent animationType="fade">
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="bg-white rounded-lg p-6 w-[80%]">
+            <Text className="text-lg font-bold text-[#65435C] mb-4">Save Draft</Text>
+            <Text className="text-gray-600 mb-4">Give your draft a name:</Text>
+            <TextInput 
+              className="border border-gray-300 rounded-md p-3 mb-4"
+              placeholder="Draft name (e.g., John Doe - Pending)"
+              value={draftName}
+              onChangeText={setDraftName}
+            />
+            <View className="flex-row justify-end gap-2">
+              <TouchableOpacity 
+                className="bg-gray-200 px-4 py-2 rounded-md"
+                onPress={() => {
+                  setShowSaveDraftModal(false);
+                  setDraftName('');
+                }}
+              >
+                <Text className="text-[#65435C]">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                className="bg-[#1AD3BB] px-4 py-2 rounded-md"
+                onPress={() => {
+                  if (draftName.trim()) {
+                    saveDraft(draftName.trim());
+                  } else {
+                    Alert.alert('Error', 'Please enter a draft name');
+                  }
+                }}
+              >
+                <Text className="text-white">Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Load Draft Modal */}
+      <Modal visible={showDraftModal} transparent animationType="fade">
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="bg-white rounded-lg p-6 w-[90%] max-h-[70%]">
+            <Text className="text-lg font-bold text-[#65435C] mb-4">Load Draft</Text>
+            <ScrollView className="max-h-96">
+              {drafts.map((draft) => (
+                <View key={draft.id} className="border border-gray-200 rounded-lg p-3 mb-3">
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-1">
+                      <Text className="font-medium text-[#65435C]">{draft.draft_name}</Text>
+                      <Text className="text-gray-500 text-sm">
+                        Modified: {draft.modified_at ? new Date(draft.modified_at).toLocaleDateString() : 'Unknown'}
+                      </Text>
+                    </View>
+                    <View className="flex-row gap-2">
+                      <TouchableOpacity 
+                        className="bg-[#1AD3BB] px-3 py-1 rounded"
+                        onPress={() => loadDraft(draft.id)}
+                      >
+                        <Text className="text-white text-sm">Load</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        className="bg-red-500 px-3 py-1 rounded"
+                        onPress={() => {
+                          Alert.alert(
+                            'Delete Draft',
+                            'Are you sure you want to delete this draft?',
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              { text: 'Delete', style: 'destructive', onPress: () => deleteDraft(draft.id) }
+                            ]
+                          );
+                        }}
+                      >
+                        <Text className="text-white text-sm">Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+            <TouchableOpacity 
+              className="bg-gray-200 px-4 py-2 rounded-md mt-4"
+              onPress={() => setShowDraftModal(false)}
+            >
+              <Text className="text-[#65435C] text-center">Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

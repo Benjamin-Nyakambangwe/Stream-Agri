@@ -59,8 +59,9 @@ const SurveyResponse = () => {
         const fetchSurveyData = async () => {
             const employeeId = await getEmployeeId()
             // Fetch Survey Register
-            const surveyRegister = await powersync.getAll(`SELECT id, grower_name, grower_number, production_cycle_id, production_cycle_registration_id FROM survey_register WHERE c010_status = 'draft' AND employee_id = ${employeeId}`)
+            const surveyRegister = await powersync.getAll(`SELECT id, grower_name, grower_number, production_cycle_id, production_cycle_registration_id FROM survey_register WHERE c010_status = 'draft' AND employee_id = ${employeeId} AND survey_id = ${id}`)
             console.log('surveyRegister', surveyRegister)
+            console.log('Survey ID', id)
             setSurveyRegister(surveyRegister)
 
             // Fetch questions

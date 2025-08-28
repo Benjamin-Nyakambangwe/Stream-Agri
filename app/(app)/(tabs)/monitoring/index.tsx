@@ -29,7 +29,7 @@ const Monitoring = () => {
     }, [])
   );
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     console.log('useEffect growers')
     // Initialize PowerSync if not already initialized
     setupPowerSync();
@@ -63,7 +63,7 @@ const Monitoring = () => {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, []));
 
 
   if (loading) {

@@ -29,8 +29,12 @@ interface GrowerApplication {
   gender: string;
   grower_image: string;
   grower_national_id_image: string;
-  latitude: string;
-  longitude: string;
+  home_latitude: string;
+  home_longitude: string;
+  barn_latitude: string;
+  barn_longitude: string;
+  field_latitude: string;
+  field_longitude: string;
 }
 
 export default function GrowerApplicationFromExisting() {
@@ -42,8 +46,12 @@ export default function GrowerApplicationFromExisting() {
   const [growerNumber, setGrowerNumber] = useState<string>('');
   const [middleName, setMiddleName] = useState<string>('');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const [latitude, setLatitude] = useState<string>('');
-  const [longitude, setLongitude] = useState<string>('');
+  const [homeLatitude, setHomeLatitude] = useState<string>('');
+  const [homeLongitude, setHomeLongitude] = useState<string>('');
+  const [barnLatitude, setBarnLatitude] = useState<string>('');
+  const [barnLongitude, setBarnLongitude] = useState<string>('');
+  const [fieldLatitude, setFieldLatitude] = useState<string>('');
+  const [fieldLongitude, setFieldLongitude] = useState<string>('');
   const [dateOfBirth, setDateOfBirth] = useState<string>('');
   const [gender, setGender] = useState<string>('');
   const [productionScheme, setProductionScheme] = useState<string>('');
@@ -92,8 +100,12 @@ export default function GrowerApplicationFromExisting() {
           g.b040_phone_number,
           g.date_of_birth,
           g.gender,
-          g.latitude,
-          g.longitude
+          g.home_latitude,
+          g.home_longitude,
+          g.barn_latitude,
+          g.barn_longitude,
+          g.field_latitude,
+          g.field_longitude
         FROM 
           odoo_gms_production_cycle_registration pcr
         LEFT JOIN 
@@ -110,8 +122,12 @@ export default function GrowerApplicationFromExisting() {
         setNationalId(data.b030_national_id || '');
         setGrowerNumber(data.grower_number || '');
         setPhoneNumber(data.b040_phone_number || '');
-        setLatitude(data.latitude || '');
-        setLongitude(data.longitude || '');
+        setHomeLatitude(data.home_latitude || '');
+        setHomeLongitude(data.home_longitude || '');
+        setBarnLatitude(data.barn_latitude || '');
+        setBarnLongitude(data.barn_longitude || '');
+        setFieldLatitude(data.field_latitude || '');
+        setFieldLongitude(data.field_longitude || '');
         setDateOfBirth(data.date_of_birth || '');
         setGender(data.gender || '');
         setContractScale(data.b010_contract_scale?.toString() || '');
@@ -252,8 +268,12 @@ export default function GrowerApplicationFromExisting() {
       { column: 'middle_name', value: middleName },
       { column: 'b030_national_id', value: nationalId },
       { column: 'b040_phone_number', value: phoneNumber },
-      { column: 'grower_latitude', value: latitude },
-      { column: 'grower_longitude', value: longitude },
+      { column: 'home_latitude', value: homeLatitude },
+      { column: 'home_longitude', value: homeLongitude },
+      { column: 'barn_latitude', value: barnLatitude },
+      { column: 'barn_longitude', value: barnLongitude },
+      { column: 'field_latitude', value: fieldLatitude },
+      { column: 'field_longitude', value: fieldLongitude },
       { column: 'gender', value: gender },
       { column: 'grower_date_of_birth', value: dateOfBirth },
       { column: 'b010_contract_scale', value: contractScale },
@@ -307,8 +327,44 @@ export default function GrowerApplicationFromExisting() {
     } else if (status === 'granted') {
       const location = await Location.getCurrentPositionAsync();
       console.log('Location', location.coords.latitude, location.coords.longitude);
-      setLatitude(location.coords.latitude.toString());
-      setLongitude(location.coords.longitude.toString());
+      setHomeLatitude(location.coords.latitude.toString());
+      setHomeLongitude(location.coords.longitude.toString());
+    } else {
+      Alert.alert('Permission not granted');
+      return;
+    }
+  }
+
+  const getBarnLocation = async () => {
+    console.log('Getting Barn Location');
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    console.log('Status', status);
+    if (status !== 'granted') {
+      Alert.alert('Permission not granted');
+      return;
+    } else if (status === 'granted') {
+      const location = await Location.getCurrentPositionAsync();
+      console.log('Location', location.coords.latitude, location.coords.longitude);
+      setBarnLatitude(location.coords.latitude.toString());
+      setBarnLongitude(location.coords.longitude.toString());
+    } else {
+      Alert.alert('Permission not granted');
+      return;
+    }
+  }
+
+  const getFieldLocation = async () => {
+    console.log('Getting Field Location');
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    console.log('Status', status);
+    if (status !== 'granted') {
+      Alert.alert('Permission not granted');
+      return;
+    } else if (status === 'granted') {
+      const location = await Location.getCurrentPositionAsync();
+      console.log('Location', location.coords.latitude, location.coords.longitude);
+      setFieldLatitude(location.coords.latitude.toString());
+      setFieldLongitude(location.coords.longitude.toString());
     } else {
       Alert.alert('Permission not granted');
       return;
@@ -547,14 +603,14 @@ export default function GrowerApplicationFromExisting() {
                     </View>
                 </View> */}
                 <View className="flex-row items-center justify-between my-2">
-                    <Text className="text-gray-600 w-1/3">Latitude</Text>
+                    <Text className="text-gray-600 w-1/3">Home Latitude</Text>
                     <View className="flex-row items-center justify-between w-2/3">
                     <TextInput 
                         className="border border-gray-300 rounded-md p-2 w-[80%] mr-2" 
-                        value={latitude} 
+                        value={homeLatitude + " || " + homeLongitude} 
                         editable={false}
                         onChangeText={(text) => {
-                            setLatitude(text);
+                            setHomeLatitude(text);
                         }}
                     />
                     <TouchableOpacity onPress={() => {
@@ -566,7 +622,50 @@ export default function GrowerApplicationFromExisting() {
                     </TouchableOpacity>
                     </View>
                 </View>
+
                 <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Barn Latitude</Text>
+                    <View className="flex-row items-center justify-between w-2/3">
+                    <TextInput 
+                        className="border border-gray-300 rounded-md p-2 w-[80%] mr-2" 
+                        value={barnLatitude + " || " + barnLongitude} 
+                        editable={false}
+                        onChangeText={(text) => {
+                            setBarnLatitude(text);
+                        }}
+                    />
+                    <TouchableOpacity onPress={() => {
+                      getBarnLocation();
+                    }}
+                    className="bg-gray-200 rounded-md p-2 w-[15%]"
+                    >
+                      <MapPinPlus size={20} color="#65435C" />
+                    </TouchableOpacity>
+                    </View>
+                </View>
+
+                <View className="flex-row items-center justify-between my-2">
+                    <Text className="text-gray-600 w-1/3">Field Latitude</Text>
+                    <View className="flex-row items-center justify-between w-2/3">
+                    <TextInput 
+                        className="border border-gray-300 rounded-md p-2 w-[80%] mr-2" 
+                        value={fieldLatitude + " || " + fieldLongitude} 
+                        editable={false}
+                        onChangeText={(text) => {
+                            setFieldLatitude(text);
+                        }}
+                    />
+                    <TouchableOpacity onPress={() => {
+                      getFieldLocation();
+                    }}
+                    className="bg-gray-200 rounded-md p-2 w-[15%]"
+                    >
+                      <MapPinPlus size={20} color="#65435C" />
+                    </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* <View className="flex-row items-center justify-between my-2">
                     <Text className="text-gray-600 w-1/3">Longitude</Text>
                     <TextInput 
                         className="border border-gray-300 rounded-md p-2 w-2/3" 
@@ -576,7 +675,7 @@ export default function GrowerApplicationFromExisting() {
                             setLongitude(text);
                         }}
                     />
-                </View>
+                </View> */}
                 <View className="flex-row items-center justify-between my-2">
                     <Text className="text-gray-600 w-1/3">Date of Birth</Text>
                     <View className="border border-gray-300 rounded-md p-2 w-2/3 flex-row justify-between items-center">

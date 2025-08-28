@@ -200,6 +200,16 @@ export class Connector implements PowerSyncBackendConnector {
     console.log('serverURL', serverURL)
     console.log('powerSyncURI', powerSyncURI)
 
+    // Normalize server URL - add https:// if no protocol is present
+    const normalizeServerUrl = (url: string | null): string => {
+      if (!url) return '';
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+      }
+      return `https://${url}`;
+    };
+
+    const normalizedServerURL = normalizeServerUrl(serverURL);
 
     // const powerSyncURI = 'https://6822f5820c28998c28ef1501.powersync.journeyapps.com'
     // const employeeJwt = await SecureStore.getItemAsync('employee_jwt')
@@ -207,7 +217,7 @@ export class Connector implements PowerSyncBackendConnector {
     const getEmployeeJwt = async () => {
       const options = {
         method: 'POST',
-        url: `https://${serverURL}/api/powersync/token`,
+        url: `${normalizedServerURL}/api/powersync/token`,
         headers: {
           cookie: `${sessionID}`,
           'Content-Type': 'application/json',
@@ -257,6 +267,17 @@ export class Connector implements PowerSyncBackendConnector {
     const sessionID = await SecureStore.getItemAsync('odoo_admin_session_id')
     const token = await SecureStore.getItemAsync('odoo_custom_session_id')
     const serverURL = await SecureStore.getItemAsync('odoo_server_ip')
+
+    // Normalize server URL - add https:// if no protocol is present
+    const normalizeServerUrl = (url: string | null): string => {
+      if (!url) return '';
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+      }
+      return `https://${url}`;
+    };
+
+    const normalizedServerURL = normalizeServerUrl(serverURL);
 
     /**
     * For batched crud transactions, use data.getCrudBatch(n);
@@ -338,7 +359,7 @@ export class Connector implements PowerSyncBackendConnector {
 
           const options = {
             method: 'POST',
-            url: `https://${serverURL}/api/fo/create`,
+            url: `${normalizedServerURL}/api/fo/create`,
             headers: {
               'Content-Type': 'application/json',
               // 'User-Agent': 'insomnia/11.2.0',
@@ -484,7 +505,7 @@ export class Connector implements PowerSyncBackendConnector {
           // Configure the request based on your Insomnia example
           const patchOptions = {
             method: 'PATCH',
-            url: `https://${serverURL}/api/update/${id}?table_name=${odooTableName}&last_synced_date=${newLastSyncedDate}`, // Use the destructured id here
+            url: `${normalizedServerURL}/api/update/${id}?table_name=${odooTableName}&last_synced_date=${newLastSyncedDate}`, // Use the destructured id here
             headers: {
               cookie: `${sessionID}; frontend_lang=en_GB`,
               'Content-Type': 'application/json',

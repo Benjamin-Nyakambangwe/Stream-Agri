@@ -71,12 +71,13 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
   const getServerUrl = async (): Promise<string> => {
     try {
       const serverIp = await SecureStore.getItemAsync('odoo_server_ip');
-      if (serverIp) {
-        // If it doesn't start with http, add it
-        if (!serverIp.startsWith('http')) {
-          return `https://${serverIp}`;
+      if (serverIp && serverIp.trim()) {
+        const trimmedUrl = serverIp.trim();
+        // If it doesn't start with http or https, add https
+        if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+          return `https://${trimmedUrl}`;
         }
-        return serverIp;
+        return trimmedUrl;
       }
     } catch (error) {
       console.error('Error getting server URL:', error);

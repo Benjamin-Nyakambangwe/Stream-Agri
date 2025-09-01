@@ -378,6 +378,11 @@ if (photo?.base64) {
   const createGrowerApplication = async () => {
     console.log('CREATING GROWER APPLICATION');
 
+    await powersync.execute(`
+      INSERT INTO media_files (id, mobile_grower_image, mobile_grower_national_id_image, create_date, write_date, model)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [UUID, growerImageEncoded, idImageEncoded, new Date().toISOString(), new Date().toISOString(), 'odoo_gms_grower_application']);
+
     const employeeId = await getEmployeeId();
 
     // Define field mappings - only include fields that have non-empty values
@@ -403,8 +408,8 @@ if (photo?.base64) {
       { column: 'b030_contracted_volume', value: contractedVolume },
       { column: 'b040_contracted_price', value: contractedPrice },
       { column: 'b050_contracted_return', value: contractedReturn },
-      { column: 'grower_image', value: growerImageEncoded },
-      { column: 'grower_national_id_image', value: idImageEncoded },
+      // { column: 'grower_image', value: growerImageEncoded },
+      // { column: 'grower_national_id_image', value: idImageEncoded },
       { column: 'submitted_by', value: employeeId },
       { column: 'barn_latitude', value: barnLatitude },
       { column: 'barn_longitude', value: barnLongitude },

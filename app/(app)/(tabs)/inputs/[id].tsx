@@ -310,9 +310,9 @@ export default function GrowerModal() {
     }
 
     await powersync.execute(`
-      INSERT INTO media_files (id, mobile_grower_image, mobile_grower_national_id_image, create_date, write_date)
-      VALUES (?, ?, ?, ?, ?)
-    `, [item.id, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, new Date().toISOString(), new Date().toISOString()]);
+      INSERT INTO media_files (id, mobile_grower_image, mobile_grower_national_id_image, create_date, write_date, model)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [UUID, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, new Date().toISOString(), new Date().toISOString(), 'odoo_gms_input_confirmations_lines']);
 
     if (!selectedCollectionVoucher) {
       Alert.alert('Missing Collection Voucher', 'Please select a collection voucher before confirming.');

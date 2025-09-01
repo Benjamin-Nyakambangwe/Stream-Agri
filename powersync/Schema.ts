@@ -175,7 +175,9 @@ const odoo_gms_grower_application = new Table(
     b040_contracted_price: column.real,
     b050_contracted_return: column.real,
     grower_image: column.text,
-    grower_national_id_image: column.text
+    grower_national_id_image: column.text,
+    grower_image_url: column.text,
+    grower_national_id_image_url: column.text
   },
   { indexes: {} }
 );
@@ -755,6 +757,7 @@ const media_files = new Table({
   id: column.integer,
   mobile_grower_image: column.text,
   mobile_grower_national_id_image: column.text,
+  model: column.text,
   create_date: column.text,
   write_date: column.text
 }, {

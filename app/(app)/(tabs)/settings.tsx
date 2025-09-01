@@ -5,6 +5,8 @@ import { LogOut, Download, FileSpreadsheet } from 'lucide-react-native'
 import { useSession } from '@/authContext'
 import { EXPORT_TABLES, exportTableToCSV, shareCSVFile, exportAllTables } from '@/utils/exportUtils'
 import { forceRunImageUploadService } from '@/utils/imageUploadService'
+import { SignaturePad } from '@/components/SignaturePad'
+import { powersync } from '@/powersync/system'
 
 const Settings = () => {
   const { signOut } = useSession()
@@ -47,6 +49,36 @@ const Settings = () => {
     }
   }
 
+  const handleSignatureSaved = async (signatureBase64: string) => {
+    try {
+      // Generate a unique ID for the signature
+      const signatureId = `signature_${Date.now()}`;
+      
+      // Save to media_files table (following your existing pattern)
+      await powersync.execute(`
+        INSERT INTO media_files (id, mobile_signature_image, create_date, write_date, model)
+        VALUES (?, ?, ?, ?, ?)
+      `, [
+        signatureId, 
+        signatureBase64, 
+        new Date().toISOString(), 
+        new Date().toISOString(), 
+        'signature'
+      ]);
+
+      console.log('Signature saved to database with ID:', signatureId);
+      
+      // Trigger the image upload service to upload to server
+      forceRunImageUploadService().catch(error => 
+        console.log('Signature upload service failed:', error)
+      );
+      
+    } catch (error) {
+      console.error('Error saving signature to database:', error);
+      Alert.alert('Error', 'Failed to save signature to database');
+    }
+  };
+
   return (
     <>
       <Stack.Screen options={{ 
@@ -64,11 +96,11 @@ const Settings = () => {
         )
       }} />
       <View className="flex-1 p-4 bg-[#65435C]">
-        <ScrollView showsVerticalScrollIndicator={false}>
+        {/* <ScrollView showsVerticalScrollIndicator={false}>
           <View className="bg-white rounded-2xl p-4 mb-4">
             <Text className="text-xl font-semibold text-[#65435C] mb-4">App Settings</Text>
             
-            {/* Export All Button */}
+            // Export All Button
             <TouchableOpacity 
               onPress={handleExportAll}
               disabled={exportingAll}
@@ -86,7 +118,7 @@ const Settings = () => {
               </Text>
             </TouchableOpacity>
 
-            {/* Individual Table Export Buttons */}
+            // Individual Table Export Buttons
             <Text className="text-lg font-semibold text-[#65435C] mb-3">Export Individual Tables</Text>
             <View className="space-y-2">
               {EXPORT_TABLES.map((table) => (
@@ -119,7 +151,8 @@ const Settings = () => {
               ))}
             </View>
           </View>
-        </ScrollView>
+        </ScrollView> */}
+        <SignaturePad onSignatureSaved={handleSignatureSaved} />
       </View>
     </>
   )

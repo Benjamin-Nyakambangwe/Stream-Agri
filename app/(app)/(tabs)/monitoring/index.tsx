@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect } from 'react'
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from 'react-native'
 import { router, Stack, useFocusEffect } from 'expo-router'
-import { BarChart, PlugZap, Unplug } from 'lucide-react-native'
+import { AlertCircle, BarChart, PlugZap, Unplug } from 'lucide-react-native'
 import { useNetwork } from '@/NetworkContext'
 import { powersync, setupPowerSync } from '@/powersync/system';
 import { SurveySurveyRecord, SurveyQuestionRecord, SurveyQuestionAnswerRecord } from '@/powersync/Schema';
 import { useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
 
 const Monitoring = () => {
   const { isConnected } = useNetwork()
@@ -16,6 +17,11 @@ const Monitoring = () => {
   const [surveyQuestionAnswers, setSurveyQuestionAnswers] = useState<SurveyQuestionAnswerRecord[]>([]);
 
   const [syncStatus, setSyncStatus] = useState(false);
+
+  const getEmployeeId = async () => {
+    const employeeId = await SecureStore.getItemAsync('odoo_employee_id')
+    return employeeId || '148'
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -33,36 +39,36 @@ const Monitoring = () => {
     console.log('useEffect growers')
     // Initialize PowerSync if not already initialized
     setupPowerSync();
-    // Set up a watch query to get and monitor growers data
-    const controller = new AbortController();
-    // console.log('Setting up growers data watcher with JOIN...');
-    powersync.watch(
-      `SELECT id, title, active, access_token, session_code, create_date FROM survey_survey`,
-      [],
-      {
-        onResult: (result) => {
-          console.log('survey_survey data updated, count:', result.rows?._array?.length);
-          if (result.rows?._array) {
-            // Log the first few records to debug
-            if (result.rows._array.length > 0) {
-            }
-            const surveysData = result.rows._array as SurveySurveyRecord[];
-            setSurveys(surveysData);
-          }
-          setLoading(false);
-        },
-        onError: (err) => {
-          console.error('Error fetching surveys:', err);
-          setError(err.message);
-          setLoading(false);
-        }
-      },
-      { signal: controller.signal }
-    );
     
-    return () => {
-      controller.abort();
+    const fetchSurveysWithCounts = async () => {
+      try {
+        const employeeId = await getEmployeeId();
+        const surveysWithCounts = await powersync.getAll(`
+          SELECT 
+            ss.id, 
+            ss.title, 
+            ss.active, 
+            ss.access_token, 
+            ss.session_code, 
+            ss.create_date,
+            COUNT(sr.id) as outstanding_survey_registers
+          FROM survey_survey ss
+          LEFT JOIN survey_register sr ON ss.id = sr.survey_id 
+            AND sr.employee_id = ? 
+            AND sr.c010_status = 'draft'
+          GROUP BY ss.id, ss.title, ss.active, ss.access_token, ss.session_code, ss.create_date
+        `, [employeeId]);
+        
+        setSurveys(surveysWithCounts as any);
+        setLoading(false);
+      } catch (err: any) {
+        console.error('Error fetching surveys:', err);
+        setError(err.message);
+        setLoading(false);
+      }
     };
+
+    fetchSurveysWithCounts();
   }, []));
 
 
@@ -156,15 +162,28 @@ const Monitoring = () => {
 
                 <View className="flex-col items-center justify-between w-full">
                   <TouchableOpacity className="bg-[#65435C] rounded-xl p-2 w-[60%] mb-2 items-center justify-center"
-                  onPress={() => router.push(`/monitoring/${item.id}` as any)}
+                  onPress={() => router.push(`/monitoring/surveyRegister?surveyId=${item.id}` as any)}
                   >
-                    <Text className="text-white text-center">Start Survey</Text>
+                    <Text className="text-white text-center">View Survey</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity className="bg-[#65435C] rounded-xl p-2 w-[60%] items-center justify-center"
+                  {/* <TouchableOpacity className="bg-[#65435C] rounded-xl p-2 w-[60%] items-center justify-center"
                   onPress={() => router.push(`/monitoring/completed?id=${item.id}` as any)}
                   >
                     <Text className="text-white text-center">View Completed</Text>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
+                  {/* // TODO: Add number of outstanding survey registers for each survey */}
+                                    {(item as any).outstanding_survey_registers > 0 ? (
+                    <View className="flex-row items-center justify-center mt-1">
+                      <Text className="text-sm text-red-600 text-center font-semibold mr-1">
+                        {(item as any).outstanding_survey_registers} Outstanding
+                      </Text>
+                      <AlertCircle size={16} color="red" />
+                    </View>
+                  ) : (
+                    <Text className="text-sm text-green-600 mt-1 text-center font-semibold">
+                      Completed
+                    </Text>
+                  )}
                 </View>
                 </View>
               </TouchableOpacity>

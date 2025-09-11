@@ -1,6 +1,6 @@
-import { View, Text, TouchableOpacity, Dimensions } from 'react-native'
+import { View, Text, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native'
 import React, { useCallback, useState, useEffect } from 'react'
-import { CircleUserRound, FolderSync, Wifi, Users, Settings, BarChart, Leaf, ChevronRight, Building } from 'lucide-react-native';
+import { CircleUserRound, FolderSync, Wifi, Users, Settings, BarChart, Leaf, ChevronRight, Building, UserCheck, FileCheck, UserX, User } from 'lucide-react-native';
 
 import { useSession } from '@/authContext';
 import { exportDatabase } from '@/export-db';
@@ -8,6 +8,7 @@ import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { useNetwork } from '@/NetworkContext';
 import { forceRunImageUploadService, getUploadPendingCount } from '@/utils/imageUploadService';
 import * as SecureStore from 'expo-secure-store';
+import { powersync } from '@/powersync/system';
 
 
 const index = () => {
@@ -16,9 +17,16 @@ const index = () => {
   const { isConnected } = useNetwork()
   const [pendingUploads, setPendingUploads] = useState(0);
   const [serverIP, setServerIP] = useState<string | null>(null);
+  const [growerStats, setGrowerStats] = useState({
+    total: 0,
+    approved: 0,
+    contracted: 0,
+    rejected: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
   console.log(session)
 
-  // Fetch server IP on component mount
+  // Fetch server IP and grower stats on component mount
   useEffect(() => {
     const getServerIP = async () => {
       try {
@@ -29,6 +37,7 @@ const index = () => {
       }
     };
     getServerIP();
+    fetchGrowerStats();
   }, []);
   
   // Update pending uploads count
@@ -41,12 +50,100 @@ const index = () => {
       setPendingUploads(0);
     }
   };
+
+  // Fetch grower statistics filtered by current employee
+  const fetchGrowerStats = async () => {
+    // TODO: Put this in its own component
+    try {
+      setLoadingStats(true);
+      
+      // Get current employee ID
+      const employeeId = await SecureStore.getItemAsync('odoo_employee_id');
+      const currentEmployeeId = employeeId || '148'; // fallback to default
+      
+      console.log('Fetching grower stats for employee:', currentEmployeeId);
+      
+      // Get user's accessible regions from HR management
+      const userRegions = await powersync.execute(`
+        SELECT DISTINCT region_id 
+        FROM odoo_gms_hr_management 
+        WHERE employee = ?
+      `, [currentEmployeeId]);
+      
+      const userRegionIds = userRegions.rows?._array?.map((row: any) => row.region_id) || [];
+      
+      if (userRegionIds.length === 0) {
+        console.log('No regions found for employee, using all regions');
+        // If no regions found, use all regions
+        const allRegions = await powersync.execute(`SELECT id FROM odoo_gms_region`);
+        userRegionIds.push(...(allRegions.rows?._array?.map((row: any) => row.id) || []));
+      }
+      
+      const placeholders = userRegionIds.map(() => '?').join(',');
+      
+      // 1. Total growers in user's regions (through grower applications)
+      const totalGrowers = await powersync.execute(`
+        SELECT COUNT(DISTINCT grower_id) as count 
+        FROM odoo_gms_grower_application 
+        WHERE region_id IN (${placeholders})
+      `, userRegionIds);
+      
+      // 2. Approved growers (from grower applications)
+      const approvedGrowers = await powersync.execute(`
+        SELECT COUNT(*) as count 
+        FROM odoo_gms_grower_application 
+        WHERE state = 'approved' AND region_id IN (${placeholders})
+      `, userRegionIds);
+      
+      // 3. Contracted growers (from production cycle registration)
+      const contractedGrowers = await powersync.execute(`
+        SELECT COUNT(DISTINCT grower_id) as count 
+        FROM odoo_gms_production_cycle_registration 
+        WHERE region_id IN (${placeholders})
+      `, userRegionIds);
+      
+      // 4. Rejected growers (from grower applications)
+      const rejectedGrowers = await powersync.execute(`
+        SELECT COUNT(*) as count 
+        FROM odoo_gms_grower_application 
+        WHERE state = 'rejected' AND region_id IN (${placeholders})
+      `, userRegionIds);
+      
+      setGrowerStats({
+        total: totalGrowers.rows?._array?.[0]?.count || 0,
+        approved: approvedGrowers.rows?._array?.[0]?.count || 0,
+        contracted: contractedGrowers.rows?._array?.[0]?.count || 0,
+        rejected: rejectedGrowers.rows?._array?.[0]?.count || 0
+      });
+      
+      console.log('Grower stats updated:', {
+        total: totalGrowers.rows?._array?.[0]?.count || 0,
+        approved: approvedGrowers.rows?._array?.[0]?.count || 0,
+        contracted: contractedGrowers.rows?._array?.[0]?.count || 0,
+        rejected: rejectedGrowers.rows?._array?.[0]?.count || 0
+      });
+      
+    } catch (error) {
+      console.error('Error fetching grower stats:', error);
+      // Set default values on error
+      setGrowerStats({
+        total: 0,
+        approved: 0,
+        contracted: 0,
+        rejected: 0
+      });
+    } finally {
+      setLoadingStats(false);
+    }
+  };
   
   // Trigger image upload check when main screen is focused
   useFocusEffect(
     useCallback(() => {
       // Update pending count when screen comes into focus
       updatePendingCount();
+      // Refresh grower stats when screen comes into focus
+      fetchGrowerStats();
       
       if (isConnected) {
         forceRunImageUploadService().catch(error => 
@@ -100,7 +197,7 @@ const index = () => {
     }} />
     <View className='flex-1 p-4 bg-[#65435C]'>
       {/* Welcome Card */}
-      <View className='bg-white rounded-2xl p-4 mb-6 mt-10 shadow-sm'>
+      <View className='bg-white rounded-2xl p-4 mb-4 mt-4 shadow-sm'>
         <Text className='text-2xl font-semibold text-[#65435C]'>Welcome back,</Text>
         <Text className='text-lg font-bold text-[#1AD3BB]'>{session?.name}</Text>
         <Text className='text-gray-500 mt-1'>What would you like to do today?</Text>
@@ -188,6 +285,70 @@ const index = () => {
           </View>
         </TouchableOpacity>
       </View>
+      {/* Grower Statistics Card */}
+      <View 
+          style={{ width: '100%', height: 180 }}
+          className='bg-white rounded-2xl p-4 mb-4 shadow-sm'
+        >
+          <View className='flex-1'>
+            {/* Header */}
+            <View className='flex-row items-center mb-4'>
+              <View className='h-10 w-10 bg-[#65435C] rounded-xl items-center justify-center mr-3'>
+                <BarChart size={20} color="#1AD3BB" />
+              </View>
+              <View>
+                <Text className='text-lg font-semibold text-[#65435C]'>Grower Statistics</Text>
+                <Text className='text-gray-500 text-sm'>Your overview</Text>
+              </View>
+            </View>
+            
+            {/* Stats Row */}
+            {loadingStats ? (
+              <View className='flex-1 items-center justify-center'>
+                <ActivityIndicator size="large" color="#65435C" />
+                <Text className='text-gray-500 mt-2'>Loading stats...</Text>
+              </View>
+            ) : (
+              <View className='flex-row justify-between'>
+                {/* Total Growers */}
+                <View className='flex-1 items-center'>
+                  <View className='h-10 w-10 bg-blue-100 rounded-xl items-center justify-center mb-2'>
+                    <User size={16} color="#3B82F6" />
+                  </View>
+                  <Text className='text-xl font-bold text-[#65435C]'>{growerStats.total}</Text>
+                  <Text className='text-xs text-gray-500 text-center'>Total</Text>
+                </View>
+                
+                {/* Approved Growers */}
+                <View className='flex-1 items-center'>
+                  <View className='h-10 w-10 bg-green-100 rounded-xl items-center justify-center mb-2'>
+                    <UserCheck size={16} color="#10B981" />
+                  </View>
+                  <Text className='text-xl font-bold text-[#65435C]'>{growerStats.approved}</Text>
+                  <Text className='text-xs text-gray-500 text-center'>Approved</Text>
+                </View>
+                
+                {/* Contracted Growers */}
+                <View className='flex-1 items-center'>
+                  <View className='h-10 w-10 bg-purple-100 rounded-xl items-center justify-center mb-2'>
+                    <FileCheck size={16} color="#8B5CF6" />
+                  </View>
+                  <Text className='text-xl font-bold text-[#65435C]'>{growerStats.contracted}</Text>
+                  <Text className='text-xs text-gray-500 text-center'>Contracted</Text>
+                </View>
+                
+                {/* Rejected Growers */}
+                <View className='flex-1 items-center'>
+                  <View className='h-10 w-10 bg-red-100 rounded-xl items-center justify-center mb-2'>
+                    <UserX size={16} color="#EF4444" />
+                  </View>
+                  <Text className='text-xl font-bold text-[#65435C]'>{growerStats.rejected}</Text>
+                  <Text className='text-xs text-gray-500 text-center'>Rejected</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
     </View>
     </>
   )

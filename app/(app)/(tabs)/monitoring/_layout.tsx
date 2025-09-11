@@ -11,6 +11,13 @@ export default function MonitoringLayout() {
         }} 
       />
       <Stack.Screen 
+        name="surveyRegister" 
+        options={{ 
+          title: 'Survey Registers',
+          headerShown: false
+        }} 
+      />
+      <Stack.Screen 
         name="[id]" 
         options={{ 
           title: 'Survey Response',

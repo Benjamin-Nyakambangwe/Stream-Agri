@@ -11,7 +11,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as Location from 'expo-location';
 
 const SurveyResponse = () => {
-    const { id } = useLocalSearchParams()
+    const { id, registerId, surveyTitle } = useLocalSearchParams()
     const [questions, setQuestions] = useState<SurveyQuestionRecord[]>([])
     const [responses, setResponses] = useState<{[key: string]: any}>({})
     const [loading, setLoading] = useState(true)
@@ -62,7 +62,17 @@ const SurveyResponse = () => {
             const surveyRegister = await powersync.getAll(`SELECT id, grower_name, grower_number, production_cycle_id, production_cycle_registration_id FROM survey_register WHERE c010_status = 'draft' AND employee_id = ${employeeId} AND survey_id = ${id}`)
             console.log('surveyRegister', surveyRegister)
             console.log('Survey ID', id)
+            console.log('Register ID', registerId)
             setSurveyRegister(surveyRegister)
+            
+            // If registerId is provided, pre-select that register
+            if (registerId && surveyRegister.length > 0) {
+                const selectedRegister = surveyRegister.find((register: any) => register.id === registerId)
+                if (selectedRegister) {
+                    console.log('Pre-selecting register:', selectedRegister)
+                    setCurrentSurveyRegister(selectedRegister)
+                }
+            }
 
             // Fetch questions
             const questions = await powersync.getAll(`SELECT id, survey_id, question_type, title FROM survey_question WHERE survey_id = ${id}`)
@@ -644,7 +654,8 @@ const SurveyResponse = () => {
     return (
         <>
             <Stack.Screen options={{ 
-                title: 'Survey Response',
+                // title: 'Survey Response',
+                title: surveyTitle as string, 
                 headerTitleStyle: {
                     fontSize: 20,
                     fontWeight: 'bold',

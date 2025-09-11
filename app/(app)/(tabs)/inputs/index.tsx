@@ -213,25 +213,26 @@ const Inputs = () => {
       WHERE pcr.field_technician_id = ? AND icl.issue_state = 'received'
     `;
     
-    const result = powersync.watch(query, [employee_id], {
-      onResult: (result) => {
-        const data = result.rows?._array || [];
-        
-        // Group by production_cycle_registration_id
-        const groupedData = data.reduce((acc: {[key: string]: any[]}, item: any) => {
-          const registrationId = item.production_cycle_registration_id;
-          if (!acc[registrationId]) {
-            acc[registrationId] = [];
-          }
-          acc[registrationId].push(item);
-          return acc;
-        }, {});
-        
-        // console.log('Grouped Input Confirmation Lines Data Received:', groupedData);
-        setGrowerWithInputDataReceived(groupedData);
-        setLoadingReceived(false);
-      }
-    });
+    try {
+      const data = await powersync.getAll(query, [employee_id]);
+      
+      // Group by production_cycle_registration_id
+      const groupedData = data.reduce((acc: {[key: string]: any[]}, item: any) => {
+        const registrationId = item.production_cycle_registration_id;
+        if (!acc[registrationId]) {
+          acc[registrationId] = [];
+        }
+        acc[registrationId].push(item);
+        return acc;
+      }, {});
+      
+      // console.log('Grouped Input Confirmation Lines Data Received:', groupedData);
+      setGrowerWithInputDataReceived(groupedData);
+      setLoadingReceived(false);
+    } catch (error) {
+      console.error('Error fetching received input data:', error);
+      setLoadingReceived(false);
+    }
   }
 
   const getGrowerWithInputDataReturned = async () => {
@@ -261,26 +262,67 @@ const Inputs = () => {
       WHERE pcr.field_technician_id = ? AND icl.issue_state = 'returned'
     `;
     
-    const result = powersync.watch(query, [employee_id], {
-      onResult: (result) => {
-        const data = result.rows?._array || [];
-        
-        // Group by production_cycle_registration_id
-        const groupedData = data.reduce((acc: {[key: string]: any[]}, item: any) => {
-          const registrationId = item.production_cycle_registration_id;
-          if (!acc[registrationId]) {
-            acc[registrationId] = [];
-          }
-          acc[registrationId].push(item);
-          return acc;
-        }, {});
-        
-        // console.log('Grouped Input Confirmation Lines Data Returned:', groupedData);
-        setGrowerWithInputDataReturned(groupedData);
-        setLoadingReturned(false);
-      }
-    });
+    try {
+      const data = await powersync.getAll(query, [employee_id]);
+      
+      // Group by production_cycle_registration_id
+      const groupedData = data.reduce((acc: {[key: string]: any[]}, item: any) => {
+        const registrationId = item.production_cycle_registration_id;
+        if (!acc[registrationId]) {
+          acc[registrationId] = [];
+        }
+        acc[registrationId].push(item);
+        return acc;
+      }, {});
+      
+      // console.log('Grouped Input Confirmation Lines Data Returned:', groupedData);
+      setGrowerWithInputDataReturned(groupedData);
+      setLoadingReturned(false);
+    } catch (error) {
+      console.error('Error fetching returned input data:', error);
+      setLoadingReturned(false);
+    }
   }
+
+
+//   const query = `
+//   SELECT 
+//     icl.*,
+//     pcr.first_name,
+//     pcr.surname,
+//     pcr.grower_name,
+//     pcr.b010_contract_scale as contracted_hectares,
+//     pcr.production_cycle_name,
+//     ic.grv_number,
+//     ic.date_input,
+//     ic.state as confirmation_state,
+//     ip.name as input_pack_name,
+//     ip.code as input_pack_code
+//   FROM odoo_gms_input_confirmations_lines icl
+//   LEFT JOIN odoo_gms_production_cycle_registration pcr 
+//     ON icl.production_cycle_registration_id = pcr.id
+//   LEFT JOIN odoo_gms_input_confirmations ic 
+//     ON icl.input_confirmations_id = ic.id
+//   LEFT JOIN odoo_gms_input_pack ip 
+//     ON ic.input_pack_id = ip.id
+//   WHERE pcr.field_technician_id = ? AND icl.issue_state = 'returned'
+// `;
+
+// const result = powersync.watch(query, [employee_id], {
+//   onResult: (result) => {
+//     const data = result.rows?._array || [];
+    
+//     // Group by production_cycle_registration_id
+//     const groupedData = data.reduce((acc: {[key: string]: any[]}, item: any) => {
+//       const registrationId = item.production_cycle_registration_id;
+//       if (!acc[registrationId]) {
+//         acc[registrationId] = [];
+//       }
+//       acc[registrationId].push(item);
+//       return acc;
+//     }, {});
+//   }
+// });
 
 // Update pending uploads count
 const updatePendingUploadsCount = async () => {

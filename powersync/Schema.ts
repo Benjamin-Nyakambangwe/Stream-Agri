@@ -753,6 +753,29 @@ const survey_register = new Table(
   { indexes: {} }
 );
 
+const odoo_gms_hr_management = new Table(
+  {
+    // id column (text) is automatically included
+    manager: column.integer,
+    employee: column.integer,
+    production_cycle_id: column.integer,
+    region_id: column.integer,
+    target_grower_count: column.integer,
+    target_grower_hectares: column.integer,
+    supervisor: column.integer,
+    regional_supervisor: column.integer,
+    regional_manager: column.integer,
+    chairman_registration_id: column.integer,
+    actual_grower_count: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    create_date: column.text,
+    write_date: column.text,
+    actual_grower_hectares: column.real
+  },
+  { indexes: {} }
+);
+
 const media_files = new Table({
   id: column.integer,
   mobile_grower_image: column.text,
@@ -800,7 +823,8 @@ export const AppSchema = new Schema({
   odoo_gms_collection_point,
   survey_register,
   media_files,
-  grower_application_drafts
+  grower_application_drafts,
+  odoo_gms_hr_management
 });
 
 
@@ -831,3 +855,4 @@ export type CollectionPointRecord = Database['odoo_gms_collection_point'];
 export type SurveyRegisterRecord = Database['survey_register'];
 export type MediaFilesRecord = Database['media_files'];
 export type GrowerApplicationDraftRecord = Database['grower_application_drafts'];
+export type OdooGmsHrManagementRecord = Database['odoo_gms_hr_management'];

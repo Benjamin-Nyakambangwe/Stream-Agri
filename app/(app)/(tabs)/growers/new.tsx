@@ -125,11 +125,59 @@ export default function NewGrowerApplicationModal() {
 
   const getRegion = async () => {
     console.log('Getting Region');
-    const region = await powersync.execute(`SELECT * FROM odoo_gms_region`);
-    const rows = region.rows?._array || [];
-    setRegionList(rows);
-    setRegion(rows[0].id);
-    // console.log('Region', rows);
+    
+    try {
+      // Get current employee ID from secure store
+      const employeeId = await SecureStore.getItemAsync('odoo_employee_id');
+      const currentEmployeeId = employeeId || '148'; // fallback to default
+      
+      // Static production cycle ID as requested
+      // TODO: REMOVE THIS WHEN WE SETUP ODOO PARAMETERS
+      const productionCycleId = 2; // You can change this to any production cycle ID
+      
+      console.log('Fetching regions for employee ID:', currentEmployeeId, 'and production cycle:', productionCycleId);
+      
+      // Get the user's accessible regions from HR management with both employee and production cycle filters
+      const userRegions = await powersync.execute(`
+        SELECT DISTINCT region_id 
+        FROM odoo_gms_hr_management 
+        WHERE employee = ? AND production_cycle_id = ?
+      `, [currentEmployeeId, productionCycleId]);
+      
+      const userRegionIds = userRegions.rows?._array?.map((row: any) => row.region_id) || [];
+      console.log('User accessible region IDs for production cycle', productionCycleId, ':', userRegionIds);
+      
+      if (userRegionIds.length === 0) {
+        console.log('No regions found for employee', currentEmployeeId, 'in production cycle', productionCycleId);
+        setRegionList([]);
+        return;
+      }
+      
+      // Now get the region details for the accessible regions
+      const placeholders = userRegionIds.map(() => '?').join(',');
+      const region = await powersync.execute(`
+        SELECT * FROM odoo_gms_region 
+        WHERE id IN (${placeholders})
+        ORDER BY name
+      `, userRegionIds);
+      
+      const rows = region.rows?._array || [];
+      console.log('Filtered regions for user and production cycle:', rows);
+      
+      setRegionList(rows);
+      if (rows.length > 0) {
+        setRegion(rows[0].id);
+      }
+    } catch (error) {
+      console.error('Error fetching user regions:', error);
+      // Fallback to all regions if there's an error
+      const region = await powersync.execute(`SELECT * FROM odoo_gms_region`);
+      const rows = region.rows?._array || [];
+      setRegionList(rows);
+      if (rows.length > 0) {
+        setRegion(rows[0].id);
+      }
+    }
   }
 
   const getActivity = async () => {
@@ -783,9 +831,13 @@ if (photo?.base64) {
                       selectedValue={region}
                       onValueChange={(itemValue) => setRegion(itemValue)}
                     >
-                      {regionList.map((item: any) => (
-                        <Picker.Item key={item.id} label={item.name} value={item.id} />
-                      ))}
+                      {regionList.length > 0 ? (
+                        regionList.map((item: any) => (
+                          <Picker.Item key={item.id} label={item.name} value={item.id} />
+                        ))
+                      ) : (
+                        <Picker.Item label="No regions assigned" value="" />
+                      )}
                       </Picker>
                     </View>
                 </View>

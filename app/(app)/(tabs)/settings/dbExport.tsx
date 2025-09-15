@@ -8,8 +8,7 @@ import { forceRunImageUploadService } from '@/utils/imageUploadService'
 import { SignaturePad } from '@/components/SignaturePad'
 import { powersync } from '@/powersync/system'
 
-const Settings = () => {
-  const { signOut } = useSession()
+const DBExport = () => {
   const [exporting, setExporting] = useState<string | null>(null)
   const [exportingAll, setExportingAll] = useState(false)
 
@@ -19,6 +18,7 @@ const Settings = () => {
       forceRunImageUploadService().catch(error => 
         console.log('Settings image upload check failed:', error)
       );
+      getSavedSignatures()
     }, [])
   );
 
@@ -79,28 +79,27 @@ const Settings = () => {
     }
   };
 
+  // Get all saved signatures
+  const getSavedSignatures = async () => {
+    // const result = await powersync.execute(`SELECT id, mobile_grower_image FROM media_files WHERE mobile_grower_image IS NOT NULL AND model = 'odoo_gms_grower_application'`)
+    // // const result = await powersync.execute(`DELETE FROM media_files`)
+    // const signatures = result.rows?._array
+    // console.log('Signatures:', signatures)
+    // return signatures
+  }
+
   return (
     <>
       <Stack.Screen options={{ 
-        title: "Settings",
+        title: "DB Export",
         headerShown: true,
-        headerRight: () => (
-          <TouchableOpacity onPress={() => {
-            signOut()
-          }}>
-            <View className="flex-row items-center gap-2 mr-4 ">
-              <LogOut size={20} color="#FF0000" />
-              <Text className="text-lg font-bold text-[#65435C]">Logout</Text>
-            </View>
-          </TouchableOpacity>
-        )
       }} />
       <View className="flex-1 p-4 bg-[#65435C]">
-        {/* <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false}>
           <View className="bg-white rounded-2xl p-4 mb-4">
-            <Text className="text-xl font-semibold text-[#65435C] mb-4">App Settings</Text>
+            <Text className="text-xl font-semibold text-[#65435C] mb-4">DB Export</Text>
             
-            // Export All Button
+            {/* Export All Button */}
             <TouchableOpacity 
               onPress={handleExportAll}
               disabled={exportingAll}
@@ -118,7 +117,7 @@ const Settings = () => {
               </Text>
             </TouchableOpacity>
 
-            // Individual Table Export Buttons
+            {/* Individual Table Export Buttons */}
             <Text className="text-lg font-semibold text-[#65435C] mb-3">Export Individual Tables</Text>
             <View className="space-y-2">
               {EXPORT_TABLES.map((table) => (
@@ -151,11 +150,11 @@ const Settings = () => {
               ))}
             </View>
           </View>
-        </ScrollView> */}
-        <SignaturePad onSignatureSaved={handleSignatureSaved} />
+        </ScrollView>
+        {/* <SignaturePad onSignatureSaved={handleSignatureSaved} /> */}
       </View>
     </>
   )
 }
 
-export default Settings
+export default DBExport

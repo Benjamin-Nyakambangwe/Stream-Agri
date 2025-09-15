@@ -19,6 +19,13 @@ export default function InputsLayout() {
           animation: 'slide_from_bottom', // Animation style
         }} 
       />
+      <Stack.Screen 
+        name="signature" 
+        options={{ 
+          title: 'Signature',
+          headerShown: false, 
+        }} 
+      />
       
     </Stack>
   );

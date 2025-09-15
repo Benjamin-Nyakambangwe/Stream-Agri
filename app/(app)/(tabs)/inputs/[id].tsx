@@ -10,6 +10,9 @@ import * as Location from 'expo-location';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as Crypto from 'expo-crypto';
 import { useNetwork } from '@/NetworkContext';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { SignaturePad } from '@/components/SignaturePad';
+import { forceRunImageUploadService } from '@/utils/imageUploadService';
 
 // Define interfaces for your data types
 interface Grower {
@@ -72,9 +75,10 @@ export default function GrowerModal() {
         SELECT cv.id, cv.state, cv.driver_name, cv.driver_national_id, tr.name as truck_name, tr.reg_number
         FROM odoo_gms_collection_voucher cv
         LEFT JOIN odoo_gms_truck_reg tr ON cv.truck_id = tr.id
-        WHERE cv.state = 'ordered'
         ORDER BY cv.name
       `);
+
+      //TODO: Filter out only ordered vouchers eg WHERE cv.state = 'ordered'
       console.log('Collection Vouchers:', result);
       setCollectionVouchers(result);
     } catch (error) {
@@ -149,6 +153,43 @@ export default function GrowerModal() {
     }
   };
 
+  const compressImage = async (base64Image: string, imageType: 'grower_image' | 'grower_national_id'): Promise<string> => {
+    try {
+      // Convert base64 to URI format if not already
+      const imageUri = base64Image.startsWith('data:image')
+        ? base64Image
+        : `data:image/jpg;base64,${base64Image}`;
+
+      // Compress the image using ImageManipulator
+      // TODO: Upgrade package to latest version
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        imageUri,
+        [
+          // Resize to max width while maintaining aspect ratio
+          // Photos need higher resolution than signatures - 1200px is good for portraits
+          { resize: { width: 1200 } }
+        ],
+        {
+          compress: 0.35, // Compress to 35% quality (good balance for photos)
+          format: ImageManipulator.SaveFormat.JPEG, // JPEG is smaller than PNG for photos
+          base64: true // Return as base64
+        }
+      );
+
+      // Log size comparison for debugging
+      const originalSize = base64Image.length;
+      const compressedSize = (manipulatedImage.base64 || '').length;
+      const reduction = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+      console.log(`${imageType} image compressed: ${originalSize} → ${compressedSize} bytes (${reduction}% reduction)`);
+
+      return manipulatedImage.base64 || '';
+    } catch (error) {
+      console.error(`Error compressing ${imageType} image:`, error);
+      // Fall back to original if compression fails
+      return base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
+    }
+  };
+
   if (!permission) {
     return <View />;
   }
@@ -182,12 +223,16 @@ export default function GrowerModal() {
         
         const paddedBase64 = fixBase64Padding(base64Data);
         
+        // Compress the image based on camera type
+        const imageType = activeCamera === 'grower_image' ? 'grower_image' : 'grower_national_id';
+        const compressedBase64 = await compressImage(paddedBase64, imageType);
+        
         if (activeCamera === 'grower_image') {
-          setMobileGrowerImage(`data:image/jpg;base64,${paddedBase64}`);
-          setMobileGrowerImageEncoded(paddedBase64);
+          setMobileGrowerImage(`data:image/jpg;base64,${compressedBase64}`);
+          setMobileGrowerImageEncoded(compressedBase64);
         } else if (activeCamera === 'grower_national_id') {
-          setMobileGrowerNationalIdImage(`data:image/jpg;base64,${paddedBase64}`);
-          setMobileGrowerNationalIdImageEncoded(paddedBase64);
+          setMobileGrowerNationalIdImage(`data:image/jpg;base64,${compressedBase64}`);
+          setMobileGrowerNationalIdImageEncoded(compressedBase64);
         }
       }
       
@@ -301,6 +346,8 @@ export default function GrowerModal() {
     }
   };
 
+  
+
 
 
   const updateInputIssue = async (item: any) => {
@@ -312,7 +359,7 @@ export default function GrowerModal() {
     await powersync.execute(`
       INSERT INTO media_files (id, mobile_grower_image, mobile_grower_national_id_image, create_date, write_date, model)
       VALUES (?, ?, ?, ?, ?, ?)
-    `, [UUID, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, new Date().toISOString(), new Date().toISOString(), 'odoo_gms_input_confirmations_lines']);
+    `, [item.id, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, new Date().toISOString(), new Date().toISOString(), 'odoo_gms_input_confirmations_lines']);
 
     if (!selectedCollectionVoucher) {
       Alert.alert('Missing Collection Voucher', 'Please select a collection voucher before confirming.');
@@ -538,8 +585,11 @@ export default function GrowerModal() {
 
                 {inputConfirmationLineDataArray.map((item: any, index: number) => (
                   <View className="flex-row justify-between items-center py-3 border-b border-gray-100" key={index}>
-                    <Text className="text-gray-900 text-lg font-bold">{item.issued_packs} * {item.product_group_name}</Text>
+                    <View className="w-1/2">
+                      <Text className="text-gray-900 text-md font-bold">{item.issued_packs} * {item.product_group_name}</Text>
+                    </View>
                      
+                     <View className="w-1/2">
                      {item.issue_state === 'issued' ? (
                        <View className="flex-row justify-between items-center py-3 border-b border-gray-100 gap-2.5" >
                          <TouchableOpacity 
@@ -570,6 +620,7 @@ export default function GrowerModal() {
                          </Text>
                        </View>
                      )}
+                     </View>
                    </View>
 
                  ))}
@@ -620,8 +671,10 @@ export default function GrowerModal() {
             {/* Confirmation Popup Modal */}
             <Modal 
               visible={showConfirmationPopup} 
-              animationType="slide" 
-              presentationStyle="pageSheet"
+              // animationType="slide" 
+              // presentationStyle="pageSheet"
+               animationType="none" 
+              presentationStyle="overFullScreen"
             >
               <SafeAreaView className="flex-1 bg-[#65435C]">
                 <View className="flex-1 mt-6">
@@ -703,6 +756,21 @@ export default function GrowerModal() {
                           ))}
                         </Picker> */}
 
+<TouchableOpacity 
+                         className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-300 items-center justify-center"
+                         onPress={() => router.push({
+                          pathname: '/inputs/signature',
+                          params: {
+                            id: currentInputConfirmationLineData?.id,
+                            name: currentInputConfirmationLineData?.first_name + ' ' + currentInputConfirmationLineData?.surname,
+                            input_pack_name: currentInputConfirmationLineData?.product_group_name,
+                            uuid: UUID
+                          }
+                        })}
+                       >
+                         <Text className="text-[#65435C] font-semibold mb-2 text-xl text-uppercase"> Grower Signature</Text>
+                       </TouchableOpacity>
+
 
                       {/* Collection Voucher Select */}
                       <View className="bg-gray-50 rounded-xl p-4 mb-6">
@@ -763,6 +831,8 @@ export default function GrowerModal() {
                           )}
                         </View>
                       </View>
+
+
 
                       {/* Grower Info Summary */}
                       <View className="bg-gray-50 rounded-xl p-4 mb-6">

@@ -72,6 +72,14 @@ export const EXPORT_TABLES: ExportTable[] = [
   {name: 'media_files',
     displayName: 'Media Files',
     query: 'SELECT * FROM media_files'
+  },
+  {name: 'odoo_gms_collection_voucher',
+    displayName: 'Collection Vouchers',
+    query: 'SELECT * FROM odoo_gms_collection_voucher'
+  },
+  {name: 'odoo_gms_truck_reg',
+    displayName: 'Truck Registrations',
+    query: 'SELECT * FROM odoo_gms_truck_reg'
   }
 
 ];

@@ -523,7 +523,7 @@ export class Connector implements PowerSyncBackendConnector {
           
           // console.log('Sending PATCH request:', patchOptions);
           const response = await axios.request(patchOptions);
-          // console.log('PATCH response:', response.data);
+          console.log('PATCH response:', response.data);
           console.log('PATCH response:');
           console.log('#####################################################')
           // console.log('PATCHED RECORD', newRecordDataToSend)

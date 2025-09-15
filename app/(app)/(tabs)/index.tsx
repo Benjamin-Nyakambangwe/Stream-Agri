@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native'
+import { View, Text, TouchableOpacity, Dimensions, ActivityIndicator, ScrollView } from 'react-native'
 import React, { useCallback, useState, useEffect } from 'react'
 import { CircleUserRound, FolderSync, Wifi, Users, Settings, BarChart, Leaf, ChevronRight, Building, UserCheck, FileCheck, UserX, User } from 'lucide-react-native';
 
@@ -9,6 +9,7 @@ import { useNetwork } from '@/NetworkContext';
 import { forceRunImageUploadService, getUploadPendingCount } from '@/utils/imageUploadService';
 import * as SecureStore from 'expo-secure-store';
 import { powersync } from '@/powersync/system';
+import { ResCompanyRecord } from '@/powersync/Schema';
 
 
 const index = () => {
@@ -17,6 +18,7 @@ const index = () => {
   const { isConnected } = useNetwork()
   const [pendingUploads, setPendingUploads] = useState(0);
   const [serverIP, setServerIP] = useState<string | null>(null);
+  const [companyInfo, setCompanyInfo] = useState<ResCompanyRecord | null>(null);
   const [growerStats, setGrowerStats] = useState({
     total: 0,
     approved: 0,
@@ -38,6 +40,7 @@ const index = () => {
     };
     getServerIP();
     fetchGrowerStats();
+    fetchCompanyInfo();
   }, []);
   
   // Update pending uploads count
@@ -49,6 +52,12 @@ const index = () => {
       console.error('Error getting pending uploads count:', error);
       setPendingUploads(0);
     }
+  };
+
+  const fetchCompanyInfo = async () => {
+    const companyInfo = await powersync.execute(`SELECT * FROM res_company`);
+    console.log('Company info:', companyInfo);
+    setCompanyInfo(companyInfo.rows?._array?.[0] || null);
   };
 
   // Fetch grower statistics filtered by current employee
@@ -92,22 +101,22 @@ const index = () => {
       const approvedGrowers = await powersync.execute(`
         SELECT COUNT(*) as count 
         FROM odoo_gms_grower_application 
-        WHERE state = 'approved' AND region_id IN (${placeholders})
-      `, userRegionIds);
+        WHERE state = 'approved' AND field_technician_id = ?
+      `, [currentEmployeeId]);
       
       // 3. Contracted growers (from production cycle registration)
       const contractedGrowers = await powersync.execute(`
         SELECT COUNT(DISTINCT grower_id) as count 
         FROM odoo_gms_production_cycle_registration 
-        WHERE region_id IN (${placeholders})
-      `, userRegionIds);
+        WHERE field_technician_id = ?
+      `, [currentEmployeeId]);
       
       // 4. Rejected growers (from grower applications)
       const rejectedGrowers = await powersync.execute(`
         SELECT COUNT(*) as count 
         FROM odoo_gms_grower_application 
-        WHERE state = 'rejected' AND region_id IN (${placeholders})
-      `, userRegionIds);
+        WHERE state = 'rejected' AND field_technician_id = ?
+      `, [currentEmployeeId]);
       
       setGrowerStats({
         total: totalGrowers.rows?._array?.[0]?.count || 0,
@@ -188,13 +197,14 @@ const index = () => {
           <View className='flex flex-row items-center gap-2 ml-4'>
             <Building size={25} color="#1AD3BB" />
             {/* <Text className="ml-1 text-[#65435C] font-semibold">{session?.name}</Text> */}
-            <Text className="text-2xl ml-1 text-[#65435C] font-semibold">{serverIP?.includes('clt') ? 'CURVERID' : 'TCOZ'}</Text>
+            <Text className="text-md ml-1 text-[#65435C] font-semibold capitalize w-[80%]">{companyInfo?.name}</Text>
           </View>
         </TouchableOpacity>
       ),
       
       
     }} />
+    <ScrollView>
     <View className='flex-1 p-4 bg-[#65435C]'>
       {/* Welcome Card */}
       <View className='bg-white rounded-2xl p-4 mb-4 mt-4 shadow-sm'>
@@ -350,6 +360,7 @@ const index = () => {
           </View>
         </View>
     </View>
+    </ScrollView>
     </>
   )
 }

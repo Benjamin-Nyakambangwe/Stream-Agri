@@ -392,7 +392,8 @@ const odoo_gms_input_confirmations_lines = new Table(
     // mobile_grower_image: column.text,
     // mobile_grower_national_id_image: column.text,
     grower_image_url: column.text,
-    grower_national_id_image_url: column.text
+    grower_national_id_image_url: column.text,
+    signature_url: column.text
   },
   { 
     indexes: {
@@ -776,10 +777,59 @@ const odoo_gms_hr_management = new Table(
   { indexes: {} }
 );
 
+
+const res_company = new Table(
+  {
+    // id column (text) is automatically included
+    name: column.text,
+    partner_id: column.integer,
+    currency_id: column.integer,
+    sequence: column.integer,
+    create_date: column.text,
+    parent_path: column.text,
+    parent_id: column.integer,
+    paperformat_id: column.integer,
+    external_report_layout_id: column.integer,
+    create_uid: column.integer,
+    write_uid: column.integer,
+    email: column.text,
+    phone: column.text,
+    mobile: column.text,
+    font: column.text,
+    primary_color: column.text,
+    secondary_color: column.text,
+    layout_background: column.text,
+    company_details: column.text,
+    active: column.integer,
+    uses_default_logo: column.integer,
+    logo_web: column.text,
+    partner_gid: column.integer,
+    qr_code: column.integer,
+    signing_user: column.integer,
+    website_id: column.integer
+  },
+  { indexes: {} }
+);
+
+
+const ir_config_parameter = new Table(
+  {
+    // id column (text) is automatically included
+    create_uid: column.integer,
+    write_uid: column.integer,
+    key: column.text,
+    value: column.text,
+    create_date: column.text,
+    write_date: column.text
+  },
+  { indexes: {} }
+);
+
 const media_files = new Table({
-  id: column.integer,
+  id: column.text, // Changed from integer to text to support UUID strings
   mobile_grower_image: column.text,
   mobile_grower_national_id_image: column.text,
+  mobile_signature_image: column.text,
   model: column.text,
   create_date: column.text,
   write_date: column.text
@@ -824,8 +874,14 @@ export const AppSchema = new Schema({
   survey_register,
   media_files,
   grower_application_drafts,
-  odoo_gms_hr_management
+  odoo_gms_hr_management,
+  res_company,
+  ir_config_parameter
 });
+
+
+
+
 
 
 // For types
@@ -856,3 +912,5 @@ export type SurveyRegisterRecord = Database['survey_register'];
 export type MediaFilesRecord = Database['media_files'];
 export type GrowerApplicationDraftRecord = Database['grower_application_drafts'];
 export type OdooGmsHrManagementRecord = Database['odoo_gms_hr_management'];
+export type ResCompanyRecord = Database['res_company'];
+export type IrConfigParameterRecord = Database['ir_config_parameter'];

@@ -22,6 +22,8 @@ export function SignaturePad({ onSignatureSaved }: SignaturePadProps) {
         return;
       }
 
+      drawPadRef.current?.play()
+
       // Capture the signature as base64 using Expo's captureRef
       const signatureUri = await captureRef(viewRef, {
         format: 'png',
@@ -70,12 +72,12 @@ export function SignaturePad({ onSignatureSaved }: SignaturePadProps) {
           <Text>Clear Signature</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity
+        {/* <TouchableOpacity
           className="p-4 bg-gray-100 rounded-md items-center flex-1 mx-1"
           onPress={() => drawPadRef.current?.play()}
         >
           <Text>Replay Signature</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TouchableOpacity
           className="p-4 bg-blue-500 rounded-md items-center flex-1 ml-2"

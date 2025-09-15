@@ -11,6 +11,7 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 // Define interfaces for your data types
 interface GrowerApplication {
@@ -227,12 +228,16 @@ export default function GrowerApplicationFromExisting() {
         
         const paddedBase64 = fixBase64Padding(base64Data);
         
+        // Compress the image based on camera type
+        const imageType = activeCamera === 'grower' ? 'grower' : 'id';
+        const compressedBase64 = await compressImage(paddedBase64, imageType);
+        
         if (activeCamera === 'grower') {
-          setGrowerImage(`data:image/jpg;base64,${paddedBase64}`);
-          setGrowerImageEncoded(paddedBase64);
+          setGrowerImage(`data:image/jpg;base64,${compressedBase64}`);
+          setGrowerImageEncoded(compressedBase64);
         } else if (activeCamera === 'id') {
-          setIdImage(`data:image/jpg;base64,${paddedBase64}`);
-          setIdImageEncoded(paddedBase64);
+          setIdImage(`data:image/jpg;base64,${compressedBase64}`);
+          setIdImageEncoded(compressedBase64);
         }
       }
       
@@ -376,6 +381,43 @@ export default function GrowerApplicationFromExisting() {
     console.log('Employee ID', employeeId);
     return employeeId;
   }
+
+  const compressImage = async (base64Image: string, imageType: 'grower' | 'id'): Promise<string> => {
+    try {
+      // Convert base64 to URI format if not already
+      const imageUri = base64Image.startsWith('data:image')
+        ? base64Image
+        : `data:image/jpg;base64,${base64Image}`;
+
+      // Compress the image using ImageManipulator
+      // TODO: Upgrade package to latest version
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        imageUri,
+        [
+          // Resize to max width while maintaining aspect ratio
+          // Photos need higher resolution than signatures - 1200px is good for portraits
+          { resize: { width: 1200 } }
+        ],
+        {
+          compress: 0.35, // Compress to 35% quality (good balance for photos)
+          format: ImageManipulator.SaveFormat.JPEG, // JPEG is smaller than PNG for photos
+          base64: true // Return as base64
+        }
+      );
+
+      // Log size comparison for debugging
+      const originalSize = base64Image.length;
+      const compressedSize = (manipulatedImage.base64 || '').length;
+      const reduction = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+      console.log(`${imageType} image compressed: ${originalSize} → ${compressedSize} bytes (${reduction}% reduction)`);
+
+      return manipulatedImage.base64 || '';
+    } catch (error) {
+      console.error(`Error compressing ${imageType} image:`, error);
+      // Fall back to original if compression fails
+      return base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-[#65435C]">

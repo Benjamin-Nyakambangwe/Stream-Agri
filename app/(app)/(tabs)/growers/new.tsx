@@ -4,8 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { ChevronLeft, MapPinPlus, Pencil, X, Camera, CalendarIcon } from 'lucide-react-native';
 import { powersync } from '@/powersync/system';
 import { Picker } from '@react-native-picker/picker';
-import { DistributionPlanRecord, FlagsRecord, ProductionSchemeRecord, RegionRecord, GrowerApplicationDraftRecord } from '@/powersync/Schema';
-import axios from 'axios';
+import { GrowerApplicationDraftRecord } from '@/powersync/Schema';
 import * as Location from 'expo-location';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -13,7 +12,6 @@ import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import * as ImageManipulator from 'expo-image-manipulator';
 
-// Define interfaces for your data types
 interface GrowerApplication {
   grower_number: string;
   production_cycle_id: string;
@@ -37,9 +35,6 @@ interface GrowerApplication {
   field_latitude: string;
   field_longitude: string;
 }
-
-
-
 
 export default function NewGrowerApplicationModal() {
   const [firstName, setFirstName] = useState<string>('');
@@ -88,23 +83,13 @@ export default function NewGrowerApplicationModal() {
   const cameraRef = useRef<CameraView>(null);
   const UUID = Crypto.randomUUID();
 
-  // Add state for showing date picker
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Draft management state
   const [drafts, setDrafts] = useState<GrowerApplicationDraftRecord[]>([]);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [showSaveDraftModal, setShowSaveDraftModal] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
-
-  // const getProductionCycleRegistration = async () => {
-  //   console.log('Getting Production Cycle Registration');
-  //   const productionCycleRegistration = await powersync.execute(`SELECT * FROM odoo_gms_production_cycle_registration`);
-  //   const rows = productionCycleRegistration.rows?._array || [];
-  //   setProductionCycleRegistrationList(rows);
-  //   console.log('Production Cycle Registration', rows);
-  // }
 
   const getProductionCycle = async () => {
     console.log('Getting Production Cycle');
@@ -112,7 +97,6 @@ export default function NewGrowerApplicationModal() {
     const rows = productionCycle.rows?._array || [];
     setProductionCycleList(rows);
     setProductionCycle(rows[0].id);
-    // console.log('Production Cycle', rows);
   }
 
   const getProductionScheme = async () => {
@@ -121,23 +105,16 @@ export default function NewGrowerApplicationModal() {
     const rows = productionScheme.rows?._array || [];
     setProductionSchemeList(rows);
     setProductionScheme(rows[0].id);
-    // console.log('Production Scheme', rows);
   }
 
   const getRegion = async () => {
     console.log('Getting Region');
-    
     try {
-      // Get current employee ID from secure store
       const employeeId = await SecureStore.getItemAsync('odoo_employee_id');
-      const currentEmployeeId = employeeId || '148'; // fallback to default
-      
-      // Static production cycle name - always CY26
+      const currentEmployeeId = employeeId || '';
       const productionCycleName = 'CY26';
-      
       console.log('Fetching regions for employee ID:', currentEmployeeId, 'and production cycle name:', productionCycleName);
-      
-      // Get the user's accessible regions from HR management using production cycle name
+
       const userRegions = await powersync.execute(`
         SELECT DISTINCT region_id 
         FROM odoo_gms_hr_management 
@@ -208,28 +185,23 @@ export default function NewGrowerApplicationModal() {
 
   const compressImage = async (base64Image: string, imageType: 'grower' | 'id'): Promise<string> => {
     try {
-      // Convert base64 to URI format if not already
       const imageUri = base64Image.startsWith('data:image')
         ? base64Image
         : `data:image/jpg;base64,${base64Image}`;
 
-      // Compress the image using ImageManipulator
       // TODO: Upgrade package to latest version
       const manipulatedImage = await ImageManipulator.manipulateAsync(
         imageUri,
         [
-          // Resize to max width while maintaining aspect ratio
-          // Photos need higher resolution than signatures - 1200px is good for portraits
           { resize: { width: 1200 } }
         ],
         {
-          compress: 0.35, // Compress to 35% quality (good balance for photos)
-          format: ImageManipulator.SaveFormat.JPEG, // JPEG is smaller than PNG for photos
-          base64: true // Return as base64
+          compress: 0.35, 
+          format: ImageManipulator.SaveFormat.JPEG,
+          base64: true
         }
       );
 
-      // Log size comparison for debugging
       const originalSize = base64Image.length;
       const compressedSize = (manipulatedImage.base64 || '').length;
       const reduction = ((1 - compressedSize / originalSize) * 100).toFixed(1);
@@ -392,19 +364,17 @@ export default function NewGrowerApplicationModal() {
     // getProductionCycleRegistration();
     getProductionCycle();
     getProductionScheme();
-    getRegion(); // Now using static CY26
+    getRegion(); 
     getActivity();
     getFieldTechnician();
-    loadDrafts(); // Load existing drafts
+    loadDrafts();
   }, []);
 
   if (!permission) {
-    // Camera permissions are still loading.
     return <View />;
   }
 
   if (!permission.granted) {
-    // Camera permissions are not granted yet.
     return (
       <View>
         <Text>We need your permission to show the camera</Text>
@@ -426,7 +396,6 @@ export default function NewGrowerApplicationModal() {
       if (photo?.base64) {
         const base64Data = photo.base64;
         
-        // Proper base64 padding fix
         const fixBase64Padding = (str: string) => {
           // Remove any existing padding
           const cleanStr = str.replace(/=/g, "");
@@ -505,7 +474,8 @@ export default function NewGrowerApplicationModal() {
       { column: 'barn_latitude', value: barnLatitude },
       { column: 'barn_longitude', value: barnLongitude },
       { column: 'field_latitude', value: fieldLatitude },
-      { column: 'field_longitude', value: fieldLongitude }
+      { column: 'field_longitude', value: fieldLongitude },
+      { column: 'mobile_app_id', value: UUID }
     ];
 
     // Filter out empty values (keep required fields and non-empty values)
@@ -534,51 +504,6 @@ export default function NewGrowerApplicationModal() {
       console.error('Error creating grower application:', error);
       alert('Error creating grower application');
     }
-
-
-// try {
-//   console.log('#############################iMAGE#############################')
-//   // console.log(growerImage)
-//   // console.log(idImage)
-
-//   console.log('Date Of Birth', dateOfBirth)
-//   console.log('Grower Image', growerImage)  
-//   console.log('Id Image', idImage)
-  
-//   const options = {
-//     method: 'POST',
-//     url: 'http://45.84.138.225:8069/api/fo/create-grower',
-//   headers: {
-//     'Content-Type': 'application/json',
-//     'User-Agent': 'insomnia/11.1.0',
-//     'X-FO-TOKEN': 'e0925492-77cb-4a4e-a85d-fc0ea1312f4b'
-//   },
-//   data: {
-//     b010_first_name: firstName,
-//     b020_surname: surname,
-//     b030_national_id: nationalId,
-//     b040_phone_number: phoneNumber,
-//     date_of_birth: dateOfBirth,
-//     gender: gender,
-//     grower_image: growerImageEncoded,
-//     grower_national_id_image: idImageEncoded,
-//     grower_number: growerNumber,
-//     is_from_mobile: true,
-//     longitude: longitude,
-//     latitude: latitude,
-//     state: 'draft'
-//   }
-// };
-
-// axios.request(options).then(function (response) {
-//   console.log(response.data);
-// }).catch(function (error) {
-//   console.error(error);
-// })
-// } catch (error) {
-//   console.error(error);
-// }
-
 
     // Delete the draft if it was loaded from an existing draft
     if (selectedDraftId) {

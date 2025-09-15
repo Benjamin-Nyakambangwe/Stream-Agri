@@ -132,6 +132,7 @@ const odoo_gms_grower_application = new Table(
   {
     // id column (text) is automatically included
     id: column.text,
+    mobile_app_id: column.text,
     grower_id: column.integer,
     production_cycle_id: column.integer,
     production_cycle_registration_id: column.integer,
@@ -174,8 +175,8 @@ const odoo_gms_grower_application = new Table(
     b030_contracted_volume: column.real,
     b040_contracted_price: column.real,
     b050_contracted_return: column.real,
-    grower_image: column.text,
-    grower_national_id_image: column.text,
+    // grower_image: column.text,
+    // grower_national_id_image: column.text,
     grower_image_url: column.text,
     grower_national_id_image_url: column.text
   },

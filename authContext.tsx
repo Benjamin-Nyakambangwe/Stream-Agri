@@ -8,6 +8,7 @@ import 'react-native-get-random-values';
 // import bcrypt from 'react-native-bcrypt';
 import * as Crypto from 'expo-crypto';
 import { startImageUploadService, stopImageUploadService } from '@/utils/imageUploadService';
+import { startGrowerApplicationImageUploadService, stopGrowerApplicationImageUploadService } from '@/utils/growerApplicationImageUploadService';
 
 // Define a type for the Odoo user data
 interface OdooUserData {
@@ -103,18 +104,21 @@ export function SessionProvider({ children }: PropsWithChildren): ReactNode {
     const parsedSession = session ? JSON.parse(session) : null;
     
     if (parsedSession && !isLoading) {
-      // User is authenticated, start the image upload service
-      console.log('🚀 User authenticated, starting image upload service');
+      // User is authenticated, start the image upload services
+      console.log('🚀 User authenticated, starting image upload services');
       startImageUploadService();
+      startGrowerApplicationImageUploadService();
     } else {
-      // User is not authenticated, stop the service
-      console.log('⏹️ User not authenticated, stopping image upload service');
+      // User is not authenticated, stop the services
+      console.log('⏹️ User not authenticated, stopping image upload services');
       stopImageUploadService();
+      stopGrowerApplicationImageUploadService();
     }
 
-    // Cleanup function to stop service when component unmounts
+    // Cleanup function to stop services when component unmounts
     return () => {
       stopImageUploadService();
+      stopGrowerApplicationImageUploadService();
     };
   }, [session, isLoading]);
 

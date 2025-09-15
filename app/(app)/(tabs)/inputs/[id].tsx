@@ -1,20 +1,13 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ScrollView, Alert, Modal, Image, Button } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Alert, Modal, Image, Button } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { CheckCheck, ChevronLeft, Pencil, X, Camera, MapPin, ChevronDown } from 'lucide-react-native';
+import { ChevronLeft, X, Camera, MapPin, ChevronDown } from 'lucide-react-native';
 import { powersync } from '@/powersync/system';
-import { Picker } from '@react-native-picker/picker';
-import { DistributionPlanRecord, FlagsRecord, InputConfirmationsLinesRecord, ProductionSchemeRecord, RegionRecord } from '@/powersync/Schema';
-import axios from 'axios';
 import * as Location from 'expo-location';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as Crypto from 'expo-crypto';
 import { useNetwork } from '@/NetworkContext';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { SignaturePad } from '@/components/SignaturePad';
-import { forceRunImageUploadService } from '@/utils/imageUploadService';
-
-// Define interfaces for your data types
 interface Grower {
   id?: string;
   grower_id?: string;
@@ -28,24 +21,15 @@ interface Grower {
   distribution_plan?: string;
   grower_flags?: string;
   production_cycle_name?: string;
-  [key: string]: any; // Allow any other properties
-}
-
-interface DistributionPlan {
-  id: string;
-  production_scheme_name: string;
-  production_cycle_name: string;
-  activity_name: string;
+  [key: string]: any; 
 }
 
 export default function GrowerModal() {
   const { isConnected } = useNetwork()
   const { id, grower_id, production_scheme, pcr_id } = useLocalSearchParams();
-  const [grower, setGrower] = useState<Grower | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inputConfirmationLineData, setInputConfirmationLineData] = useState<any>(null);
 
-  // Camera and location states
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [showCamera, setShowCamera] = useState<boolean>(false);
@@ -63,11 +47,12 @@ export default function GrowerModal() {
   const [collectionVouchers, setCollectionVouchers] = useState<any[]>([]);
   const [selectedCollectionVoucher, setSelectedCollectionVoucher] = useState<string>('');
   const [showVoucherDropdown, setShowVoucherDropdown] = useState<boolean>(false);
+  const [config, setConfig] = useState<string | null>(null);
+
 
   const cameraRef = useRef<CameraView>(null);
   const UUID = Crypto.randomUUID();
 
-  const [isEditing, setIsEditing] = useState(false);
 
   const getCollectionVouchers = async () => {
     try {
@@ -79,7 +64,7 @@ export default function GrowerModal() {
       `);
 
       //TODO: Filter out only ordered vouchers eg WHERE cv.state = 'ordered'
-      console.log('Collection Vouchers:', result);
+      // console.log('Collection Vouchers:', result);
       setCollectionVouchers(result);
     } catch (error) {
       console.error('Error fetching collection vouchers:', error);
@@ -117,8 +102,8 @@ export default function GrowerModal() {
 
     try {
       const result = await powersync.getAll(query, [pcr_id]);
-      console.log('Input Confirmation Line Data:', result);
-      const inputConfirmationLineData = result[0] || null; // Get first result since we expect one record
+      // console.log('Input Confirmation Line Data:', result);
+      const inputConfirmationLineData = result[0] || null;
       const inputConfirmationLineDataArray = result as any;
       setInputConfirmationLineData(inputConfirmationLineData);
       setInputConfirmationLineDataArray(inputConfirmationLineDataArray);
@@ -130,10 +115,21 @@ export default function GrowerModal() {
 
   useEffect(() => {
     requestPermission();
+    getConfig();
     getInputConfirmationLineData();
     getCollectionVouchers();
     getCurrentLocation();
   }, [id]);
+
+  const getConfig = async () => {
+    const result = await powersync.getAll(`
+      SELECT * FROM ir_config_parameter WHERE key = 'app_config'
+    `);
+    console.log('Config:', result);
+    // Only save the value field from the config
+    const configValue = result.length > 0 ? (result[0] as any).value : null;
+    setConfig(configValue);
+  };
 
   const getCurrentLocation = async () => {
     try {
@@ -146,7 +142,7 @@ export default function GrowerModal() {
       const location = await Location.getCurrentPositionAsync();
       setLatitude(location.coords.latitude.toString());
       setLongitude(location.coords.longitude.toString());
-      console.log('Current location:', location.coords.latitude, location.coords.longitude);
+      // console.log('Current location:', location.coords.latitude, location.coords.longitude);
     } catch (error) {
       console.error('Error getting location:', error);
       Alert.alert('Error', 'Could not get current location');
@@ -155,24 +151,20 @@ export default function GrowerModal() {
 
   const compressImage = async (base64Image: string, imageType: 'grower_image' | 'grower_national_id'): Promise<string> => {
     try {
-      // Convert base64 to URI format if not already
       const imageUri = base64Image.startsWith('data:image')
         ? base64Image
         : `data:image/jpg;base64,${base64Image}`;
 
-      // Compress the image using ImageManipulator
       // TODO: Upgrade package to latest version
       const manipulatedImage = await ImageManipulator.manipulateAsync(
         imageUri,
         [
-          // Resize to max width while maintaining aspect ratio
-          // Photos need higher resolution than signatures - 1200px is good for portraits
           { resize: { width: 1200 } }
         ],
         {
-          compress: 0.35, // Compress to 35% quality (good balance for photos)
-          format: ImageManipulator.SaveFormat.JPEG, // JPEG is smaller than PNG for photos
-          base64: true // Return as base64
+          compress: 0.35,
+          format: ImageManipulator.SaveFormat.JPEG,
+          base64: true
         }
       );
 
@@ -185,7 +177,6 @@ export default function GrowerModal() {
       return manipulatedImage.base64 || '';
     } catch (error) {
       console.error(`Error compressing ${imageType} image:`, error);
-      // Fall back to original if compression fails
       return base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
     }
   };
@@ -223,7 +214,6 @@ export default function GrowerModal() {
         
         const paddedBase64 = fixBase64Padding(base64Data);
         
-        // Compress the image based on camera type
         const imageType = activeCamera === 'grower_image' ? 'grower_image' : 'grower_national_id';
         const compressedBase64 = await compressImage(paddedBase64, imageType);
         
@@ -261,149 +251,31 @@ export default function GrowerModal() {
     setMobileGrowerNationalIdImageEncoded(null);
   };
 
-  const sendGrowerImageToServer = async (mobileGrowerImageEncoded: string) => {
-    console.log('Sending grower image to server');
-    // console.log('Mobile Grower Image Encoded:', mobileGrowerImageEncoded);
-
-    try {
-      const options = {
-        method: 'POST',
-        url: 'https://gmsapp.eport.systems/api/upload/',
-        headers: {'Content-Type': 'application/json'},
-        // timeout: 30000, // 30 second timeout
-        data: {
-          image: mobileGrowerImageEncoded,
-        }
-      };
-      
-      const response = await axios.request(options);
-      console.log('Grower image upload response:', response.data);
-      
-      if (response.data.error) {
-        console.error('Server error uploading grower image:', response.data.error);
-        throw new Error(response.data.error);
-      }
-      
-      if (!response.data.url) {
-        throw new Error('Server did not return image URL');
-      }
-      
-      return response.data.url;
-    } catch (error) {
-      console.error('Error uploading grower image:', error);
-      if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
-          throw new Error('Image upload timed out. Please check your internet connection and try again.');
-        } else if (error.response) {
-          throw new Error(`Server error: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`);
-        } else if (error.request) {
-          throw new Error('Network error. Please check your internet connection and try again.');
-        }
-      }
-      throw new Error('Failed to upload grower image. Please try again.');
-    }
-  };
-
-  const sendGrowerNationalIdImageToServer = async (mobileGrowerNationalIdImageEncoded: string) => {
-    console.log('Sending grower national ID image to server');
-
-    try {
-      const options = {
-        method: 'POST',
-        url: 'https://gmsapp.eport.systems/api/upload/',
-        headers: {'Content-Type': 'application/json'},
-        // timeout: 30000, // 30 second timeout
-        data: {
-          image: mobileGrowerNationalIdImageEncoded,
-        }
-      };
-
-      const response = await axios.request(options);
-      console.log('National ID image upload response:', response.data);
-
-      if (response.data.error) {
-        console.error('Server error uploading national ID image:', response.data.error);
-        throw new Error(response.data.error);
-      }
-
-      if (!response.data.url) {
-        throw new Error('Server did not return image URL');
-      }
-
-      return response.data.url;
-    } catch (error) {
-      console.error('Error uploading national ID image:', error);
-      if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
-          throw new Error('National ID image upload timed out. Please check your internet connection and try again.');
-        } else if (error.response) {
-          throw new Error(`Server error: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`);
-        } else if (error.request) {
-          throw new Error('Network error. Please check your internet connection and try again.');
-        }
-      }
-      throw new Error('Failed to upload national ID image. Please try again.');
-    }
-  };
-
-  
-
-
-
   const updateInputIssue = async (item: any) => {
-    if (!mobileGrowerImage || !mobileGrowerNationalIdImage || !latitude || !longitude) {
-      Alert.alert('Missing Images', 'Please capture both grower and national ID images before confirming.');
+
+    if (config && JSON.parse(config.replace(/,(\s*[}\]])/g, '$1')).inputs_confirmation == 'images') {
+        if (!mobileGrowerImage || !mobileGrowerNationalIdImage) {
+          Alert.alert('Missing Images', 'Please capture both grower and national ID images before confirming.');
+          return;
+        }
+    } else if (!latitude || !longitude) {
+      Alert.alert('Missing Location', 'Please capture the location before confirming.');
       return;
-    }
-
-    await powersync.execute(`
-      INSERT INTO media_files (id, mobile_grower_image, mobile_grower_national_id_image, create_date, write_date, model)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [item.id, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, new Date().toISOString(), new Date().toISOString(), 'odoo_gms_input_confirmations_lines']);
-
-    if (!selectedCollectionVoucher) {
+    } else if (!selectedCollectionVoucher) {
       Alert.alert('Missing Collection Voucher', 'Please select a collection voucher before confirming.');
       return;
     }
 
     setIsSubmitting(true);
+
+    await powersync.execute(`
+      INSERT INTO media_files (id, mobile_grower_image, mobile_grower_national_id_image, create_date, write_date, model)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [item.id, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, new Date().toISOString(), new Date().toISOString(), 'odoo_gms_input_confirmations_lines']);
     
     try {
       console.log('Starting image upload process...');
-      
-      // Upload images with proper error handling
       let growerImageUrl, growerNationalIdImageUrl;
-
-    //   if (isConnected) {
-      
-    //   try {
-    //     growerImageUrl = await sendGrowerImageToServer(mobileGrowerImageEncoded || '');
-    //     console.log('Grower image uploaded successfully');
-    //   } catch (error) {
-    //     console.error('Failed to upload grower image:', error);
-    //     Alert.alert('Upload Error', `Failed to upload grower image: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    //     return;
-    //   }
-      
-    //   try {
-    //     growerNationalIdImageUrl = await sendGrowerNationalIdImageToServer(mobileGrowerNationalIdImageEncoded || '');
-    //     console.log('National ID image uploaded successfully');
-    //   } catch (error) {
-    //     console.error('Failed to upload national ID image:', error);
-    //     Alert.alert('Upload Error', `Failed to upload national ID image: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    //     return;
-    //   }
-
-    //   console.log('Both images uploaded successfully, updating database...');
-
-    // }
-      
-      // Update the input confirmation line with new status and captured data
-      // await powersync.execute(`
-      //   UPDATE odoo_gms_input_confirmations_lines 
-      //   SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?
-      //   WHERE id = ?
-      // `, ['received', latitude, longitude, selectedCollectionVoucher, item.id]);
 
       await powersync.execute(`
         UPDATE odoo_gms_input_confirmations_lines 
@@ -432,38 +304,27 @@ export default function GrowerModal() {
   };
 
   const submitReturnInput = async (item: any) => {
-    // Are you sure you want to return this input?
-
     Alert.alert('Are you sure you want to return this input?', 'This action cannot be undone.', [
       { text: 'No', style: 'cancel' },
       { text: 'Yes', onPress: async() => {
        setIsSubmitting(true);
         try {
           console.log('UPDATE INPUT ISSUE with images and location');
-          
-          // Update the input confirmation line with new status and captured data
           await powersync.execute(`
             UPDATE odoo_gms_input_confirmations_lines
             SET issue_state = ?, latitude = ?, longitude = ?
             WHERE id = ?
           `, ['returned', latitude, longitude, item.id]);
 
-          // Alert.alert('Success', 'Input delivery returned successfully!');
-          // setShowConfirmationPopup(false);
           router.back();
         } catch (error) {
           console.error('Error updating input issue:', error);
-          // Alert.alert('Error', 'Failed to return delivery. Please try again.');
         } finally {
           setIsSubmitting(false);
         }
           } }
         ]);
 
-
-    
-
-    
   };
  
 
@@ -480,20 +341,6 @@ export default function GrowerModal() {
             {inputConfirmationLineData?.issue_state === 'issued' && (
             <View className="flex-row justify-between items-center p-4 border-b border-gray-100 ">
 
-            {/* <TouchableOpacity 
-              className="h-10 w-32 rounded-xl bg-[#1AD3BB] items-center justify-center flex-row gap-2"
-              onPress={showConfirmationModal}
-              >
-                <Text className="text-white text-md">RECEIVE</Text>
-              <CheckCheck size={20} color="white" className="w-10 h-10" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="h-10 w-32 rounded-xl bg-[#65435C] items-center justify-center flex-row gap-2"
-              onPress={submitReturnInput}
-              >
-                <Text className="text-white text-md">RETURN</Text>
-              <X size={20} color="white" className="w-10 h-10" />
-            </TouchableOpacity> */}
 
             <Text className="text-[#65435C] font-bold text-md text-left flex-1">
                       {inputConfirmationLineData?.input_pack_name || 'N/A'}
@@ -501,17 +348,7 @@ export default function GrowerModal() {
               <Text className="text-[#65435C] font-bold text-lg text-right flex-1 mr-2">
                       {inputConfirmationLineData?.production_cycle_name || 'N/A'}
               </Text>
-              {/* <View className={`px-3 py-1 rounded-lg ${
-                      inputConfirmationLineData?.issue_state === 'issued' ? 'bg-blue-100' : 
-                      inputConfirmationLineData?.issue_state === 'received' ? 'bg-yellow-100' : 'bg-green-100'
-                    }`}>
-                      <Text className={`text-md font-medium ${
-                        inputConfirmationLineData?.issue_state === 'issued' ? 'text-blue-800' : 
-                        inputConfirmationLineData?.issue_state === 'received' ? 'text-yellow-800' : 'text-green-800'
-                      }`}>
-                        {inputConfirmationLineData?.issue_state.toUpperCase() || 'Unknown'}
-                      </Text>
-                    </View> */}
+
 
               
           </View>
@@ -547,38 +384,6 @@ export default function GrowerModal() {
                     </Text>
                   </View>
                 </View>
-
-                {/* Details List */}
-                {/* <View className="space-y-4">
-                  <View className="flex-row justify-between items-center py-3 border-b border-gray-100">
-                    <Text className="text-gray-600 font-medium">Production Cycle</Text>
-                    <Text className="text-[#65435C] font-semibold text-right flex-1 ml-4">
-                      {inputConfirmationLineData?.production_cycle_name || 'N/A'}
-                    </Text>
-                  </View>
-                  
-                  <View className="flex-row justify-between items-center py-3 border-b border-gray-100">
-                    <Text className="text-gray-600 font-medium">Input Pack</Text>
-                    <Text className="text-[#65435C] font-semibold text-right flex-1 ml-4">
-                      {inputConfirmationLineData?.input_pack_name || 'N/A'}
-                    </Text>
-                  </View>
-                  
-                  <View className="flex-row justify-between items-center py-3">
-                    <Text className="text-gray-600 font-medium">Issue State</Text>
-                    <View className={`px-3 py-1 rounded-lg ${
-                      inputConfirmationLineData?.issue_state === 'issued' ? 'bg-blue-100' : 
-                      inputConfirmationLineData?.issue_state === 'received' ? 'bg-yellow-100' : 'bg-green-100'
-                    }`}>
-                      <Text className={`text-sm font-medium ${
-                        inputConfirmationLineData?.issue_state === 'issued' ? 'text-blue-800' : 
-                        inputConfirmationLineData?.issue_state === 'received' ? 'text-yellow-800' : 'text-green-800'
-                      }`}>
-                        {inputConfirmationLineData?.issue_state.toUpperCase() || 'Unknown'}
-                      </Text>
-                    </View>
-                  </View>
-                </View> */}
               </View>
 
               <View className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -597,14 +402,12 @@ export default function GrowerModal() {
                            onPress={() => showConfirmationModal(item)}
                            >
                              <Text className="text-white text-xs">RECEIVE</Text>
-                           {/* <CheckCheck size={12} color="white" className="w-10 h-10" /> */}
                          </TouchableOpacity>
                          <TouchableOpacity 
                            className="h-8 w-24 rounded-lg bg-red-500 items-center justify-center flex-row gap-0.5"
                            onPress={() => submitReturnInput(item)}
                            >
                              <Text className="text-white text-xs">RETURN</Text>
-                           {/* <X size={12} color="white" className="w-10 h-10" /> */}
                          </TouchableOpacity>
                        </View>
                      ) : (
@@ -671,10 +474,8 @@ export default function GrowerModal() {
             {/* Confirmation Popup Modal */}
             <Modal 
               visible={showConfirmationPopup} 
-              // animationType="slide" 
-              // presentationStyle="pageSheet"
-               animationType="none" 
-              presentationStyle="overFullScreen"
+              animationType="slide" 
+              presentationStyle="pageSheet"
             >
               <SafeAreaView className="flex-1 bg-[#65435C]">
                 <View className="flex-1 mt-6">
@@ -701,7 +502,7 @@ export default function GrowerModal() {
                         </Text>
                       </View>
 
-                      {/* Image Capture Section */}
+                      {config && JSON.parse(config.replace(/,(\s*[}\]])/g, '$1')).inputs_confirmation == 'images' && (
                       <View className="flex-row justify-between mb-6">
                         <TouchableOpacity 
                           className="bg-white border border-gray-300 rounded-lg p-2 w-[48%] h-40"
@@ -741,22 +542,10 @@ export default function GrowerModal() {
                           )}
                         </TouchableOpacity>
                       </View>
-                      {/* <Picker
-                          selectedValue={selectedCollectionVoucher}
-                          onValueChange={(itemValue) => setSelectedCollectionVoucher(itemValue)}
-                          style={{ height: 50, width: '100%' }}
-                        >
-                          <Picker.Item label="Select a collection voucher..." value="" />
-                          {collectionVouchers.map((voucher) => (
-                            <Picker.Item 
-                              key={voucher.id} 
-                              label={`${voucher.truck_name} -- ${voucher.reg_number} (${voucher.driver_name} - ${voucher.driver_national_id})`} 
-                              value={voucher.id} 
-                            />
-                          ))}
-                        </Picker> */}
+                      )}
 
-<TouchableOpacity 
+                       {config && JSON.parse(config.replace(/,(\s*[}\]])/g, '$1')).inputs_confirmation == 'signature' && (
+                  <TouchableOpacity 
                          className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-300 items-center justify-center"
                          onPress={() => router.push({
                           pathname: '/inputs/signature',
@@ -770,7 +559,7 @@ export default function GrowerModal() {
                        >
                          <Text className="text-[#65435C] font-semibold mb-2 text-xl text-uppercase"> Grower Signature</Text>
                        </TouchableOpacity>
-
+                      )}
 
                       {/* Collection Voucher Select */}
                       <View className="bg-gray-50 rounded-xl p-4 mb-6">
@@ -852,7 +641,7 @@ export default function GrowerModal() {
                       </View>
 
                       {/* Confirm Button */}
-                      <TouchableOpacity 
+                      {/* <TouchableOpacity 
                         className={`rounded-xl p-4 ${
                           mobileGrowerImage && mobileGrowerNationalIdImage && selectedCollectionVoucher && !isSubmitting 
                             ? 'bg-[#65435C]' 
@@ -863,6 +652,23 @@ export default function GrowerModal() {
                       >
                         <Text className={`text-center font-semibold text-lg ${
                           mobileGrowerImage && mobileGrowerNationalIdImage && selectedCollectionVoucher && !isSubmitting 
+                            ? 'text-white' 
+                            : 'text-gray-500'
+                        }`}>
+                          {isSubmitting ? 'Uploading & Confirming...' : 'Confirm Delivery'}
+                        </Text>
+                      </TouchableOpacity> */}
+                       <TouchableOpacity 
+                        className={`rounded-xl p-4 ${
+                          !isSubmitting 
+                            ? 'bg-[#65435C]' 
+                            : 'bg-gray-300'
+                        }`}
+                        onPress={() => updateInputIssue(currentInputConfirmationLineData)}
+                        disabled={isSubmitting}
+                      >
+                        <Text className={`text-center font-semibold text-lg ${
+                          !isSubmitting 
                             ? 'text-white' 
                             : 'text-gray-500'
                         }`}>

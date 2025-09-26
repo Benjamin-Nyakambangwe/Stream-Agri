@@ -316,6 +316,7 @@ const SurveyRegister = () => {
                     {activeTab === 'outstanding' ? (
                         <>
                             {outstandingRegisters.length === 0 ? (
+                                <View className="flex-col items-center justify-center">
                                 <View className="bg-white rounded-2xl p-8 items-center">
                                     <Clock size={48} color="#9CA3AF" />
                                     <Text className="text-gray-500 text-lg font-semibold mt-4">No Outstanding Surveys</Text>
@@ -323,6 +324,13 @@ const SurveyRegister = () => {
                                         All survey registers have been completed
                                     </Text>
                                 </View>
+                                  <TouchableOpacity
+                                  className="bg-[#1AD3BB] rounded-xl p-4 flex-row items-center justify-center gap-2 mt-4 mb-4"
+                                  onPress={() => router.push(`/monitoring/new?id=${surveyId}&surveyTitle=${encodeURIComponent(surveyTitle)}` as any)}
+                              >
+                                  <Text className="text-white font-bold text-lg">+ New Survey</Text>
+                              </TouchableOpacity>
+                              </View>
                             ) : (
                                 <>
                                     {/* {outstandingRegisters.map((register, index) => (
@@ -373,6 +381,14 @@ const SurveyRegister = () => {
                                     estimatedItemSize={200}
                                     keyboardShouldPersistTaps="handled"
                                     />
+                                    
+                                    {/* New Survey Button */}
+                                    <TouchableOpacity
+                                        className="bg-[#1AD3BB] rounded-xl p-4 flex-row items-center justify-center gap-2 mt-4 mb-4"
+                                        onPress={() => router.push(`/monitoring/new?id=${surveyId}&surveyTitle=${encodeURIComponent(surveyTitle)}` as any)}
+                                    >
+                                        <Text className="text-white font-bold text-lg">+ New Survey</Text>
+                                    </TouchableOpacity>
                                 </>
                             )}
                         </>
@@ -386,6 +402,7 @@ const SurveyRegister = () => {
                                         Completed survey registers will appear here
                                     </Text>
                                 </View>
+                               
                             ) : (
                                 <>
                                     {/* {completedRegisters.map((register, index) => (

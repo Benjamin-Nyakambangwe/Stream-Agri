@@ -58,23 +58,35 @@ const Settings = () => {
       <Stack.Screen options={{ 
         title: "Settings",
         headerShown: true,
-        headerRight: () => (
-            <View className="flex-row items-center gap-2 mr-4 ">
+        // headerRight: () => (
+        //     <View className="flex-row items-center gap-2 mr-4 ">
+        //   <TouchableOpacity onPress={() => {
+        //     signOut()
+        //   }}>
+        //     <View className="flex-row items-center gap-2 mr-4 ">
+        //       <Text className="text-lg font-bold text-[#65435C]">Logout</Text>
+        //       <LogOut size={20} color="#FF0000" />
+        //     </View>
+        //   </TouchableOpacity>
+         
+        //   </View>
+        // )
+      }} />
+      <View className="flex-1 p-4 bg-[#65435C]">
+
+      <View className="flex-row items-center justify-end gap-2 mr-4 mb-4">
           <TouchableOpacity onPress={() => {
             signOut()
           }}>
-            <View className="flex-row items-center gap-2 mr-4 ">
-              <Text className="text-lg font-bold text-[#65435C]">Logout</Text>
+            <View className="flex-row items-center gap-2 mr-4  border border-white rounded-lg p-2">
+              <Text className="text-lg font-bold text-white">Logout</Text>
               <LogOut size={20} color="#FF0000" />
             </View>
           </TouchableOpacity>
          
           </View>
-        )
-      }} />
-      <View className="flex-1 p-4 bg-[#65435C]">
 
-        <View>
+        <View className="flex-1 justify-end mb-4">
              <TouchableOpacity onPress={handleDbExport} className='bg-white rounded-xl p-2'>
                 <View className="flex-row items-center gap-2 mr-4 w-full">
                     <FileSpreadsheet size={20} color="#65435C" />

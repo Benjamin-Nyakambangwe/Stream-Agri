@@ -26,6 +26,13 @@ export default function MonitoringLayout() {
           animation: 'slide_from_bottom',
         }} 
       />
+       <Stack.Screen 
+        name="newSurvey" 
+        options={{ 
+          title: 'New Survey',
+          headerShown: false
+        }} 
+      />
     </Stack>
   );
 }

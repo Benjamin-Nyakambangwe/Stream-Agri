@@ -50,8 +50,29 @@ const Growers = () => {
     console.log('getSyncStatus', status)
   }
 
+  useFocusEffect(
+    useCallback(() => {
+      console.log('##########################################################')
+      console.log('useFocusEffect growers')
+      const checkData = async () => {
+        let temp_growers = await powersync.getAll(`SELECT * FROM odoo_gms_production_cycle_registration`);
+        console.log('temp_growers count:', temp_growers.length)
+        console.log('temp_growers sample:', temp_growers.slice(0, 2))
+        
+        const employeeId = await SecureStore.getItemAsync('odoo_employee_id');
+        console.log('Current employee ID:', employeeId)
+        
+        // Check what field_technician_id values exist
+        let techIds = await powersync.getAll(`SELECT DISTINCT field_technician_id FROM odoo_gms_production_cycle_registration`);
+        console.log('Distinct field_technician_ids:', techIds)
+      }
+      checkData()
+    }, [])
+  );
+
   useEffect(() => {
     console.log('useEffect growers')
+  
     // Initialize PowerSync if not already initialized
     setupPowerSync();
     
@@ -84,9 +105,8 @@ const Growers = () => {
             g.grower_number as grower_number
           FROM odoo_gms_production_cycle_registration r
           LEFT JOIN odoo_gms_grower g ON CAST(r.grower_id AS TEXT) = g.id
-          WHERE r.field_technician_id = ?
           ORDER BY r.grower_name`,
-          [employeeId],
+          [],
           {
             onResult: (result) => {
               console.log('Joined growers data updated, count:', result.rows?._array?.length);

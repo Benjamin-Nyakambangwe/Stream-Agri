@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
-import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Button, TextInput, ActivityIndicator, Alert } from "react-native"
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Button, TextInput, ActivityIndicator, Alert, DevSettings } from "react-native"
 import {Image} from "expo-image"
 import { Eye, EyeOff, Mail, Lock, Settings, Database } from "lucide-react-native"
 import { useSession } from "@/authContext"
@@ -106,6 +106,37 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
     }
   }
 
+
+
+  const handleClearStorage = async () => {
+    Alert.alert(
+      'Clear Storage',
+      'Are you sure you want to clear all storage? This will reset the app to its initial state.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: async () => {
+            try {
+              // Clear PowerSync data
+              await powersync.disconnectAndClear();
+              await SecureStore.deleteItemAsync('odoo_server_ip');
+              await SecureStore.deleteItemAsync('odoo_database');
+              // Restart the app
+              DevSettings.reload();
+            } catch (error) {
+              console.error('Failed to clear storage:', error);
+              Alert.alert('Error', 'Failed to clear storage.');
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
 
 
   return (
@@ -221,6 +252,15 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+                className={`rounded-md p-2 flex-1 mt-2 bg-red-500`}
+                onPress={handleClearStorage}
+              >
+                <Text className="text-white text-center">
+                 Clear Storage
+                </Text>
+              </TouchableOpacity>
           </View>
         
         

@@ -8,6 +8,7 @@ import { useSession } from "../../authContext"
 import { useFocusEffect, useRouter } from "expo-router"
 import * as SecureStore from 'expo-secure-store';
 import { exportDatabase } from "../../export-db"
+import { useKeepAwake } from 'expo-keep-awake';
 // import { useSQLiteContext } from "expo-sqlite"
 import { useNetwork } from "@/NetworkContext"
 import { powersync, setupPowerSync } from "@/powersync/system"
@@ -44,6 +45,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
   const [syncStatusText, setSyncStatusText] = useState("")
   const [needsInitialSync, setNeedsInitialSync] = useState(false);
   
+  useKeepAwake();
   const { logIn, localLogin, error: authError } = useSession()
   const router = useRouter()
   // const appDatabase = useSQLiteContext()

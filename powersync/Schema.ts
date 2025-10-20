@@ -317,7 +317,9 @@ const odoo_gms_production_cycle_registration = new Table(
     surname: column.text,
     distribution_plan: column.integer,
     balance: column.real,
-    production_cycle_name: column.text
+    production_cycle_name: column.text,
+    current_status: column.text
+
   },
   { 
     indexes: {
@@ -849,6 +851,17 @@ const grower_application_drafts = new Table({
   localOnly: true // This is local-only data, not synced to server
 });
 
+const grower_daily_images = new Table({
+  id: column.text, // UUID
+  grower_number: column.text, // To identify grower
+  grower_image: column.text, // Base64 compressed grower photo
+  grower_id_image: column.text, // Base64 compressed national ID photo
+  capture_date: column.text, // Date string YYYY-MM-DD
+  created_at: column.text
+}, {
+  localOnly: true // Local cache only, not synced to server
+});
+
 export const AppSchema = new Schema({
   hr_employee,
   odoo_gms_grower,
@@ -875,6 +888,7 @@ export const AppSchema = new Schema({
   survey_register,
   media_files,
   grower_application_drafts,
+  grower_daily_images,
   odoo_gms_hr_management,
   res_company,
   ir_config_parameter
@@ -912,6 +926,7 @@ export type CollectionPointRecord = Database['odoo_gms_collection_point'];
 export type SurveyRegisterRecord = Database['survey_register'];
 export type MediaFilesRecord = Database['media_files'];
 export type GrowerApplicationDraftRecord = Database['grower_application_drafts'];
+export type GrowerDailyImagesRecord = Database['grower_daily_images'];
 export type OdooGmsHrManagementRecord = Database['odoo_gms_hr_management'];
 export type ResCompanyRecord = Database['res_company'];
 export type IrConfigParameterRecord = Database['ir_config_parameter'];

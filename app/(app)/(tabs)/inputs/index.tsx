@@ -38,6 +38,9 @@ const Inputs = () => {
   const [loadingIssued, setLoadingIssued] = useState(true);
   const [loadingReceived, setLoadingReceived] = useState(true);
   const [loadingReturned, setLoadingReturned] = useState(true);
+  // Search states
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [searchQueryInput, setSearchQueryInput] = useState('');
   useFocusEffect(
     useCallback(() => {
       console.log('useFocusEffect Inputs Screen');
@@ -122,6 +125,33 @@ const Inputs = () => {
     setFilteredGrowers(filtered);
   };
 
+  // Filter data for each tab based on search
+  const getFilteredData = () => {
+    let data: any[] = [];
+    
+    if (activeTab === 'issued') {
+      data = Object.values(growerWithInputData).map(group => ({...group[0], inputLines: group}));
+    } else if (activeTab === 'received') {
+      data = Object.values(growerWithInputDataReceived).map(group => ({...group[0], inputLines: group}));
+    } else {
+      data = Object.values(growerWithInputDataReturned).map(group => ({...group[0], inputLines: group}));
+    }
+
+    if (searchQueryInput.trim() === '') {
+      return data;
+    }
+
+    const lowercaseQuery = searchQueryInput.toLowerCase();
+    return data.filter(item => 
+      item.first_name?.toLowerCase().includes(lowercaseQuery) ||
+      item.surname?.toLowerCase().includes(lowercaseQuery) ||
+      item.grower_name?.toLowerCase().includes(lowercaseQuery) ||
+      item.production_cycle_name?.toLowerCase().includes(lowercaseQuery) ||
+      item.input_pack_name?.toLowerCase().includes(lowercaseQuery) ||
+      item.grower_number?.toLowerCase().includes(lowercaseQuery)
+    );
+  };
+
 
   const getInputConfirmations = async () => {
     const inputConfirmations = await powersync.execute(`SELECT * FROM odoo_gms_input_confirmations`);
@@ -154,7 +184,8 @@ const Inputs = () => {
         ic.date_input,
         ic.state as confirmation_state,
         ip.name as input_pack_name,
-        ip.code as input_pack_code
+        ip.code as input_pack_code,
+        g.grower_number as grower_number
       FROM odoo_gms_input_confirmations_lines icl
       LEFT JOIN odoo_gms_production_cycle_registration pcr 
         ON icl.production_cycle_registration_id = pcr.id
@@ -162,6 +193,8 @@ const Inputs = () => {
         ON icl.input_confirmations_id = ic.id
       LEFT JOIN odoo_gms_input_pack ip 
         ON ic.input_pack_id = ip.id
+      LEFT JOIN odoo_gms_grower g
+        ON CAST(pcr.grower_id AS TEXT) = g.id
       WHERE pcr.field_technician_id = ? AND icl.issue_state = 'issued'
     `;
     
@@ -202,7 +235,8 @@ const Inputs = () => {
         ic.date_input,
         ic.state as confirmation_state,
         ip.name as input_pack_name,
-        ip.code as input_pack_code
+        ip.code as input_pack_code,
+        g.grower_number as grower_number
       FROM odoo_gms_input_confirmations_lines icl
       LEFT JOIN odoo_gms_production_cycle_registration pcr 
         ON icl.production_cycle_registration_id = pcr.id
@@ -210,6 +244,8 @@ const Inputs = () => {
         ON icl.input_confirmations_id = ic.id
       LEFT JOIN odoo_gms_input_pack ip 
         ON ic.input_pack_id = ip.id
+      LEFT JOIN odoo_gms_grower g
+        ON CAST(pcr.grower_id AS TEXT) = g.id
       WHERE pcr.field_technician_id = ? AND icl.issue_state = 'received'
     `;
     
@@ -251,7 +287,8 @@ const Inputs = () => {
         ic.date_input,
         ic.state as confirmation_state,
         ip.name as input_pack_name,
-        ip.code as input_pack_code
+        ip.code as input_pack_code,
+        g.grower_number as grower_number
       FROM odoo_gms_input_confirmations_lines icl
       LEFT JOIN odoo_gms_production_cycle_registration pcr 
         ON icl.production_cycle_registration_id = pcr.id
@@ -259,6 +296,8 @@ const Inputs = () => {
         ON icl.input_confirmations_id = ic.id
       LEFT JOIN odoo_gms_input_pack ip 
         ON ic.input_pack_id = ip.id
+      LEFT JOIN odoo_gms_grower g
+        ON CAST(pcr.grower_id AS TEXT) = g.id
       WHERE pcr.field_technician_id = ? AND icl.issue_state = 'returned'
     `;
     
@@ -451,8 +490,14 @@ useEffect(() => {
                 <Text className={`text-center font-semibold ${activeTab === 'issued' ? 'text-white' : 'text-[#65435C]'}`}>
                   Issued
                 </Text>
-                {loadingIssued && (
+                {loadingIssued ? (
                   <View className="ml-2 w-2 h-2 bg-yellow-500 rounded-full" />
+                ) : Object.keys(growerWithInputData).length > 0 && (
+                  <View className={`ml-2 px-2 py-0.5 rounded-full ${activeTab === 'issued' ? 'bg-[#1AD3BB]' : 'bg-[#65435C]'}`}>
+                    <Text className="text-white text-xs font-bold">
+                      {Object.keys(growerWithInputData).length}
+                    </Text>
+                  </View>
                 )}
               </View>
             </TouchableOpacity>
@@ -465,8 +510,14 @@ useEffect(() => {
                 <Text className={`text-center font-semibold ${activeTab === 'received' ? 'text-white' : 'text-[#65435C]'}`}>
                   Received
                 </Text>
-                {loadingReceived && (
+                {loadingReceived ? (
                   <View className="ml-2 w-2 h-2 bg-yellow-500 rounded-full" />
+                ) : Object.keys(growerWithInputDataReceived).length > 0 && (
+                  <View className={`ml-2 px-2 py-0.5 rounded-full ${activeTab === 'received' ? 'bg-[#1AD3BB]' : 'bg-[#65435C]'}`}>
+                    <Text className="text-white text-xs font-bold">
+                      {Object.keys(growerWithInputDataReceived).length}
+                    </Text>
+                  </View>
                 )}
               </View>
             </TouchableOpacity>
@@ -479,12 +530,44 @@ useEffect(() => {
                 <Text className={`text-center font-semibold ${activeTab === 'returned' ? 'text-white' : 'text-[#65435C]'}`}>
                   Returned
                 </Text>
-                {loadingReturned && (
+                {loadingReturned ? (
                   <View className="ml-2 w-2 h-2 bg-yellow-500 rounded-full" />
+                ) : Object.keys(growerWithInputDataReturned).length > 0 && (
+                  <View className={`ml-2 px-2 py-0.5 rounded-full ${activeTab === 'returned' ? 'bg-[#1AD3BB]' : 'bg-[#65435C]'}`}>
+                    <Text className="text-white text-xs font-bold">
+                      {Object.keys(growerWithInputDataReturned).length}
+                    </Text>
+                  </View>
                 )}
               </View>
             </TouchableOpacity>
           </View>
+
+          {/* Search Input (appears when toggled) */}
+          {isSearchVisible && (
+            <View className="mb-3">
+              <View className="relative">
+                <View className="absolute left-3 top-3 z-10">
+                  <Search size={18} color="#65435C" />
+                </View>
+                <TextInput
+                  placeholder="Search by name, cycle, or input pack..."
+                  placeholderTextColor="#999"
+                  className="bg-white border border-gray-200 rounded-lg p-3 pl-10 pr-10 text-[#65435C]"
+                  value={searchQueryInput}
+                  onChangeText={setSearchQueryInput}
+                />
+                {searchQueryInput.trim() !== '' && (
+                  <TouchableOpacity 
+                    className="absolute right-3 top-3 z-10"
+                    onPress={() => setSearchQueryInput('')}
+                  >
+                    <Text className="text-[#65435C] font-bold">✕</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
          
           
           {/* Loading indicator for the current tab */}
@@ -501,18 +584,28 @@ useEffect(() => {
               (activeTab === 'received' && loadingReceived) || 
               (activeTab === 'returned' && loadingReturned)) && (
             <FlashList
-              data={activeTab === 'issued' 
-                ? Object.values(growerWithInputData).map(group => ({...group[0], inputLines: group}))
-                : activeTab === 'received' 
-                ? Object.values(growerWithInputDataReceived).map(group => ({...group[0], inputLines: group}))
-                : Object.values(growerWithInputDataReturned).map(group => ({...group[0], inputLines: group}))
-              }
+              data={getFilteredData()}
               renderItem={({ item }: { item: any }) => growerItem(item)}
               estimatedItemSize={200}
               keyboardShouldPersistTaps="handled"
             />
           )}
     </View>
+
+        {/* Floating Search Toggle Button */}
+        <TouchableOpacity 
+          className="absolute bottom-6 right-6 w-14 h-14 bg-[#1AD3BB] rounded-full items-center justify-center shadow-lg"
+          onPress={() => setIsSearchVisible(!isSearchVisible)}
+        >
+          <Search size={24} color="#65435C" />
+          {searchQueryInput.trim() !== '' && (
+            <View className="absolute -top-1 -right-1 w-5 h-5 bg-[#1AD3BB] rounded-full items-center justify-center">
+              <Text className="text-white text-xs font-bold">
+                {getFilteredData().length}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
     </View>
     </>
   )
@@ -553,7 +646,8 @@ const growerItem = (item: any) => {
                     
                     <View>
                         <Text className="text-lg font-bold text-[#65435C] truncate max-w-[200px]">{item.first_name} {item.surname}</Text>
-                        <Text className="text-gray-500 text-sm">{item.input_pack_name} - {item.production_cycle_name}</Text>
+                        {/* <Text className="text-gray-500 text-sm">{item.input_pack_name} - {item.production_cycle_name}</Text> */}
+                        <Text className="text-gray-500 text-sm">{item.grower_number}</Text>
                     </View>
                 </View>
                 

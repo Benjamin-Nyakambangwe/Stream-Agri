@@ -117,19 +117,37 @@ const index = () => {
         FROM odoo_gms_grower_application 
         WHERE state = 'rejected' AND field_technician_id = ?
       `, [currentEmployeeId]);
+
+      const activeGrowers = await powersync.execute(`
+        SELECT COUNT(*) as count 
+        FROM odoo_gms_production_cycle_registration 
+        WHERE current_status = 'current' AND field_technician_id = ?
+      `, [currentEmployeeId]);
+
+      const inactiveGrowers = await powersync.execute(`
+        SELECT COUNT(*) as count 
+        FROM odoo_gms_production_cycle_registration 
+        WHERE current_status = 'inactive' AND field_technician_id = ?
+      `, [currentEmployeeId]);
       
       setGrowerStats({
         total: totalGrowers.rows?._array?.[0]?.count || 0,
         approved: approvedGrowers.rows?._array?.[0]?.count || 0,
         contracted: contractedGrowers.rows?._array?.[0]?.count || 0,
-        rejected: rejectedGrowers.rows?._array?.[0]?.count || 0
+        rejected: rejectedGrowers.rows?._array?.[0]?.count || 0,
+        active: activeGrowers.rows?._array?.[0]?.count || 0,
+        inactive: inactiveGrowers.rows?._array?.[0]?.count || 0
+        
       });
       
       console.log('Grower stats updated:', {
-        total: totalGrowers.rows?._array?.[0]?.count || 0,
-        approved: approvedGrowers.rows?._array?.[0]?.count || 0,
-        contracted: contractedGrowers.rows?._array?.[0]?.count || 0,
-        rejected: rejectedGrowers.rows?._array?.[0]?.count || 0
+        // total: totalGrowers.rows?._array?.[0]?.count || 0,
+        // approved: approvedGrowers.rows?._array?.[0]?.count || 0,
+        // contracted: contractedGrowers.rows?._array?.[0]?.count || 0,
+        // rejected: rejectedGrowers.rows?._array?.[0]?.count || 0
+
+        active: activeGrowers.rows?._array?.[0]?.count || 0,
+        inactive: inactiveGrowers.rows?._array?.[0]?.count || 0
       });
       
     } catch (error) {
@@ -139,7 +157,10 @@ const index = () => {
         total: 0,
         approved: 0,
         contracted: 0,
-        rejected: 0
+        rejected: 0,
+
+        active: 0,
+        inactive: 0
       });
     } finally {
       setLoadingStats(false);
@@ -321,39 +342,57 @@ const index = () => {
             ) : (
               <View className='flex-row justify-between'>
                 {/* Total Growers */}
-                <View className='flex-1 items-center'>
+                {/* <View className='flex-1 items-center'>
                   <View className='h-10 w-10 bg-blue-100 rounded-xl items-center justify-center mb-2'>
                     <User size={16} color="#3B82F6" />
                   </View>
                   <Text className='text-xl font-bold text-[#65435C]'>{growerStats.total}</Text>
                   <Text className='text-xs text-gray-500 text-center'>Total</Text>
-                </View>
+                </View> */}
                 
                 {/* Approved Growers */}
-                <View className='flex-1 items-center'>
+                {/* <View className='flex-1 items-center'>
                   <View className='h-10 w-10 bg-green-100 rounded-xl items-center justify-center mb-2'>
                     <UserCheck size={16} color="#10B981" />
                   </View>
                   <Text className='text-xl font-bold text-[#65435C]'>{growerStats.approved}</Text>
                   <Text className='text-xs text-gray-500 text-center'>Approved</Text>
-                </View>
+                </View> */}
                 
                 {/* Contracted Growers */}
-                <View className='flex-1 items-center'>
+                {/* <View className='flex-1 items-center'>
                   <View className='h-10 w-10 bg-purple-100 rounded-xl items-center justify-center mb-2'>
                     <FileCheck size={16} color="#8B5CF6" />
                   </View>
                   <Text className='text-xl font-bold text-[#65435C]'>{growerStats.contracted}</Text>
                   <Text className='text-xs text-gray-500 text-center'>Contracted</Text>
-                </View>
+                </View> */}
                 
                 {/* Rejected Growers */}
-                <View className='flex-1 items-center'>
+                {/* <View className='flex-1 items-center'>
                   <View className='h-10 w-10 bg-red-100 rounded-xl items-center justify-center mb-2'>
                     <UserX size={16} color="#EF4444" />
                   </View>
                   <Text className='text-xl font-bold text-[#65435C]'>{growerStats.rejected}</Text>
                   <Text className='text-xs text-gray-500 text-center'>Rejected</Text>
+                </View> */}
+
+                  {/* ACTIVE GROWERS */}
+                 <View className='flex-1 items-center'>
+                  <View className='h-10 w-10 bg-green-100 rounded-xl items-center justify-center mb-2'>
+                    <UserCheck size={16} color="#10B981" />
+                  </View>
+                  <Text className='text-xl font-bold text-[#65435C]'>{growerStats.active}</Text>
+                  <Text className='text-xs text-gray-500 text-center'>Active</Text>
+                </View>
+
+                  {/* INACTIVE */}
+                <View className='flex-1 items-center'>
+                  <View className='h-10 w-10 bg-red-100 rounded-xl items-center justify-center mb-2'>
+                    <UserX size={16} color="#EF4444" />
+                  </View>
+                  <Text className='text-xl font-bold text-[#65435C]'>{growerStats.inactive}</Text>
+                  <Text className='text-xs text-gray-500 text-center'>Inactive</Text>
                 </View>
               </View>
             )}

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Alert, Modal, Image, Button } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Alert, Modal, Image, Button, TextInput } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ChevronLeft, X, Camera, MapPin, ChevronDown } from 'lucide-react-native';
 import { powersync } from '@/powersync/system';
@@ -48,10 +48,125 @@ export default function GrowerModal() {
   const [selectedCollectionVoucher, setSelectedCollectionVoucher] = useState<string>('');
   const [showVoucherDropdown, setShowVoucherDropdown] = useState<boolean>(false);
   const [config, setConfig] = useState<string | null>(null);
+  // Return modal states
+  const [showReturnModal, setShowReturnModal] = useState<boolean>(false);
+  const [returnAll, setReturnAll] = useState<boolean>(true);
+  const [returnHectares, setReturnHectares] = useState<string>('');
+  const [originalHectares, setOriginalHectares] = useState<number>(0);
+  const [currentReturnItem, setCurrentReturnItem] = useState<any>(null);
 
 
   const cameraRef = useRef<CameraView>(null);
   const UUID = Crypto.randomUUID();
+
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodayDate = (): string => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
+  // Load cached images for a grower if available for today
+  const loadGrowerImages = async (growerNumber: string) => {
+    try {
+      const today = getTodayDate();
+      console.log('🔍 Looking for cached images for grower:', growerNumber, 'on date:', today);
+      
+      const result = await powersync.getAll(
+        `SELECT * FROM grower_daily_images WHERE grower_number = ? AND capture_date = ?`,
+        [growerNumber, today]
+      );
+
+      console.log('📦 Query result:', result.length, 'records found');
+
+      if (result.length > 0) {
+        const cached = result[0] as any;
+        console.log('✅ Found cached images for grower:', growerNumber);
+        console.log('   - Has grower_image:', !!cached.grower_image);
+        console.log('   - Has grower_id_image:', !!cached.grower_id_image);
+        
+        if (cached.grower_image) {
+          setMobileGrowerImage(`data:image/jpg;base64,${cached.grower_image}`);
+          setMobileGrowerImageEncoded(cached.grower_image);
+          console.log('   - Loaded grower_image');
+        }
+        
+        if (cached.grower_id_image) {
+          setMobileGrowerNationalIdImage(`data:image/jpg;base64,${cached.grower_id_image}`);
+          setMobileGrowerNationalIdImageEncoded(cached.grower_id_image);
+          console.log('   - Loaded grower_id_image');
+        }
+        
+        return true;
+      }
+      console.log('❌ No cached images found for grower:', growerNumber);
+      return false;
+    } catch (error) {
+      console.error('💥 Error loading cached images:', error);
+      return false;
+    }
+  };
+
+  // Save images to cache for a grower
+  const saveGrowerImages = async (growerNumber: string, growerImage: string, growerIdImage: string) => {
+    try {
+      const today = getTodayDate();
+      const id = Crypto.randomUUID();
+      
+      console.log('💾 Attempting to save images to cache:');
+      console.log('   - Grower:', growerNumber);
+      console.log('   - Date:', today);
+      console.log('   - Grower image length:', growerImage?.length || 0);
+      console.log('   - ID image length:', growerIdImage?.length || 0);
+      
+      // Delete existing cache for this grower today (if any)
+      await powersync.execute(
+        `DELETE FROM grower_daily_images WHERE grower_number = ? AND capture_date = ?`,
+        [growerNumber, today]
+      );
+      
+      // Insert new cache
+      await powersync.execute(
+        `INSERT INTO grower_daily_images (id, grower_number, grower_image, grower_id_image, capture_date, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [id, growerNumber, growerImage, growerIdImage, today, new Date().toISOString()]
+      );
+      
+      console.log('✅ Successfully saved images to cache for grower:', growerNumber);
+      
+      // Verify the save by reading it back
+      const verify = await powersync.getAll(
+        `SELECT id, grower_number, capture_date FROM grower_daily_images WHERE grower_number = ? AND capture_date = ?`,
+        [growerNumber, today]
+      );
+      console.log('🔍 Verification: Found', verify.length, 'records after save');
+    } catch (error) {
+      console.error('💥 Error saving images to cache:', error);
+    }
+  };
+
+  // Clean up old images (older than today)
+  const cleanupOldImages = async () => {
+    try {
+      const today = getTodayDate();
+      console.log('🧹 Cleaning up images older than:', today);
+      
+      // First check what exists
+      const beforeCleanup = await powersync.getAll(
+        `SELECT COUNT(*) as count FROM grower_daily_images WHERE capture_date < ?`,
+        [today]
+      );
+      console.log('   - Found', (beforeCleanup[0] as any)?.count || 0, 'old records to delete');
+      
+      await powersync.execute(
+        `DELETE FROM grower_daily_images WHERE capture_date < ?`,
+        [today]
+      );
+      
+      console.log('✅ Cleaned up old cached images');
+    } catch (error) {
+      console.error('💥 Error cleaning up old images:', error);
+    }
+  };
 
 
   const getCollectionVouchers = async () => {
@@ -119,7 +234,49 @@ export default function GrowerModal() {
     getInputConfirmationLineData();
     getCollectionVouchers();
     getCurrentLocation();
+    cleanupOldImages(); // Clean up old cached images
   }, [id]);
+
+  // Save images to cache when both are captured
+  useEffect(() => {
+    const saveCachedImages = async () => {
+      console.log('📸 Image capture useEffect triggered:');
+      console.log('   - Has grower image?', !!mobileGrowerImageEncoded);
+      console.log('   - Has ID image?', !!mobileGrowerNationalIdImageEncoded);
+      console.log('   - Has current data?', !!currentInputConfirmationLineData);
+      
+      if (mobileGrowerImageEncoded && mobileGrowerNationalIdImageEncoded && currentInputConfirmationLineData) {
+        try {
+          console.log('🔍 Getting grower_number for PCR ID:', currentInputConfirmationLineData.production_cycle_registration_id);
+          
+          // Get grower_number
+          const growerData = await powersync.getAll(
+            `SELECT g.grower_number 
+             FROM odoo_gms_production_cycle_registration pcr
+             LEFT JOIN odoo_gms_grower g ON CAST(pcr.grower_id AS TEXT) = g.id
+             WHERE pcr.id = ?`,
+            [currentInputConfirmationLineData.production_cycle_registration_id]
+          );
+          
+          console.log('📋 Grower data query returned:', growerData.length, 'records');
+          
+          if (growerData.length > 0 && (growerData[0] as any).grower_number) {
+            const growerNumber = (growerData[0] as any).grower_number;
+            console.log('👤 Found grower_number:', growerNumber);
+            await saveGrowerImages(growerNumber, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded);
+          } else {
+            console.log('❌ No grower_number found in query result');
+          }
+        } catch (error) {
+          console.error('💥 Error in save cached images useEffect:', error);
+        }
+      } else {
+        console.log('⏭️ Skipping save - not all conditions met');
+      }
+    };
+    
+    saveCachedImages();
+  }, [mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded]);
 
   const getConfig = async () => {
     const result = await powersync.getAll(`
@@ -239,16 +396,87 @@ export default function GrowerModal() {
     setShowCamera(true);
   };
 
-  const showConfirmationModal = (item: any) => {
-    setShowConfirmationPopup(true);
+  const showConfirmationModal = async (item: any) => {
+    console.log('🎯 Opening confirmation modal for PCR ID:', item.production_cycle_registration_id);
+    
     setCurrentInputConfirmationLineData(item);
     // Reset form when opening modal
     setSelectedCollectionVoucher('');
     setShowVoucherDropdown(false);
-    setMobileGrowerImage(null);
-    setMobileGrowerNationalIdImage(null);
-    setMobileGrowerImageEncoded(null);
-    setMobileGrowerNationalIdImageEncoded(null);
+    
+    // Try to load cached images for this grower FIRST
+    let imagesLoaded = false;
+    try {
+      // Get grower_number from production_cycle_registration
+      console.log('🔍 Querying grower_number for PCR ID:', item.production_cycle_registration_id);
+      
+      const growerData = await powersync.getAll(
+        `SELECT g.grower_number 
+         FROM odoo_gms_production_cycle_registration pcr
+         LEFT JOIN odoo_gms_grower g ON CAST(pcr.grower_id AS TEXT) = g.id
+         WHERE pcr.id = ?`,
+        [item.production_cycle_registration_id]
+      );
+      
+      console.log('📋 Grower query returned:', growerData.length, 'records');
+      
+      if (growerData.length > 0 && (growerData[0] as any).grower_number) {
+        const growerNumber = (growerData[0] as any).grower_number;
+        console.log('👤 Found grower_number:', growerNumber, '- attempting to load cached images...');
+        imagesLoaded = await loadGrowerImages(growerNumber);
+        console.log('📷 Images loaded from cache?', imagesLoaded);
+      } else {
+        console.log('❌ No grower_number found');
+      }
+    } catch (error) {
+      console.error('💥 Error loading grower number or cached images:', error);
+    }
+    
+    // Only reset images if none were loaded from cache
+    if (!imagesLoaded) {
+      console.log('🔄 Resetting images (no cache found)');
+      setMobileGrowerImage(null);
+      setMobileGrowerNationalIdImage(null);
+      setMobileGrowerImageEncoded(null);
+      setMobileGrowerNationalIdImageEncoded(null);
+    }
+    
+    // Open modal after images are loaded
+    console.log('✅ Opening modal popup');
+    setShowConfirmationPopup(true);
+  };
+
+  const showReturnModalHandler = (item: any) => {
+    setCurrentReturnItem(item);
+    const hectares = parseFloat(item.excel_hectares || 0);
+    setOriginalHectares(hectares);
+    setReturnHectares(hectares.toString());
+    setReturnAll(true);
+    setShowReturnModal(true);
+  };
+
+  const isValidHectares = (value: string): { valid: boolean; error?: string } => {
+    const num = parseFloat(value);
+    
+    if (isNaN(num)) {
+      return { valid: false, error: 'Please enter a valid number' };
+    }
+    
+    if (num <= 0) {
+      return { valid: false, error: 'Value must be greater than 0' };
+    }
+    
+    if (num > originalHectares) {
+      return { valid: false, error: `Value cannot exceed ${originalHectares} hectares` };
+    }
+    
+    // Check if it's a whole number or ends in .5
+    const isValid = num % 1 === 0 || num % 1 === 0.5;
+    if (!isValid) {
+      return { valid: false, error: 'Value must be a whole number or end in .5 (e.g., 1, 1.5, 2)' };
+    }
+    
+    return { valid: true };
   };
 
   const updateInputIssue = async (item: any) => {
@@ -303,28 +531,51 @@ export default function GrowerModal() {
     }
   };
 
-  const submitReturnInput = async (item: any) => {
-    Alert.alert('Are you sure you want to return this input?', 'This action cannot be undone.', [
-      { text: 'No', style: 'cancel' },
-      { text: 'Yes', onPress: async() => {
-       setIsSubmitting(true);
-        try {
-          console.log('UPDATE INPUT ISSUE with images and location');
-          await powersync.execute(`
-            UPDATE odoo_gms_input_confirmations_lines
-            SET issue_state = ?, latitude = ?, longitude = ?
-            WHERE id = ?
-          `, ['returned', latitude, longitude, item.id]);
+  const submitReturnInput = async () => {
+    const item = currentReturnItem;
+    
+    // Validate if partial return
+    if (!returnAll) {
+      const validation = isValidHectares(returnHectares);
+      if (!validation.valid) {
+        Alert.alert('Invalid Input', validation.error);
+        return;
+      }
+    }
 
-          router.back();
-        } catch (error) {
-          console.error('Error updating input issue:', error);
-        } finally {
-          setIsSubmitting(false);
-        }
-          } }
-        ]);
+    setIsSubmitting(true);
+    
+    try {
+      console.log('Returning input with location');
+      
+      if (returnAll) {
+        // Return all - same as before
+        await powersync.execute(`
+          UPDATE odoo_gms_input_confirmations_lines
+          SET issue_state = ?, latitude = ?, longitude = ?
+          WHERE id = ?
+        `, ['returned', latitude, longitude, item.id]);
+      } else {
+        // Partial return - update excel_hectares
+        const returnedAmount = parseFloat(returnHectares);
+        const newIssuedHectares = originalHectares - returnedAmount;
+        
+        await powersync.execute(`
+          UPDATE odoo_gms_input_confirmations_lines
+          SET issue_state = ?, excel_hectares = ?, latitude = ?, longitude = ?
+          WHERE id = ?
+        `, ['returned', newIssuedHectares, latitude, longitude, item.id]);
+      }
 
+      Alert.alert('Success', 'Input returned successfully!');
+      setShowReturnModal(false);
+      router.back();
+    } catch (error) {
+      console.error('Error updating input issue:', error);
+      Alert.alert('Error', `Failed to return input: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
  
 
@@ -405,7 +656,7 @@ export default function GrowerModal() {
                          </TouchableOpacity>
                          <TouchableOpacity 
                            className="h-8 w-24 rounded-lg bg-red-500 items-center justify-center flex-row gap-0.5"
-                           onPress={() => submitReturnInput(item)}
+                           onPress={() => showReturnModalHandler(item)}
                            >
                              <Text className="text-white text-xs">RETURN</Text>
                          </TouchableOpacity>
@@ -679,6 +930,118 @@ export default function GrowerModal() {
                       <TouchableOpacity 
                         className="mt-3 p-4"
                         onPress={() => setShowConfirmationPopup(false)}
+                      >
+                        <Text className="text-center text-gray-500">Cancel</Text>
+                      </TouchableOpacity>
+                    </ScrollView>
+                  </View>
+                </View>
+              </SafeAreaView>
+            </Modal>
+
+            {/* Return Modal */}
+            <Modal 
+              visible={showReturnModal} 
+              animationType="slide" 
+              presentationStyle="pageSheet"
+            >
+              <SafeAreaView className="flex-1 bg-[#65435C]">
+                <View className="flex-1 mt-6">
+                  <View className="flex-1 bg-white rounded-t-3xl overflow-hidden">
+                    <View className="flex-row justify-between items-center p-4 border-b border-gray-100">
+                      <Text className="text-xl font-bold text-[#65435C]">Return Input</Text>
+                      <TouchableOpacity onPress={() => setShowReturnModal(false)}>
+                        <X size={24} color="#65435C" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <ScrollView className="flex-1 p-4">
+                      {/* Grower Info */}
+                      <View className="bg-gray-50 rounded-xl p-4 mb-4">
+                        <Text className="text-[#65435C] font-semibold mb-2">Grower Information</Text>
+                        <Text className="text-gray-600">
+                          Name: {currentReturnItem?.first_name} {currentReturnItem?.surname}
+                        </Text>
+                        <Text className="text-gray-600">
+                          Input Pack: {currentReturnItem?.product_group_name}
+                        </Text>
+                        <Text className="text-gray-600">
+                          Original Hectares: {originalHectares} Ha
+                        </Text>
+                      </View>
+
+                      {/* Return All Checkbox */}
+                      <View className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
+                        <TouchableOpacity 
+                          className="flex-row items-center"
+                          onPress={() => {
+                            setReturnAll(!returnAll);
+                            if (!returnAll) {
+                              setReturnHectares(originalHectares.toString());
+                            }
+                          }}
+                        >
+                          <View className={`w-6 h-6 rounded border-2 mr-3 items-center justify-center ${
+                            returnAll ? 'bg-[#65435C] border-[#65435C]' : 'border-gray-400'
+                          }`}>
+                            {returnAll && <Text className="text-white font-bold">✓</Text>}
+                          </View>
+                          <Text className="text-[#65435C] font-semibold text-lg">Return All</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Hectares Input */}
+                      <View className="bg-gray-50 rounded-xl p-4 mb-4">
+                        <Text className="text-[#65435C] font-semibold mb-2">
+                          Hectares to Return
+                        </Text>
+                        <TextInput
+                          className={`bg-white border border-gray-300 rounded-lg p-3 text-[#65435C] text-lg ${
+                            returnAll ? 'opacity-50' : ''
+                          }`}
+                          value={returnHectares}
+                          onChangeText={setReturnHectares}
+                          keyboardType="decimal-pad"
+                          editable={!returnAll}
+                          placeholder="Enter hectares"
+                        />
+                        <Text className="text-gray-500 text-xs mt-2">
+                          Must be a whole number or end in .5 (e.g., 1, 1.5, 2)
+                        </Text>
+                      </View>
+
+                      {/* Location Display */}
+                      <View className="bg-gray-50 rounded-xl p-4 mb-6">
+                        <View className="flex-row items-center mb-2">
+                          <MapPin size={20} color="#65435C" />
+                          <Text className="text-[#65435C] font-semibold ml-2">Current Location</Text>
+                        </View>
+                        <Text className="text-gray-600 text-sm">
+                          Latitude: {latitude || 'Getting location...'}
+                        </Text>
+                        <Text className="text-gray-600 text-sm">
+                          Longitude: {longitude || 'Getting location...'}
+                        </Text>
+                      </View>
+
+                      {/* Submit Button */}
+                      <TouchableOpacity 
+                        className={`rounded-xl p-4 ${
+                          !isSubmitting ? 'bg-red-500' : 'bg-gray-300'
+                        }`}
+                        onPress={submitReturnInput}
+                        disabled={isSubmitting}
+                      >
+                        <Text className={`text-center font-semibold text-lg ${
+                          !isSubmitting ? 'text-white' : 'text-gray-500'
+                        }`}>
+                          {isSubmitting ? 'Processing...' : 'Confirm Return'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        className="mt-3 p-4"
+                        onPress={() => setShowReturnModal(false)}
                       >
                         <Text className="text-center text-gray-500">Cancel</Text>
                       </TouchableOpacity>

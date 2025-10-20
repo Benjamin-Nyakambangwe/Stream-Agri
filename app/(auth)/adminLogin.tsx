@@ -29,7 +29,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
   const [serverIP, setServerIP] = useState("")
-  const [database, setDatabase] = useState("odoo_db2")
+  const [database, setDatabase] = useState("odoo_database")
   const [adminUsername, setAdminUsername] = useState("")
   const [adminPassword, setAdminPassword] = useState("")
   const [powerSyncURI, setPowerSyncURI] = useState("")
@@ -84,6 +84,8 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
     // Save server configuration
     await SecureStore.setItemAsync('odoo_server_ip', serverIP);
     await SecureStore.setItemAsync('odoo_database', database);
+
+
     
     setIsLoggingIn(true)
     setLoginError(null)
@@ -172,8 +174,8 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
               <Settings size={20} color="#1AD3BB" />
               <TextInput 
                 value={serverIP} 
-                onChangeText={setServerIP} 
-                placeholder="Enter Server IP (e.g. 192.168.1.100:8069)"
+                onChangeText={ (text) => setServerIP(text.trim())} 
+                placeholder="Enter Your Server URL"
                 className="flex-1 p-3.5"
                 autoCapitalize="none"
               />
@@ -183,7 +185,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
               <Database size={20} color="#1AD3BB" />
               <TextInput 
                 value={database} 
-                onChangeText={setDatabase} 
+                onChangeText={(text) => setDatabase(text.trim())} 
                 placeholder="Enter Database Name"
                 className="flex-1 p-3.5"
                 autoCapitalize="none"
@@ -194,7 +196,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
               <Mail size={20} color="#1AD3BB" />
               <TextInput
                 value={adminUsername} 
-                onChangeText={setAdminUsername} 
+                onChangeText={(text) => setAdminUsername(text.trim())} 
                 placeholder="Enter Admin Username"
                 className="flex-1 p-3.5"
                 autoCapitalize="none"
@@ -223,7 +225,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
               {/* <Mail size={20} color="#1AD3BB" /> */}
               <TextInput
                 value={powerSyncURI} 
-                onChangeText={setPowerSyncURI} 
+                onChangeText={(text) => setPowerSyncURI(text.trim())} 
                 placeholder="PowerSync URI"
                 className="flex-1 p-3.5"
                 autoCapitalize="none"
@@ -254,7 +256,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
             </View>
 
             <TouchableOpacity
-                className={`rounded-md p-2 flex-1 mt-2 bg-red-500`}
+                className={`rounded-md p-2 flex-1 mt-4 bg-red-500`}
                 onPress={handleClearStorage}
               >
                 <Text className="text-white text-center">

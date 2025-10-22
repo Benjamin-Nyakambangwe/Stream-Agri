@@ -195,7 +195,7 @@ const Inputs = () => {
         ON ic.input_pack_id = ip.id
       LEFT JOIN odoo_gms_grower g
         ON CAST(pcr.grower_id AS TEXT) = g.id
-      WHERE pcr.field_technician_id = ? AND icl.issue_state IN ('issued', 'confirmed')
+      WHERE pcr.field_technician_id = ? AND icl.issue_state = 'issued'
     `;
     
     const result = powersync.watch(query, [employee_id], {
@@ -246,7 +246,7 @@ const Inputs = () => {
         ON ic.input_pack_id = ip.id
       LEFT JOIN odoo_gms_grower g
         ON CAST(pcr.grower_id AS TEXT) = g.id
-      WHERE pcr.field_technician_id = ? AND icl.issue_state = 'received'
+      WHERE pcr.field_technician_id = ? AND icl.issue_state IN ('received', 'confirmed')
     `;
     
     try {

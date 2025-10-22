@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Alert, KeyboardAvoidingView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { router, Stack, useFocusEffect } from 'expo-router'
-import { CircleArrowRight, PlugZap, Search, Unplug, UserPlus, Users } from 'lucide-react-native'
+import { Check, CheckCheck, CircleArrowRight, PlugZap, Search, Unplug, UserPlus, Users } from 'lucide-react-native'
 import { useSession } from '@/authContext'
 import * as SecureStore from 'expo-secure-store';
 import { FlashList } from '@shopify/flash-list'
@@ -195,7 +195,7 @@ const Inputs = () => {
         ON ic.input_pack_id = ip.id
       LEFT JOIN odoo_gms_grower g
         ON CAST(pcr.grower_id AS TEXT) = g.id
-      WHERE pcr.field_technician_id = ? AND icl.issue_state = 'issued'
+      WHERE pcr.field_technician_id = ? AND icl.issue_state IN ('issued', 'confirmed')
     `;
     
     const result = powersync.watch(query, [employee_id], {
@@ -652,9 +652,19 @@ const growerItem = (item: any) => {
                 </View>
                 
                 {/* Right side with action indicator */}
-                <View className=" rounded-full h-8 w-8 items-center justify-center">
-                  <CircleArrowRight size={24} color="#65435C" />
-                    {/* <Text className="text-[#65435C] font-bold">→</Text> */}
+                <View className="flex-row items-center justify-center gap-2">
+                  <View className=" rounded-full h-8 w-8 items-center justify-center">
+                    {item.issue_state === 'confirmed' ? (
+                      <CheckCheck size={18} color="#1AD3BB" />
+                    ) : (
+                      <Check size={18} color="#1AD3BB" />
+                    )}
+                      {/* <Text className="text-[#65435C] font-bold">→</Text> */}
+                  </View>
+                  <View className=" rounded-full h-8 w-8 items-center justify-center">
+                    <CircleArrowRight size={24} color="#65435C" />
+                      {/* <Text className="text-[#65435C] font-bold">→</Text> */}
+                  </View>
                 </View>
             </View>
         </TouchableOpacity>

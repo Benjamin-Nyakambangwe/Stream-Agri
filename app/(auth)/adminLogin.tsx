@@ -29,7 +29,7 @@ export default function LoginScreen({ onRegisterPress }: LoginScreenProps) {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
   const [serverIP, setServerIP] = useState("")
-  const [database, setDatabase] = useState("odoo_database")
+  const [database, setDatabase] = useState("")
   const [adminUsername, setAdminUsername] = useState("")
   const [adminPassword, setAdminPassword] = useState("")
   const [powerSyncURI, setPowerSyncURI] = useState("")

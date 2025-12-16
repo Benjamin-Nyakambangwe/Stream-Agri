@@ -112,27 +112,31 @@ export default function NewGrowerApplicationModal() {
     try {
       const employeeId = await SecureStore.getItemAsync('odoo_employee_id');
       const currentEmployeeId = employeeId || '';
-      const productionCycleName = 'CY26';
-      console.log('Fetching regions for employee ID:', currentEmployeeId, 'and production cycle name:', productionCycleName);
+      console.log('Fetching regions for employee ID:', currentEmployeeId);
 
+      // Get user's accessible regions from HR management (without production cycle filter)
       const userRegions = await powersync.execute(`
         SELECT DISTINCT region_id 
         FROM odoo_gms_hr_management 
-        WHERE employee = ? AND production_cycle_id = (
-          SELECT id FROM odoo_gms_production_cycle WHERE name = ?
-        )
-      `, [currentEmployeeId, productionCycleName]);
+        WHERE employee = ?
+      `, [currentEmployeeId]);
       
       const userRegionIds = userRegions.rows?._array?.map((row: any) => row.region_id) || [];
-      console.log('User accessible region IDs for production cycle', productionCycleName, ':', userRegionIds);
+      console.log('User accessible region IDs:', userRegionIds);
       
       if (userRegionIds.length === 0) {
-        console.log('No regions found for employee', currentEmployeeId, 'in production cycle', productionCycleName);
-        setRegionList([]);
+        console.log('No regions found for employee', currentEmployeeId, ', showing all regions');
+        // If no regions found in HR management, show all regions (like the edit page)
+        const region = await powersync.execute(`SELECT * FROM odoo_gms_region ORDER BY name`);
+        const rows = region.rows?._array || [];
+        setRegionList(rows);
+        if (rows.length > 0) {
+          setRegion(rows[0].id);
+        }
         return;
       }
       
-      // Now get the region details for the accessible regions
+      // Get the region details for the accessible regions
       const placeholders = userRegionIds.map(() => '?').join(',');
       const region = await powersync.execute(`
         SELECT * FROM odoo_gms_region 
@@ -141,7 +145,7 @@ export default function NewGrowerApplicationModal() {
       `, userRegionIds);
       
       const rows = region.rows?._array || [];
-      console.log('Filtered regions for user and production cycle:', rows);
+      console.log('Filtered regions for user:', rows);
       
       setRegionList(rows);
       if (rows.length > 0) {
@@ -150,7 +154,7 @@ export default function NewGrowerApplicationModal() {
     } catch (error) {
       console.error('Error fetching user regions:', error);
       // Fallback to all regions if there's an error
-      const region = await powersync.execute(`SELECT * FROM odoo_gms_region`);
+      const region = await powersync.execute(`SELECT * FROM odoo_gms_region ORDER BY name`);
       const rows = region.rows?._array || [];
       setRegionList(rows);
       if (rows.length > 0) {

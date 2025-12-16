@@ -171,7 +171,7 @@ const Monitoring = () => {
                   >
                     <Text className="text-white text-center">View Completed</Text>
                   </TouchableOpacity> */}
-                  {/* // TODO: Add number of outstanding survey registers for each survey */}
+                  {/* // TODO: Add number of outstanding survey registers for each survey yes */}
                                     {(item as any).outstanding_survey_registers > 0 ? (
                     <View className="flex-row items-center justify-center mt-1">
                       <Text className="text-sm text-red-600 text-center font-semibold mr-1">

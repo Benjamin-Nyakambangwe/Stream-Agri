@@ -121,13 +121,19 @@ const index = () => {
       const activeGrowers = await powersync.execute(`
         SELECT COUNT(*) as count 
         FROM odoo_gms_production_cycle_registration 
-        WHERE current_status = 'current' AND field_technician_id = ?
+        WHERE status = 'active' AND field_technician_id = ?
       `, [currentEmployeeId]);
 
       const inactiveGrowers = await powersync.execute(`
         SELECT COUNT(*) as count 
         FROM odoo_gms_production_cycle_registration 
-        WHERE current_status = 'inactive' AND field_technician_id = ?
+        WHERE status = 'inactive' AND field_technician_id = ?
+      `, [currentEmployeeId]);
+
+      const droppedGrowers = await powersync.execute(`
+        SELECT COUNT(*) as count 
+        FROM odoo_gms_production_cycle_registration 
+        WHERE status = 'dropped' AND field_technician_id = ?
       `, [currentEmployeeId]);
       
       setGrowerStats({
@@ -136,7 +142,8 @@ const index = () => {
         contracted: contractedGrowers.rows?._array?.[0]?.count || 0,
         rejected: rejectedGrowers.rows?._array?.[0]?.count || 0,
         active: activeGrowers.rows?._array?.[0]?.count || 0,
-        inactive: inactiveGrowers.rows?._array?.[0]?.count || 0
+        inactive: inactiveGrowers.rows?._array?.[0]?.count || 0,
+        dropped: droppedGrowers.rows?._array?.[0]?.count || 0
         
       });
       
@@ -147,7 +154,8 @@ const index = () => {
         // rejected: rejectedGrowers.rows?._array?.[0]?.count || 0
 
         active: activeGrowers.rows?._array?.[0]?.count || 0,
-        inactive: inactiveGrowers.rows?._array?.[0]?.count || 0
+        inactive: inactiveGrowers.rows?._array?.[0]?.count || 0,
+        dropped: droppedGrowers.rows?._array?.[0]?.count || 0
       });
       
     } catch (error) {
@@ -160,7 +168,8 @@ const index = () => {
         rejected: 0,
 
         active: 0,
-        inactive: 0
+        inactive: 0,
+        dropped: 0
       });
     } finally {
       setLoadingStats(false);
@@ -386,10 +395,19 @@ const index = () => {
                   <Text className='text-xs text-gray-500 text-center'>Active</Text>
                 </View>
 
-                  {/* INACTIVE */}
+                {/* DROPPED GROWERS */}
                 <View className='flex-1 items-center'>
                   <View className='h-10 w-10 bg-red-100 rounded-xl items-center justify-center mb-2'>
                     <UserX size={16} color="#EF4444" />
+                  </View>
+                  <Text className='text-xl font-bold text-[#65435C]'>{growerStats.dropped}</Text>
+                  <Text className='text-xs text-gray-500 text-center'>Dropped</Text>
+                </View>
+
+                  {/* INACTIVE */}
+                <View className='flex-1 items-center'>
+                  <View className='h-10 w-10 bg-yellow-100 rounded-xl items-center justify-center mb-2'>
+                    <User size={16} color="#F59E0B" />
                   </View>
                   <Text className='text-xl font-bold text-[#65435C]'>{growerStats.inactive}</Text>
                   <Text className='text-xs text-gray-500 text-center'>Inactive</Text>

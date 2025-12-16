@@ -1,4 +1,4 @@
-package com.ben_nyakaz.StreamAgri
+package com.eport.streamagri
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

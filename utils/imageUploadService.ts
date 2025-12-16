@@ -14,8 +14,10 @@ interface ImageUploadRecord {
   id: string;
   mobile_grower_image: string | null;
   mobile_grower_national_id_image: string | null;
+  mobile_grower_national_id_back_image: string | null;
   grower_image_url: string | null;
   grower_national_id_image_url: string | null;
+  grower_national_id_back_image_url: string | null;
 }
 
 class ImageUploadService {
@@ -114,27 +116,74 @@ class ImageUploadService {
   }
 
   /**
+   * Upload grower national ID back image to server
+   */
+  private async sendGrowerNationalIdBackImageToServer(mobileGrowerNationalIdBackImageEncoded: string): Promise<string> {
+    console.log('🔄 Retrying grower national ID back image upload to server');
+
+    try {
+      const options = {
+        method: 'POST',
+        url: IMAGE_UPLOAD_SERVER,
+        headers: {'Content-Type': 'application/json'},
+        // timeout: 30000, // 30 second timeout
+        data: {
+          image: mobileGrowerNationalIdBackImageEncoded,
+        }
+      };
+
+      const response = await axios.request(options);
+      console.log('✅ National ID back image upload response:', response.data);
+
+      if (response.data.error) {
+        console.error('❌ Server error uploading national ID back image:', response.data.error);
+        throw new Error(response.data.error);
+      }
+
+      if (!response.data.url) {
+        throw new Error('Server did not return image URL');
+      }
+
+      return response.data.url;
+    } catch (error) {
+      console.error('❌ Error uploading national ID back image:', error);
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('National ID back image upload timed out. Please check your internet connection and try again.');
+        } else if (error.response) {
+          throw new Error(`Server error: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`);
+        } else if (error.request) {
+          throw new Error('Network error. Please check your internet connection and try again.');
+        }
+      }
+      throw new Error('Failed to upload national ID back image. Please try again.');
+    }
+  }
+
+  /**
    * Find records that need image uploads
    */
   private async findRecordsNeedingUpload(): Promise<ImageUploadRecord[]> {
     try {
       // First, find records from odoo_gms_input_confirmations_lines with missing image URLs
       const confirmationLinesQuery = `
-        SELECT id, grower_image_url, grower_national_id_image_url
+        SELECT id, grower_image_url, grower_national_id_image_url, grower_national_id_back_image_url
         FROM odoo_gms_input_confirmations_lines
         WHERE issue_state = 'received'
-        AND (grower_image_url IS NULL OR grower_national_id_image_url IS NULL)
+        AND (grower_image_url IS NULL OR grower_national_id_image_url IS NULL OR grower_national_id_back_image_url IS NULL)
       `;
 
       interface ConfirmationRecord {
         id: string;
         grower_image_url: string | null;
         grower_national_id_image_url: string | null;
+        grower_national_id_back_image_url: string | null;
       }
 
       interface MediaRecord {
         mobile_grower_image: string | null;
         mobile_grower_national_id_image: string | null;
+        mobile_grower_national_id_back_image: string | null;
       }
 
       const confirmationRecords = await powersync.getAll(confirmationLinesQuery) as ConfirmationRecord[];
@@ -153,7 +202,7 @@ class ImageUploadService {
         console.log(`🔍 Processing confirmation record ${i + 1}/${confirmationRecords.length}: ${record.id}`);
         try {
           const mediaQuery = `
-            SELECT mobile_grower_image, mobile_grower_national_id_image
+            SELECT mobile_grower_image, mobile_grower_national_id_image, mobile_grower_national_id_back_image
             FROM media_files
             WHERE id = ?
           `;
@@ -168,24 +217,30 @@ class ImageUploadService {
             // Only include if there are mobile images to upload for missing URLs
             const needsGrowerImageUpload = !record.grower_image_url && mediaRecord.mobile_grower_image;
             const needsNationalIdUpload = !record.grower_national_id_image_url && mediaRecord.mobile_grower_national_id_image;
+            const needsNationalIdBackUpload = !record.grower_national_id_back_image_url && mediaRecord.mobile_grower_national_id_back_image;
             
             console.log(`🔍 Record ${record.id} analysis:`, {
               grower_image_url: record.grower_image_url,
               grower_national_id_image_url: record.grower_national_id_image_url,
+              grower_national_id_back_image_url: record.grower_national_id_back_image_url,
               has_mobile_grower_image: !!mediaRecord.mobile_grower_image,
               has_mobile_national_id_image: !!mediaRecord.mobile_grower_national_id_image,
+              has_mobile_national_id_back_image: !!mediaRecord.mobile_grower_national_id_back_image,
               needsGrowerImageUpload,
-              needsNationalIdUpload
+              needsNationalIdUpload,
+              needsNationalIdBackUpload
             });
             
-            if (needsGrowerImageUpload || needsNationalIdUpload) {
+            if (needsGrowerImageUpload || needsNationalIdUpload || needsNationalIdBackUpload) {
               console.log(`✅ Adding record ${record.id} to upload queue`);
               imageUploadRecords.push({
                 id: record.id,
                 grower_image_url: record.grower_image_url,
                 grower_national_id_image_url: record.grower_national_id_image_url,
+                grower_national_id_back_image_url: record.grower_national_id_back_image_url,
                 mobile_grower_image: mediaRecord.mobile_grower_image,
-                mobile_grower_national_id_image: mediaRecord.mobile_grower_national_id_image
+                mobile_grower_national_id_image: mediaRecord.mobile_grower_national_id_image,
+                mobile_grower_national_id_back_image: mediaRecord.mobile_grower_national_id_back_image
               });
             } else {
               console.log(`⏭️ Skipping record ${record.id} - no upload needed`);
@@ -222,6 +277,7 @@ class ImageUploadService {
     
     let growerImageUrl = record.grower_image_url;
     let growerNationalIdImageUrl = record.grower_national_id_image_url;
+    let growerNationalIdBackImageUrl = record.grower_national_id_back_image_url;
     let hasUpdates = false;
 
     try {
@@ -241,13 +297,21 @@ class ImageUploadService {
         console.log(`✅ National ID image uploaded successfully for record ${record.id}`);
       }
 
+      // Upload national ID back image if URL is missing
+      if (!growerNationalIdBackImageUrl && record.mobile_grower_national_id_back_image) {
+        console.log(`📤 Uploading national ID back image for record ${record.id}`);
+        growerNationalIdBackImageUrl = await this.sendGrowerNationalIdBackImageToServer(record.mobile_grower_national_id_back_image);
+        hasUpdates = true;
+        console.log(`✅ National ID back image uploaded successfully for record ${record.id}`);
+      }
+
       // Update database if we have new URLs
       if (hasUpdates) {
         await powersync.execute(`
           UPDATE odoo_gms_input_confirmations_lines 
-          SET grower_image_url = ?, grower_national_id_image_url = ?
+          SET grower_image_url = ?, grower_national_id_image_url = ?, grower_national_id_back_image_url = ?
           WHERE id = ?
-        `, [growerImageUrl, growerNationalIdImageUrl, record.id]);
+        `, [growerImageUrl, growerNationalIdImageUrl, growerNationalIdBackImageUrl, record.id]);
         
         console.log(`✅ Database updated successfully for record ${record.id}`);
       }
@@ -412,21 +476,23 @@ export const getUploadPendingCount = async (): Promise<number> => {
   try {
     // Query to find records with missing image URLs but that should have them
     const confirmationLinesQuery = `
-      SELECT id, grower_image_url, grower_national_id_image_url
+      SELECT id, grower_image_url, grower_national_id_image_url, grower_national_id_back_image_url
       FROM odoo_gms_input_confirmations_lines
       WHERE issue_state = 'received'
-      AND (grower_image_url IS NULL OR grower_national_id_image_url IS NULL)
+      AND (grower_image_url IS NULL OR grower_national_id_image_url IS NULL OR grower_national_id_back_image_url IS NULL)
     `;
 
     interface ConfirmationRecord {
       id: string;
       grower_image_url: string | null;
       grower_national_id_image_url: string | null;
+      grower_national_id_back_image_url: string | null;
     }
 
     interface MediaRecord {
       mobile_grower_image: string | null;
       mobile_grower_national_id_image: string | null;
+      mobile_grower_national_id_back_image: string | null;
     }
 
     const confirmationRecords = await powersync.getAll(confirmationLinesQuery) as ConfirmationRecord[];
@@ -441,7 +507,7 @@ export const getUploadPendingCount = async (): Promise<number> => {
     for (const record of confirmationRecords) {
       try {
         const mediaQuery = `
-          SELECT mobile_grower_image, mobile_grower_national_id_image
+          SELECT mobile_grower_image, mobile_grower_national_id_image, mobile_grower_national_id_back_image
           FROM media_files
           WHERE id = ?
         `;
@@ -454,8 +520,9 @@ export const getUploadPendingCount = async (): Promise<number> => {
           // Check if there are mobile images to upload for missing URLs
           const needsGrowerImageUpload = !record.grower_image_url && mediaRecord.mobile_grower_image;
           const needsNationalIdUpload = !record.grower_national_id_image_url && mediaRecord.mobile_grower_national_id_image;
+          const needsNationalIdBackUpload = !record.grower_national_id_back_image_url && mediaRecord.mobile_grower_national_id_back_image;
           
-          if (needsGrowerImageUpload || needsNationalIdUpload) {
+          if (needsGrowerImageUpload || needsNationalIdUpload || needsNationalIdBackUpload) {
             pendingCount++;
           }
         }

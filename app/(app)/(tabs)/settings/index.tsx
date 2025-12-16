@@ -93,6 +93,10 @@ const Settings = () => {
                     <Text className="text-lg font-bold text-[#65435C]">DB Export</Text>
                 </View>
             </TouchableOpacity>
+            
+        </View>
+        <View className="flex-row items-center justify-center">
+        <Text className="text-white text-center">Version 1.0.1</Text>
         </View>
 
       </View>

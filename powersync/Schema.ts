@@ -318,7 +318,8 @@ const odoo_gms_production_cycle_registration = new Table(
     distribution_plan: column.integer,
     balance: column.real,
     production_cycle_name: column.text,
-    current_status: column.text
+    current_status: column.text,
+    status: column.text
 
   },
   { 
@@ -396,6 +397,7 @@ const odoo_gms_input_confirmations_lines = new Table(
     // mobile_grower_national_id_image: column.text,
     grower_image_url: column.text,
     grower_national_id_image_url: column.text,
+    grower_national_id_back_image_url: column.text,
     signature_url: column.text
   },
   { 
@@ -832,6 +834,7 @@ const media_files = new Table({
   id: column.text, // Changed from integer to text to support UUID strings
   mobile_grower_image: column.text,
   mobile_grower_national_id_image: column.text,
+  mobile_grower_national_id_back_image: column.text,
   mobile_signature_image: column.text,
   model: column.text,
   create_date: column.text,
@@ -856,6 +859,7 @@ const grower_daily_images = new Table({
   grower_number: column.text, // To identify grower
   grower_image: column.text, // Base64 compressed grower photo
   grower_id_image: column.text, // Base64 compressed national ID photo
+  grower_id_back_image: column.text, // Base64 compressed national ID back photo
   capture_date: column.text, // Date string YYYY-MM-DD
   created_at: column.text
 }, {

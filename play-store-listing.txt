@@ -1,0 +1,223 @@
+==========================================
+GOOGLE PLAY STORE LISTING
+Stream-Agri - Agricultural Field Management
+==========================================
+
+-------------------------------------------
+SHORT DESCRIPTION (80 characters max)
+-------------------------------------------
+
+Manage farmers, track agricultural inputs, and monitor crops - works offline!
+
+(Note: 78 characters - optimized for visibility and clarity)
+
+
+-------------------------------------------
+FULL DESCRIPTION (4000 characters max)
+-------------------------------------------
+
+Transform your agricultural field operations with Stream-Agri - the comprehensive mobile solution designed for field officers, agricultural extension workers, and agribusiness managers. Work seamlessly online or offline, with automatic data synchronization when connectivity returns.
+
+📱 DESIGNED FOR AGRICULTURAL PROFESSIONALS
+Stream-Agri empowers field officers to efficiently manage grower relationships, track agricultural inputs distribution, conduct monitoring surveys, and maintain accurate production records - all from a single mobile application.
+
+🌾 KEY FEATURES
+
+✓ WORKS OFFLINE
+- Full functionality without internet connection
+- Automatic data sync when online
+- Never lose data in remote farming areas
+- Real-time network status indicator
+
+✓ GROWER MANAGEMENT
+Comprehensive farmer database at your fingertips:
+- Register new growers with complete profile information
+- Capture grower portraits and ID documentation with built-in camera
+- Record farm details: size, location, crop types, and practices
+- GPS coordinates for accurate farm location mapping
+- Search and filter growers instantly
+- Track grower production history across seasons
+- Update grower information in real-time
+
+✓ AGRICULTURAL INPUTS TRACKING
+Complete lifecycle management of agricultural inputs:
+- Record inputs issued to growers with digital signatures
+- Document inputs received from suppliers
+- Track returned inputs and inventory
+- Attach photos for proof of delivery
+- Automatic GPS tagging of distribution locations
+- Generate input distribution reports
+- Monitor input usage and accountability
+
+✓ MONITORING & EVALUATION (M&E)
+Professional field survey and monitoring tools:
+- Create detailed monitoring reports
+- Conduct structured field surveys
+- Record crop performance observations
+- Capture photographic evidence
+- Track farm visits with GPS and timestamps
+- View completed survey history
+- Export evaluation data for analysis
+
+✓ DASHBOARD & REPORTING
+Intuitive interface for quick access:
+- Personalized welcome screen with your name
+- Quick-access tiles for all major features
+- Visual network connectivity status
+- Summary statistics and recent activities
+- Easy navigation between all sections
+
+✓ SETTINGS & DATA MANAGEMENT
+Full control over your data:
+- Export complete database for backup
+- View data synchronization status
+- Monitor local storage usage
+- Secure logout functionality
+- User profile management
+
+✓ SECURITY & AUTHENTICATION
+Enterprise-grade security features:
+- Phone number and password authentication
+- Secure local data storage with encryption
+- HTTPS encrypted data transmission
+- Access controls for authorized personnel only
+- Automatic session management
+
+🎯 PERFECT FOR:
+• Field Officers & Extension Workers
+• Agricultural Cooperatives
+• Agribusiness Organizations
+• Contract Farming Programs
+• Agricultural Input Suppliers
+• Farm Management Companies
+• Government Agricultural Departments
+• NGOs in Agricultural Development
+
+🔧 TECHNICAL HIGHLIGHTS
+• Offline-first architecture - work anywhere
+• SQLite encrypted local database
+• Real-time cloud synchronization
+• GPS location tracking
+• Built-in camera integration
+• Digital signature capture
+• Responsive and intuitive interface
+• Low data usage
+• Optimized for performance
+
+📊 HOW IT WORKS
+
+1. ADMIN SETUP
+Administrators configure server connections and create field officer accounts through a secure configuration screen.
+
+2. FIELD OFFICER LOGIN
+Field officers log in with their phone number and password. First-time login downloads necessary data; subsequent logins work offline.
+
+3. MANAGE GROWERS
+Register new farmers, capture photos and documents, record farm details, and maintain comprehensive grower profiles.
+
+4. TRACK INPUTS
+Document every input transaction - issued, received, or returned - with photos, signatures, and GPS coordinates.
+
+5. CONDUCT SURVEYS
+Perform field monitoring, complete evaluation surveys, and record observations with photographic evidence.
+
+6. SYNC DATA
+When online, all collected data automatically syncs to your organization's server, ensuring data consistency across all devices.
+
+🌍 OFFLINE CAPABILITY
+Stream-Agri understands that agricultural work often happens in areas with poor connectivity. That's why we built the app to work completely offline after initial setup. All features remain fully functional without internet, and your data syncs automatically when you're back online.
+
+🔒 DATA PRIVACY & SECURITY
+We take data protection seriously. All information is encrypted during transmission and storage. Your grower data, photos, and records are secure and accessible only to authorized personnel in your organization.
+
+📈 BOOST YOUR PRODUCTIVITY
+- Reduce paperwork and manual data entry
+- Eliminate data duplication errors
+- Speed up field operations
+- Improve data accuracy with digital records
+- Access historical data instantly
+- Generate reports on the go
+
+💼 ENTERPRISE READY
+Stream-Agri supports multi-user organizations with centralized data management, role-based access, and seamless collaboration between field teams and office staff.
+
+🆘 SUPPORT
+Need help? Contact our dedicated support team at benjamin.nyakambangwe@eport.cloud or visit www.eport.cloud for documentation and training resources.
+
+Download Stream-Agri today and revolutionize your agricultural field management operations!
+
+---
+
+Developed by ePort
+© 2025 ePort. All rights reserved.
+
+
+-------------------------------------------
+CHARACTER COUNT: ~3,945 characters
+-------------------------------------------
+
+
+==========================================
+ADDITIONAL METADATA FOR PLAY STORE
+==========================================
+
+APP CATEGORY: Business
+CONTENT RATING: 18+
+TAGS/KEYWORDS: 
+- Agricultural management
+- Farm management
+- Field officer app
+- Grower management
+- Agriculture monitoring
+- Agricultural inputs tracking
+- Offline farming app
+- Crop monitoring
+- Agricultural survey
+- Contract farming
+
+APP TITLE OPTIONS:
+1. Stream-Agri - Farm & Grower Management
+2. Stream-Agri: Agricultural Field Manager
+3. Stream-Agri - Offline Farm Management
+
+
+==========================================
+PROMOTIONAL TEXT (80 characters)
+==========================================
+
+Offline-first agricultural management app trusted by field officers worldwide!
+
+
+==========================================
+SCREENSHOT CAPTIONS (Suggestions)
+==========================================
+
+Screenshot 1 (Dashboard):
+"Intuitive dashboard - Quick access to all features"
+
+Screenshot 2 (Growers List):
+"Manage your grower database with ease"
+
+Screenshot 3 (Grower Profile):
+"Comprehensive grower profiles with photos and farm details"
+
+Screenshot 4 (Inputs Tracking):
+"Track all agricultural inputs - issued, received, returned"
+
+Screenshot 5 (M&E Survey):
+"Conduct professional monitoring and evaluation surveys"
+
+Screenshot 6 (Offline Mode):
+"Full functionality offline - sync when connected"
+
+Screenshot 7 (Settings):
+"Export data, manage settings, and monitor sync status"
+
+
+==========================================
+FEATURE GRAPHIC TEXT (Optional)
+==========================================
+
+"Agricultural Field Management Made Simple"
+"Work Offline. Sync Online. Stay Productive."
+

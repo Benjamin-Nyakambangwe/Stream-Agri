@@ -1,4 +1,4 @@
-package com.ben_nyakaz.StreamAgri
+package com.eport.streamagri
 
 import android.app.Application
 import android.content.res.Configuration

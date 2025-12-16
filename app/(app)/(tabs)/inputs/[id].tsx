@@ -33,11 +33,13 @@ export default function GrowerModal() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [showCamera, setShowCamera] = useState<boolean>(false);
-  const [activeCamera, setActiveCamera] = useState<'grower_image' | 'grower_national_id' | null>(null);
+  const [activeCamera, setActiveCamera] = useState<'grower_image' | 'grower_national_id' | 'grower_national_id_back' | null>(null);
   const [mobileGrowerImage, setMobileGrowerImage] = useState<string | null>(null);
   const [mobileGrowerNationalIdImage, setMobileGrowerNationalIdImage] = useState<string | null>(null);
+  const [mobileGrowerNationalIdBackImage, setMobileGrowerNationalIdBackImage] = useState<string | null>(null);
   const [mobileGrowerImageEncoded, setMobileGrowerImageEncoded] = useState<string | null>(null);
   const [mobileGrowerNationalIdImageEncoded, setMobileGrowerNationalIdImageEncoded] = useState<string | null>(null);
+  const [mobileGrowerNationalIdBackImageEncoded, setMobileGrowerNationalIdBackImageEncoded] = useState<string | null>(null);
   const [latitude, setLatitude] = useState<string>('');
   const [longitude, setLongitude] = useState<string>('');
   const [showConfirmationPopup, setShowConfirmationPopup] = useState<boolean>(false);
@@ -83,6 +85,7 @@ export default function GrowerModal() {
         console.log('✅ Found cached images for grower:', growerNumber);
         console.log('   - Has grower_image:', !!cached.grower_image);
         console.log('   - Has grower_id_image:', !!cached.grower_id_image);
+        console.log('   - Has grower_id_back_image:', !!cached.grower_id_back_image);
         
         if (cached.grower_image) {
           setMobileGrowerImage(`data:image/jpg;base64,${cached.grower_image}`);
@@ -96,6 +99,12 @@ export default function GrowerModal() {
           console.log('   - Loaded grower_id_image');
         }
         
+        if (cached.grower_id_back_image) {
+          setMobileGrowerNationalIdBackImage(`data:image/jpg;base64,${cached.grower_id_back_image}`);
+          setMobileGrowerNationalIdBackImageEncoded(cached.grower_id_back_image);
+          console.log('   - Loaded grower_id_back_image');
+        }
+        
         return true;
       }
       console.log('❌ No cached images found for grower:', growerNumber);
@@ -107,7 +116,7 @@ export default function GrowerModal() {
   };
 
   // Save images to cache for a grower
-  const saveGrowerImages = async (growerNumber: string, growerImage: string, growerIdImage: string) => {
+  const saveGrowerImages = async (growerNumber: string, growerImage: string, growerIdImage: string, growerIdBackImage: string) => {
     try {
       const today = getTodayDate();
       const id = Crypto.randomUUID();
@@ -117,6 +126,7 @@ export default function GrowerModal() {
       console.log('   - Date:', today);
       console.log('   - Grower image length:', growerImage?.length || 0);
       console.log('   - ID image length:', growerIdImage?.length || 0);
+      console.log('   - ID back image length:', growerIdBackImage?.length || 0);
       
       // Delete existing cache for this grower today (if any)
       await powersync.execute(
@@ -126,9 +136,9 @@ export default function GrowerModal() {
       
       // Insert new cache
       await powersync.execute(
-        `INSERT INTO grower_daily_images (id, grower_number, grower_image, grower_id_image, capture_date, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [id, growerNumber, growerImage, growerIdImage, today, new Date().toISOString()]
+        `INSERT INTO grower_daily_images (id, grower_number, grower_image, grower_id_image, grower_id_back_image, capture_date, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, growerNumber, growerImage, growerIdImage, growerIdBackImage, today, new Date().toISOString()]
       );
       
       console.log('✅ Successfully saved images to cache for grower:', growerNumber);
@@ -237,15 +247,16 @@ export default function GrowerModal() {
     cleanupOldImages(); // Clean up old cached images
   }, [id]);
 
-  // Save images to cache when both are captured
+  // Save images to cache when all three are captured
   useEffect(() => {
     const saveCachedImages = async () => {
       console.log('📸 Image capture useEffect triggered:');
       console.log('   - Has grower image?', !!mobileGrowerImageEncoded);
       console.log('   - Has ID image?', !!mobileGrowerNationalIdImageEncoded);
+      console.log('   - Has ID back image?', !!mobileGrowerNationalIdBackImageEncoded);
       console.log('   - Has current data?', !!currentInputConfirmationLineData);
       
-      if (mobileGrowerImageEncoded && mobileGrowerNationalIdImageEncoded && currentInputConfirmationLineData) {
+      if (mobileGrowerImageEncoded && mobileGrowerNationalIdImageEncoded && mobileGrowerNationalIdBackImageEncoded && currentInputConfirmationLineData) {
         try {
           console.log('🔍 Getting grower_number for PCR ID:', currentInputConfirmationLineData.production_cycle_registration_id);
           
@@ -263,7 +274,7 @@ export default function GrowerModal() {
           if (growerData.length > 0 && (growerData[0] as any).grower_number) {
             const growerNumber = (growerData[0] as any).grower_number;
             console.log('👤 Found grower_number:', growerNumber);
-            await saveGrowerImages(growerNumber, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded);
+            await saveGrowerImages(growerNumber, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, mobileGrowerNationalIdBackImageEncoded);
           } else {
             console.log('❌ No grower_number found in query result');
           }
@@ -276,7 +287,7 @@ export default function GrowerModal() {
     };
     
     saveCachedImages();
-  }, [mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded]);
+  }, [mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, mobileGrowerNationalIdBackImageEncoded]);
 
   const getConfig = async () => {
     const result = await powersync.getAll(`
@@ -306,7 +317,7 @@ export default function GrowerModal() {
     }
   };
 
-  const compressImage = async (base64Image: string, imageType: 'grower_image' | 'grower_national_id'): Promise<string> => {
+  const compressImage = async (base64Image: string, imageType: 'grower_image' | 'grower_national_id' | 'grower_national_id_back'): Promise<string> => {
     try {
       const imageUri = base64Image.startsWith('data:image')
         ? base64Image
@@ -371,7 +382,8 @@ export default function GrowerModal() {
         
         const paddedBase64 = fixBase64Padding(base64Data);
         
-        const imageType = activeCamera === 'grower_image' ? 'grower_image' : 'grower_national_id';
+        const imageType = activeCamera === 'grower_image' ? 'grower_image' : 
+                          activeCamera === 'grower_national_id' ? 'grower_national_id' : 'grower_national_id_back';
         const compressedBase64 = await compressImage(paddedBase64, imageType);
         
         if (activeCamera === 'grower_image') {
@@ -380,6 +392,9 @@ export default function GrowerModal() {
         } else if (activeCamera === 'grower_national_id') {
           setMobileGrowerNationalIdImage(`data:image/jpg;base64,${compressedBase64}`);
           setMobileGrowerNationalIdImageEncoded(compressedBase64);
+        } else if (activeCamera === 'grower_national_id_back') {
+          setMobileGrowerNationalIdBackImage(`data:image/jpg;base64,${compressedBase64}`);
+          setMobileGrowerNationalIdBackImageEncoded(compressedBase64);
         }
       }
       
@@ -391,7 +406,7 @@ export default function GrowerModal() {
     }
   };
 
-  const openCamera = (type: 'grower_image' | 'grower_national_id') => {
+  const openCamera = (type: 'grower_image' | 'grower_national_id' | 'grower_national_id_back') => {
     setActiveCamera(type);
     setShowCamera(true);
   };
@@ -437,8 +452,10 @@ export default function GrowerModal() {
       console.log('🔄 Resetting images (no cache found)');
       setMobileGrowerImage(null);
       setMobileGrowerNationalIdImage(null);
+      setMobileGrowerNationalIdBackImage(null);
       setMobileGrowerImageEncoded(null);
       setMobileGrowerNationalIdImageEncoded(null);
+      setMobileGrowerNationalIdBackImageEncoded(null);
     }
     
     // Open modal after images are loaded
@@ -482,8 +499,8 @@ export default function GrowerModal() {
   const updateInputIssue = async (item: any) => {
 
     if (config && JSON.parse(config.replace(/,(\s*[}\]])/g, '$1')).inputs_confirmation == 'images') {
-        if (!mobileGrowerImage || !mobileGrowerNationalIdImage) {
-          Alert.alert('Missing Images', 'Please capture both grower and national ID images before confirming.');
+        if (!mobileGrowerImage || !mobileGrowerNationalIdImage || !mobileGrowerNationalIdBackImage) {
+          Alert.alert('Missing Images', 'Please capture all three images (grower photo, national ID front, and national ID back) before confirming.');
           return;
         }
     } else if (!latitude || !longitude) {
@@ -496,22 +513,32 @@ export default function GrowerModal() {
 
     setIsSubmitting(true);
 
-    await powersync.execute(`
-      INSERT INTO media_files (id, mobile_grower_image, mobile_grower_national_id_image, create_date, write_date, model)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [item.id, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, new Date().toISOString(), new Date().toISOString(), 'odoo_gms_input_confirmations_lines']);
-    
     try {
-      console.log('Starting image upload process...');
-      let growerImageUrl, growerNationalIdImageUrl;
+      console.log('Starting confirmation process...');
+      console.log('Item ID:', item.id);
+      console.log('Has grower image:', !!mobileGrowerImageEncoded);
+      console.log('Has national ID image:', !!mobileGrowerNationalIdImageEncoded);
+      console.log('Has national ID back image:', !!mobileGrowerNationalIdBackImageEncoded);
+      
+      // Insert or replace images into media_files table (handles case where record already exists)
+      console.log('Inserting/updating images in media_files table...');
+      await powersync.execute(`
+        INSERT OR REPLACE INTO media_files (id, mobile_grower_image, mobile_grower_national_id_image, mobile_grower_national_id_back_image, create_date, write_date, model)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [item.id, mobileGrowerImageEncoded, mobileGrowerNationalIdImageEncoded, mobileGrowerNationalIdBackImageEncoded, new Date().toISOString(), new Date().toISOString(), 'odoo_gms_input_confirmations_lines']);
+      
+      console.log('✅ Images inserted into media_files table successfully');
 
+      // Update the input confirmation line with received state
+      // Image URLs are set to NULL initially and will be populated by the image upload service
+      console.log('Updating input confirmation line...');
       await powersync.execute(`
         UPDATE odoo_gms_input_confirmations_lines 
-        SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?, grower_image_url = ?, grower_national_id_image_url = ?
+        SET issue_state = ?, latitude = ?, longitude = ?, voucher_id = ?, grower_image_url = NULL, grower_national_id_image_url = NULL, grower_national_id_back_image_url = NULL
         WHERE id = ?
-      `, ['received', latitude, longitude, selectedCollectionVoucher, growerImageUrl, growerNationalIdImageUrl, item.id]);
+      `, ['received', latitude, longitude, selectedCollectionVoucher, item.id]);
 
-      console.log('Database updated successfully');
+      console.log('✅ Database updated successfully');
       Alert.alert('Success', 'Input delivery confirmed successfully!');
       
       setShowConfirmationPopup(false);
@@ -520,13 +547,18 @@ export default function GrowerModal() {
       setShowVoucherDropdown(false);
       setMobileGrowerImage(null);
       setMobileGrowerNationalIdImage(null);
+      setMobileGrowerNationalIdBackImage(null);
       setMobileGrowerImageEncoded(null);
       setMobileGrowerNationalIdImageEncoded(null);
+      setMobileGrowerNationalIdBackImageEncoded(null);
+      
+      console.log('✅ Confirmation process completed, navigating back...');
       router.back();
     } catch (error) {
-      console.error('Error updating input issue:', error);
+      console.error('❌ Error in confirmation process:', error);
       Alert.alert('Error', `Failed to confirm delivery: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
+      console.log('Setting isSubmitting to false');
       setIsSubmitting(false);
     }
   };
@@ -562,9 +594,9 @@ export default function GrowerModal() {
         
         await powersync.execute(`
           UPDATE odoo_gms_input_confirmations_lines
-          SET issue_state = ?, excel_hectares = ?, latitude = ?, longitude = ?
+          SET excel_hectares = ?, latitude = ?, longitude = ?
           WHERE id = ?
-        `, ['returned', newIssuedHectares, latitude, longitude, item.id]);
+        `, [newIssuedHectares, latitude, longitude, item.id]);
       }
 
       Alert.alert('Success', 'Input returned successfully!');
@@ -621,7 +653,7 @@ export default function GrowerModal() {
                 </View>
 
                 {/* Hectares Cards */}
-                <View className="flex-row justify-between mb-6">
+                {/* <View className="flex-row justify-between mb-6">
                   <View className="flex-1 bg-[#65435C]/10 rounded-xl p-4 mr-2">
                     <Text className="text-[#65435C] text-sm font-medium mb-1">Contracted Ha</Text>
                     <Text className="text-[#65435C] text-2xl font-bold">
@@ -634,13 +666,18 @@ export default function GrowerModal() {
                       {inputConfirmationLineData?.excel_hectares || '0'}
                     </Text>
                   </View>
-                </View>
+                </View> */}
               </View>
 
               <View className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
 
                 {inputConfirmationLineDataArray.map((item: any, index: number) => (
-                  <View className="flex-row justify-between items-center py-3 border-b border-gray-100" key={index}>
+                  <View className="" key={index}>
+                    <View className="flex-row justify-between items-center pt-8 py-3 border-b border-gray-100">
+                      <Text className="text-gray-900 text-md font-bold">{item.contracted_hectares || 0} Ha | Contracted</Text>
+                      <Text className="text-gray-900 text-md font-bold">{item.excel_hectares || 0} Ha | Confirmed</Text>
+                    </View>
+                    <View className="flex-row justify-between items-center py-3 border-b border-[#65435C]">
                     <View className="w-1/2">
                       <Text className="text-gray-900 text-md font-bold">{item.issued_packs} * {item.product_group_name}</Text>
                     </View>
@@ -674,6 +711,7 @@ export default function GrowerModal() {
                          </Text>
                        </View>
                      )}
+                     </View>
                      </View>
                    </View>
 
@@ -714,7 +752,8 @@ export default function GrowerModal() {
                         <View className="bg-[#65435C] h-12 w-12 rounded-full" />
                       </TouchableOpacity>
                       <Text className="text-white mt-2 text-center">
-                        {activeCamera === 'grower_image' ? 'Capture Grower Photo' : 'Capture National ID Photo'}
+                        {activeCamera === 'grower_image' ? 'Capture Grower Photo' : 
+                         activeCamera === 'grower_national_id' ? 'Capture National ID Front' : 'Capture National ID Back'}
                       </Text>
                     </View>
                   </View>
@@ -754,44 +793,67 @@ export default function GrowerModal() {
                       </View>
 
                       {config && JSON.parse(config.replace(/,(\s*[}\]])/g, '$1')).inputs_confirmation == 'images' && (
-                      <View className="flex-row justify-between mb-6">
-                        <TouchableOpacity 
-                          className="bg-white border border-gray-300 rounded-lg p-2 w-[48%] h-40"
-                          onPress={() => openCamera('grower_image')}
-                        >
-                          {mobileGrowerImage ? (
-                            <Image 
-                              source={{ uri: mobileGrowerImage }} 
-                              className="w-full h-full rounded-lg" 
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <View className="items-center justify-center h-full">
-                              <Camera size={40} color="#65435C" />
-                              <Text className="text-gray-600 mt-2 text-center">Grower Photo</Text>
-                              <Text className="text-gray-400 text-xs text-center mt-1">Tap to capture</Text>
-                            </View>
-                          )}
-                        </TouchableOpacity>
+                      <View className="mb-6">
+                        <View className="flex-row justify-between mb-4">
+                          <TouchableOpacity 
+                            className="bg-white border border-gray-300 rounded-lg p-2 w-[48%] h-40"
+                            onPress={() => openCamera('grower_image')}
+                          >
+                            {mobileGrowerImage ? (
+                              <Image 
+                                source={{ uri: mobileGrowerImage }} 
+                                className="w-full h-full rounded-lg" 
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View className="items-center justify-center h-full">
+                                <Camera size={40} color="#65435C" />
+                                <Text className="text-gray-600 mt-2 text-center">Grower Photo</Text>
+                                <Text className="text-gray-400 text-xs text-center mt-1">Tap to capture</Text>
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                          
+                          <TouchableOpacity 
+                            className="bg-white border border-gray-300 rounded-lg p-2 w-[48%] h-40"
+                            onPress={() => openCamera('grower_national_id')}
+                          >
+                            {mobileGrowerNationalIdImage ? (
+                              <Image 
+                                source={{ uri: mobileGrowerNationalIdImage }} 
+                                className="w-full h-full rounded-lg" 
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View className="items-center justify-center h-full">
+                                <Camera size={40} color="#65435C" />
+                                <Text className="text-gray-600 mt-2 text-center">National ID Front</Text>
+                                <Text className="text-gray-400 text-xs text-center mt-1">Tap to capture</Text>
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        </View>
                         
-                        <TouchableOpacity 
-                          className="bg-white border border-gray-300 rounded-lg p-2 w-[48%] h-40"
-                          onPress={() => openCamera('grower_national_id')}
-                        >
-                          {mobileGrowerNationalIdImage ? (
-                            <Image 
-                              source={{ uri: mobileGrowerNationalIdImage }} 
-                              className="w-full h-full rounded-lg" 
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <View className="items-center justify-center h-full">
-                              <Camera size={40} color="#65435C" />
-                              <Text className="text-gray-600 mt-2 text-center">National ID Photo</Text>
-                              <Text className="text-gray-400 text-xs text-center mt-1">Tap to capture</Text>
-                            </View>
-                          )}
-                        </TouchableOpacity>
+                        <View className="flex-row justify-center">
+                          <TouchableOpacity 
+                            className="bg-white border border-gray-300 rounded-lg p-2 w-[48%] h-40"
+                            onPress={() => openCamera('grower_national_id_back')}
+                          >
+                            {mobileGrowerNationalIdBackImage ? (
+                              <Image 
+                                source={{ uri: mobileGrowerNationalIdBackImage }} 
+                                className="w-full h-full rounded-lg" 
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View className="items-center justify-center h-full">
+                                <Camera size={40} color="#65435C" />
+                                <Text className="text-gray-600 mt-2 text-center">National ID Back</Text>
+                                <Text className="text-gray-400 text-xs text-center mt-1">Tap to capture</Text>
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        </View>
                       </View>
                       )}
 
